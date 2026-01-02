@@ -1,0 +1,30 @@
+/* Base Styles & Reset */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --header-height: 64px;
+    --primary: #00af50;
+    --primary-hover: #008f40;
+    --bg-light: #f8f9fa;
+    --text-dark: #333;
+    --text-muted: #6c757d;
+    --border: #e1e4e8;
+    --danger: #dc3545;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.5;
+}
+
+.hidden {
+    display: none !important;
+}

@@ -1,0 +1,22 @@
+# --- Secrets & Security  ---
+secrets/
+deploy/manager/app/manager_config.json
+*.key
+*.pem
+*.crt
+*.csr
+.env
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.pytest_cache/
+# --- System & IDE ---
+.DS_Store
+.idea/
+.vscode/
+# --- Data ---
+data/maps/*.mbtiles

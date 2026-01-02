@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIBL IoT - {% block title %}Dashboard{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='images/favicon.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', path='images/favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/dashboard.css') }}">
+    <style>
+        /* Additional overrides if needed */
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Top Navigation -->
+        <header class="top-nav">
+            <div class="nav-brand">
+                <img src="{{ url_for('static', path='images/logo.png') }}" alt="DIBL IoT">
+                <span>DIBL IoT</span>
+            </div>
+            <nav class="nav-links">
+                <a href="/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}">
+                    Dashboard
+                </a>
+                <a href="/assets" class="nav-item {% if page == 'assets' %}active{% endif %}">
+                    My IoT Devices
+                </a>
+                <a href="/rules" class="nav-item {% if page == 'rules' %}active{% endif %}">
+                    Rules
+                </a>
+                <a href="/timers" class="nav-item {% if page == 'timers' %}active{% endif %}">
+                    Timers
+                </a>
+                <a href="/settings" class="nav-item {% if page == 'settings' %}active{% endif %}">
+                    User
+                </a>
+                <div style="flex:1"></div> <!-- Spacer -->
+                <a href="/test" class="nav-item">
+                    Test API
+                </a>
+                <a href="/logout" class="nav-item logout">
+                    Logout
+                </a>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">{% block header %}Dashboard{% endblock %}</h1>
+                <div class="user-info">
+                    <span style="color: #666; font-size: 0.9rem;">Welcome, User</span>
+                </div>
+            </div>
+
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', path='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

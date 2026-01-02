@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Asset - OpenRemote</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='images/favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="{{ url_for('static', path='images/logo.png') }}" alt="Logo">
+        </div>
+    </nav>
+    <div class="container">
+        <h2>Link Asset</h2>
+        <p>Enter the ID of an asset to link it to your account.</p>
+
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        <form action="/link-asset" method="POST">
+            <input type="hidden" name="realm" value="{{ realm }}">
+            <input type="hidden" name="username" value="{{ username }}">
+            <input type="hidden" name="password" value="{{ password }}">
+            <input type="hidden" name="user_id" value="{{ user_id }}">
+
+            <div class="form-group">
+                <label for="asset_id">Asset ID</label>
+                <input type="text" id="asset_id" name="asset_id" placeholder="e.g. 5yI..." required>
+            </div>
+
+            <div class="button-group" style="display: flex; gap: 10px;">
+                <button type="submit" name="action" value="link">Confirm</button>
+                <button type="submit" name="action" value="skip" style="background-color: #6c757d;"
+                    formnovalidate>Skip</button>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>

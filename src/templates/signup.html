@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIBL IOT - Sign Up</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='images/favicon.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', path='images/favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}?v=2">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="{{ url_for('static', path='images/logo.png') }}" alt="Logo">
+        </div>
+    </nav>
+    <div class="container">
+        <h2>DIBL IoT - Sign Up</h2>
+
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+
+        <div id="signup-form">
+            <form action="/signup" method="POST">
+                <input type="hidden" name="realm" value="{{ realm }}">
+                <div class="form-group">
+                    <label for="signup-username">Username</label>
+                    <input type="text" id="signup-username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" name="password" required>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="terms-checkbox" name="terms" required
+                        oninvalid="this.setCustomValidity('Please accept the Terms and Conditions to proceed.')"
+                        oninput="this.setCustomValidity('')">
+                    <label for="terms-checkbox" class="inline-label">I accept the <a href="#" id="terms-link"
+                            onclick="openTermsModal(event)">Terms and Conditions</a></label>
+                </div>
+                <button type="submit">Sign Up</button>
+            </form>
+            <div class="toggle-link">
+                Already have an account? <a href="/">Sign In</a>
+            </div>
+        </div>
+
+        <!-- Terms and Conditions Modal -->
+        <div id="terms-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeTermsModal()">&times;</span>
+                {% include 'terms_and_conditions.html' %}
+                <button class="btn-primary" onclick="closeTermsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', path='js/auth.js') }}?v=2"></script>
+</body>
+
+</html>

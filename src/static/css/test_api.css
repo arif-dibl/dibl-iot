@@ -1,0 +1,22 @@
+.url-item {
+    padding: 0.75rem;
+    background: var(--bg-light);
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.url-item:hover {
+    border-color: var(--primary);
+    background: #fff;
+}
+
+.url-item code {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--primary);
+    word-break: break-all;
+}

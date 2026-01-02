@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}API Test Console{% endblock %}
+{% block header %}API Test Console{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns: 1fr 2fr; gap:2rem;">
+
+    <!-- Useful URLs -->
+    <div class="card">
+        <h3>Useful Endpoints</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+            Click to copy endpoint used for your realm: <b>{{ realm }}</b>
+        </p>
+
+        <ul style="list-style:none; padding:0; margin:0;" id="urlList">
+            <li class="url-item" onclick="copyUrl('/api/{{ realm }}/user/user/self')">
+                <strong>Get Me (User Info)</strong>
+                <code>/api/{{ realm }}/user/user/self</code>
+            </li>
+            <li class="url-item" onclick="copyUrl('/api/{{ realm }}/asset/user/current')">
+                <strong>My Assets (Old)</strong>
+                <code>/api/{{ realm }}/asset/user/current</code>
+            </li>
+            <li class="url-item"
+                onclick="copyUrl('/api/{{ realm }}/asset/query', 'POST', {'attributeFilters':[{'attributeName':'linkedUsers','value':'USER_ID','match':'EXACT'}]})">
+                <strong>Query My Assets (New)</strong>
+                <code>POST /api/{{ realm }}/asset/query</code>
+                <small style="display:block; color:var(--text-muted); font-size:0.75rem;">(Requires POST +
+                    Filter)</small>
+            </li>
+            <li class="url-item" onclick="copyUrl('/api/{{ realm }}/rules')">
+                <strong>Get Rules</strong>
+                <code>/api/{{ realm }}/rules</code>
+            </li>
+            <li class="url-item"
+                onclick="copyUrl('/api/master/asset/user/link', 'POST', [{'id':{'realm':'{{ realm }}','userId':'USER_ID','assetId':'ASSET_ID'}}])">
+                <strong>Link Asset (Admin)</strong>
+                <code>POST /api/master/asset/user/link</code>
+            </li>
+            <li class="url-item"
+                onclick="copyUrl('/api/{{ realm }}/asset/query', 'POST', {'select':{'attributes':['RuleTargets','EnvData','EnvThresholdsState','RelayData']},'attributes':{'items':[{'name':{'predicateType':'string','value':'RuleTargets'}}]}})">
+                <strong>Query Assets with RuleTargets (Rule Test)</strong>
+                <code>POST /api/{{ realm }}/asset/query</code>
+                <small style="display:block; color:var(--text-muted); font-size:0.75rem;">Tests if Groovy rule can find
+                    your asset</small>
+            </li>
+            <li class="url-item" onclick="copyUrl('/api/{{ realm }}/asset/5ZBxlvf3Wv95Gm0VBRlJsA', 'GET')">
+                <strong>Get Dibl-iot device01 (Direct)</strong>
+                <code>GET /api/{{ realm }}/asset/{assetId}</code>
+                <small style="display:block; color:var(--text-muted); font-size:0.75rem;">Check RuleTargets attribute
+                    value</small>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Request Builder -->
+    <div class="card">
+        <h3>Request Builder</h3>
+
+        <div class="form-group">
+            <label>Method & Endpoint</label>
+            <div style="display:flex; gap:0.5rem;">
+                <select id="method" style="width:120px;">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+                <input type="text" id="endpoint" placeholder="/api/{{ realm }}/..." style="flex:1;">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Request Body (JSON)</label>
+            <textarea id="reqBody" rows="6" placeholder="{ ... }" style="font-family:monospace;"></textarea>
+        </div>
+
+        <div style="text-align:right;">
+            <button onclick="sendRequest()">Send Request</button>
+        </div>
+
+        <hr style="margin:2rem 0; border:0; border-top:1px solid var(--border);">
+
+        <h4>Response</h4>
+        <div style="background:#000; color:#0f0; padding:1rem; border-radius:4px; font-family:monospace; overflow-x:auto; max-height:400px; white-space:pre-wrap;"
+            id="responseOutput">Waiting...</div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', path='css/test_api.css') }}">
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/test_api.js') }}"></script>
+{% endblock %}

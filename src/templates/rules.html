@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Automation Rules{% endblock %}
+{% block header %}Automation Rules{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <!-- Asset Selection Bar -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
+                <label style="font-weight: 600; white-space: nowrap; color: var(--text-muted);">Select IoT
+                    Device:</label>
+                <select id="assetSelect" onchange="loadAsset(this.value)"
+                    style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; flex: 1; max-width: 400px; font-size: 1rem;">
+                    <option value="">Choose a device...</option>
+                </select>
+            </div>
+            <button class="btn-modern btn-accent-modern" onclick="pinRulesToDashboard()" id="pinRulesBtn" disabled
+                style="margin-right: 1rem;">
+                <span class="nav-icon">★</span> Pin to Dashboard
+            </button>
+            <button class="btn-modern btn-primary-modern" onclick="addRule()" id="addRuleBtn" disabled>
+                <span class="nav-icon">+</span> New Rule
+            </button>
+        </div>
+    </div>
+
+    <!-- Rules Grid -->
+    <div id="rulesContainer" class="stats-grid">
+        <!-- Rules will be injected here -->
+        <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-muted);">
+            Select an asset to view or configure rules.
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', path='css/rules.css') }}">
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/rules.js') }}"></script>
+{% endblock %}

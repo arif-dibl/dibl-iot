@@ -1,0 +1,184 @@
+/* Grid Layout Override */
+#rulesContainer {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(4, 1fr) !important;
+}
+
+@media (max-width: 1400px) {
+    #rulesContainer {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+@media (max-width: 1100px) {
+    #rulesContainer {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    #rulesContainer {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Modern Button Styles */
+.btn-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-modern:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-modern:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-modern:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-primary-modern {
+    background: linear-gradient(135deg, var(--primary), #2980b9);
+    color: white;
+}
+
+.btn-accent-modern {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: white;
+}
+
+.btn-save-modern {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    width: 100%;
+    margin-top: 1rem;
+    justify-content: center;
+}
+
+/* Local overrides to match dashboard style */
+.rule-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.rule-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.rule-card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rule-card-body {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.logic-block {
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1rem;
+    position: relative;
+}
+
+.logic-block::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--border);
+    border-radius: 8px 0 0 8px;
+}
+
+.logic-block:first-of-type::before {
+    background: #3498db;
+}
+
+.logic-block:last-of-type::before {
+    background: #27ae60;
+}
+
+.logic-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #888;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.start-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Form Elements matching style */
+.form-control {
+    padding: 0.6rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.rule-name-input {
+    border: 1px solid transparent;
+    background: transparent;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-dark);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 220px;
+    transition: all 0.2s;
+}
+
+.rule-name-input:hover,
+.rule-name-input:focus {
+    border-color: #ddd;
+    background: white;
+}

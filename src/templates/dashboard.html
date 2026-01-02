@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block header %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Overview Section -->
+<section id="overviewSection" class="dashboard-section">
+    <h2 class="dashboard-section-header">Overview</h2>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number" id="totalAssets">-</div>
+            <div class="stat-label">Total IoT Devices</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="onlineDevices" style="color:var(--success)">-</div>
+            <div class="stat-label">Online Devices</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="offlineDevices" style="color:var(--danger)">-</div>
+            <div class="stat-label">Offline Devices</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="activeRules">-</div>
+            <div class="stat-label">Active Rules</div>
+        </div>
+    </div>
+</section>
+
+<!-- Switches Section (Fixed - RelayData) -->
+<section id="switchesSection" class="dashboard-section">
+    <h2 class="dashboard-section-header">Switches</h2>
+    <div id="switchesContainer" class="switches-container">
+        <div class="loading-placeholder">Loading switches...</div>
+    </div>
+</section>
+
+<!-- Sensors Section (User Pinnable) -->
+<section id="sensorsSection" class="dashboard-section">
+    <h2 class="dashboard-section-header">Sensors</h2>
+    <div id="sensorsContainer" class="widget-grid-4">
+        <div class="empty-placeholder">No sensors pinned. Go to Device Details to pin some!</div>
+    </div>
+</section>
+
+<!-- Timers Section (User Pinnable) -->
+<section id="timersSection" class="dashboard-section">
+    <h2 class="dashboard-section-header">Timers</h2>
+    <div id="timersContainer" class="widget-grid-4">
+        <div class="empty-placeholder">No timers pinned. Go to Device Details to pin some!</div>
+    </div>
+</section>
+
+<!-- Rules Section (User Pinnable) -->
+<section id="rulesSection" class="dashboard-section">
+    <h2 class="dashboard-section-header">Rules</h2>
+    <div id="rulesContainer" class="widget-grid-4">
+        <div class="empty-placeholder">No rules pinned. Go to Device Details to pin some!</div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/dashboard.css') }}">
+<script src="{{ url_for('static', path='js/dashboard.js') }}"></script>
+{% endblock %}

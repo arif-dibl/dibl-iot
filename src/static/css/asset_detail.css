@@ -1,0 +1,26 @@
+#wheelPickerList::-webkit-scrollbar {
+    display: none;
+}
+
+#wheelPickerList {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.wheel-item {
+    height: 50px;
+    line-height: 50px;
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    scroll-snap-align: center;
+    color: #ccc;
+    transition: color 0.2s, transform 0.2s, font-size 0.2s;
+}
+
+.wheel-item.selected {
+    color: var(--primary);
+    font-size: 1.8rem;
+    transform: scale(1.1);
+}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}IoT Device Details{% endblock %}
+{% block header %}IoT Device Details{% endblock %}
+
+{% block content %}
+<button onclick="location.href='/assets'" class="btn-ghost"
+    style="width:auto; margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
+    ← Back to List
+</button>
+
+<div class="card" id="detailCard">
+    <div
+        style="display:flex; justify-content:space-between; align-items:start; border-bottom:1px solid var(--border); padding-bottom:1.5rem; margin-bottom:1.5rem;">
+        <div>
+            <h2 id="assetName" style="margin:0; font-size:1.5rem;">Loading...</h2>
+            <div style="margin-top:0.5rem; display:flex; align-items:center; gap:10px;">
+                <span id="showIdBtn" onclick="openIdModal()"
+                    style="cursor:pointer; color:var(--primary); font-weight:600; font-size:0.9rem; border-bottom:1px dashed var(--primary);">
+                    Show ID
+                </span>
+                <span id="lastUpdateText" style="color:var(--text-muted); font-size:0.85rem;"></span>
+            </div>
+        </div>
+        <div id="assetTypeBadge"
+            style="background:var(--bg-light); padding:4px 12px; border-radius:12px; font-weight:600; font-size:0.9rem;">
+            IoT Device
+        </div>
+    </div>
+
+    <h3 style="font-size:1.1rem; margin-bottom:1rem;">Attributes</h3>
+    <div id="attributesList">
+        <div style="text-align:center; padding:2rem; color:var(--text-muted);">Loading attributes...</div>
+    </div>
+</div>
+
+<!-- Custom Circular Wheel Picker Overlay -->
+<div id="wheelPickerOverlay"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter: blur(2px);">
+</div>
+<div id="wheelPicker"
+    style="display:none; position:fixed; top:50%; left:50%; transform: translate(-50%, -50%); z-index:10000; background:white; border-radius:20px; box-shadow:0 20px 50px rgba(0,0,0,0.3); width:140px; overflow:hidden; border: none;">
+    <div style="padding:15px; text-align:center; border-bottom:1px solid #eee; font-weight:700; color:#444;"
+        id="wheelPickerTitle">Select Value</div>
+    <div id="wheelPickerList"
+        style="height:250px; overflow-y:auto; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; padding: 100px 0;">
+        <!-- Items will be injected here -->
+    </div>
+    <div
+        style="position:absolute; top:151px; left:0; width:100%; height:50px; border-top:2px solid var(--primary); border-bottom:2px solid var(--primary); pointer-events:none; background:rgba(var(--primary-rgb), 0.05); z-index:11;">
+    </div>
+    <button onclick="confirmWheelSelection()"
+        style="width:100%; padding:15px; background:var(--primary); color:white; border:none; font-weight:700; font-size:1rem; cursor:pointer;">CONFIRM</button>
+</div>
+
+<!-- Show ID Modal -->
+<div class="modal-overlay" id="showIdModal">
+    <div class="modal-content" style="position:relative; width:90%; max-width:400px; padding-top:2.5rem;">
+        <span onclick="closeIdModal()"
+            style="position:absolute; top:10px; right:15px; font-size:1.5rem; cursor:pointer; color:#999; font-weight:bold;">&times;</span>
+        <h3 style="margin-top:0; text-align:center;">IoT Device ID</h3>
+        <div
+            style="background:#f8f9fa; padding:1rem; border:1px solid #eee; border-radius:4px; font-family:monospace; font-size:1.1rem; text-align:center; margin:1.5rem 0; word-break:break-all;">
+            {{ asset_id }}
+        </div>
+        <div style="text-align:center;">
+            <button class="btn-sm" onclick="copyIdToClipboard()">Copy to Clipboard</button>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', path='css/asset_detail.css') }}">
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ASSET_ID = "{{ asset_id }}";
+</script>
+<script src="{{ url_for('static', path='js/asset_detail.js') }}"></script>
+{% endblock %}

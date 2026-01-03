@@ -20,3 +20,5 @@ env/
 .vscode/
 # --- Data ---
 data/maps/*.mbtiles
+# --- Documentation ---
+GIT_MANUAL.md

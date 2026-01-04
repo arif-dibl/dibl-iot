@@ -185,8 +185,32 @@ function renderTable(data) {
     sorted.forEach(pt => {
         const date = new Date(pt.x).toLocaleString();
         let val = pt.y;
-        if (typeof val === 'object') val = JSON.stringify(val);
-        html += `<tr><td>${pt.x}</td><td>${date}</td><td>${val}</td></tr>`;
+        let displayVal = val;
+
+        try {
+            // Attempt to parse stringified JSON if it looks like an object
+            if (typeof val === 'string' && (val.trim().startsWith('{') || val.trim().startsWith('['))) {
+                val = JSON.parse(val);
+            }
+
+            if (val && typeof val === 'object') {
+                // Format as styled key-value list
+                displayVal = '<div style="font-size:0.85em; max-height:150px; overflow-y:auto;">';
+                Object.keys(val).sort().forEach(k => {
+                    let v = val[k];
+                    if (typeof v === 'object' && v !== null) v = JSON.stringify(v);
+                    displayVal += `<div style="margin-bottom:2px;"><span style="color:#666; font-weight:600;">${k}:</span> ${v}</div>`;
+                });
+                displayVal += '</div>';
+            } else {
+                displayVal = String(val);
+            }
+        } catch (e) {
+            // Fallback to raw string if parsing fails
+            displayVal = String(pt.y);
+        }
+
+        html += `<tr><td>${pt.x}</td><td>${date}</td><td>${displayVal}</td></tr>`;
     });
     html += '</tbody></table>';
     container.innerHTML = html;
@@ -318,5 +342,74 @@ async function fetchDatapoints() {
         currentData = 'Request failed: ' + e.message;
     }
 
+
     updateView();
+}
+
+async function exportDatapoints() {
+    if (!currentAssetId || !currentAttribute) {
+        alert("Please select an asset and attribute first.");
+        return;
+    }
+
+    const { start, end } = getTimeRange();
+
+    // Construct attributeRefs JSON
+    const refs = JSON.stringify([{ id: currentAssetId, name: currentAttribute }]);
+    const encodedRefs = encodeURIComponent(refs);
+
+    // API params: fromTimestamp, toTimestamp, attributeRefs
+    const endpoint = `/api/${realm}/asset/datapoint/export?attributeRefs=${encodedRefs}&fromTimestamp=${start}&toTimestamp=${end}`;
+
+    // Show feedback
+    const btn = document.querySelector('button[onclick="exportDatapoints()"]');
+    const originalText = btn.textContent;
+    btn.textContent = "Exporting...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/debug/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                method: 'GET',
+                endpoint: endpoint
+            })
+        });
+
+        if (res.ok) {
+            // Check if it returned a file (blob) or JSON error
+            const contentType = res.headers.get("Content-Type");
+            if (contentType && contentType.includes("application/json")) {
+                const data = await res.json();
+                if (data.status >= 400) {
+                    alert("Export failed: " + JSON.stringify(data.data));
+                } else {
+                    // Unexpected JSON success?
+                    console.log("Unexpected JSON", data);
+                }
+            } else {
+                // Should be a blob
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                // Try to get filename from header or default
+                // The proxy sets Content-Disposition
+                a.download = `${currentAttribute}_export.zip`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            }
+        } else {
+            alert("Export request failed.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Export error: " + e.message);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
 }

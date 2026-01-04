@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Datapoint Test{% endblock %}
-{% block header %}Datapoint Test{% endblock %}
+{% block title %}History Logs{% endblock %}
+{% block header %}History Logs{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 1000px; margin: 0 auto;">
-    <h3>Test Datapoint APIs</h3>
+    <h3>History Logs</h3>
     <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">
         Select an asset and attribute, then confirm to fetch datapoints.
     </p>
@@ -66,7 +66,7 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="{{ url_for('static', path='css/test_api.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='css/history_logs.css') }}">
 {% endblock %}
 
 {% block scripts %}
@@ -74,5 +74,5 @@
 <script>
     window.USER_REALM = "{{ realm }}";
 </script>
-<script src="{{ url_for('static', path='js/test_datapoint.js') }}"></script>
+<script src="{{ url_for('static', path='js/datapoint_history.js') }}"></script>
 {% endblock %}

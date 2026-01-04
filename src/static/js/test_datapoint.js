@@ -1,6 +1,7 @@
 // State
 let currentAssetId = null;
 let currentAttribute = null;
+let currentSubAttribute = null;
 let realm = 'master';
 
 // Initialize
@@ -8,6 +9,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Priority: window.USER_REALM passed from template
     realm = window.USER_REALM || 'master';
     await loadAssets();
+
+    // Sub-Attribute Listener
+    const subSelect = document.getElementById('subAttributeSelect');
+    subSelect.onchange = () => {
+        currentSubAttribute = subSelect.value;
+    };
 });
 
 async function loadAssets() {
@@ -45,10 +52,15 @@ async function loadAssets() {
 
 async function loadAttributes(assetId) {
     const select = document.getElementById('attributeSelect');
+    const subGroup = document.getElementById('subAttributeGroup');
+    const subSelect = document.getElementById('subAttributeSelect');
+
     select.innerHTML = '<option value="">Loading...</option>';
     select.disabled = true;
+    subGroup.style.display = 'none';
     currentAssetId = assetId || null;
     currentAttribute = null;
+    currentSubAttribute = null;
 
     if (!assetId) {
         select.innerHTML = '<option value="">Select asset first...</option>';
@@ -74,6 +86,32 @@ async function loadAttributes(assetId) {
 
         select.onchange = () => {
             currentAttribute = select.value;
+            currentSubAttribute = null;
+
+            // Check for Map/JSON type
+            const attr = attrs[currentAttribute];
+            if (attr && (attr.type === 'textMap' || typeof attr.value === 'object')) {
+                subGroup.style.display = 'block';
+                subSelect.innerHTML = '<option value="">(Optional) Select key...</option>';
+
+                let keys = [];
+                try {
+                    // Try to get keys from current value
+                    const val = typeof attr.value === 'string' ? JSON.parse(attr.value) : attr.value;
+                    if (val && typeof val === 'object') {
+                        keys = Object.keys(val).sort();
+                    }
+                } catch (e) { console.log('Parsing error for keys', e); }
+
+                keys.forEach(k => {
+                    const opt = document.createElement('option');
+                    opt.value = k;
+                    opt.textContent = k;
+                    subSelect.appendChild(opt);
+                });
+            } else {
+                subGroup.style.display = 'none';
+            }
         };
 
     } catch (e) {
@@ -146,7 +184,9 @@ function renderTable(data) {
 
     sorted.forEach(pt => {
         const date = new Date(pt.x).toLocaleString();
-        html += `<tr><td>${pt.x}</td><td>${date}</td><td>${pt.y}</td></tr>`;
+        let val = pt.y;
+        if (typeof val === 'object') val = JSON.stringify(val);
+        html += `<tr><td>${pt.x}</td><td>${date}</td><td>${val}</td></tr>`;
     });
     html += '</tbody></table>';
     container.innerHTML = html;
@@ -165,14 +205,18 @@ function renderGraph(data) {
     const sorted = [...data].sort((a, b) => a.x - b.x);
 
     const labels = sorted.map(pt => new Date(pt.x).toLocaleString());
-    const values = sorted.map(pt => pt.y);
+    const values = sorted.map(pt => {
+        // Attempt to convert to number if possible
+        const v = Number(pt.y);
+        return isNaN(v) ? 0 : v; // Fallback to 0 if not a number? Or null.
+    });
 
     chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
-                label: currentAttribute || 'Value',
+                label: (currentAttribute + (currentSubAttribute ? `.${currentSubAttribute}` : '')) || 'Value',
                 data: values,
                 borderColor: '#4CAF50',
                 backgroundColor: 'rgba(76, 175, 80, 0.2)',
@@ -243,11 +287,30 @@ async function fetchDatapoints() {
             // Success
             // API usually returns plain array: [{"x": ts, "y": val}, ...]
             // Or sometimes wrapped. Let's assume array or data property.
-            currentData = data.data || data;
+            let rawData = data.data || data;
+
             // If proxy returns {status: 200, data: [...]}
-            // currentData should be the array.
+            // rawData should be the array.
             if (data.status === 200 && Array.isArray(data.data)) {
-                currentData = data.data;
+                rawData = data.data;
+            }
+
+            // Process Data if Sub-Attribute is selected
+            if (Array.isArray(rawData) && currentSubAttribute) {
+                currentData = rawData.map(pt => {
+                    let val = pt.y;
+                    try {
+                        // Parse if string
+                        if (typeof val === 'string') val = JSON.parse(val);
+                        // Extract sub-key
+                        if (val && typeof val === 'object') {
+                            return { x: pt.x, y: val[currentSubAttribute] };
+                        }
+                    } catch (e) { console.log('Parse error', e); }
+                    return { x: pt.x, y: null }; // Invalid or missing
+                }).filter(pt => pt.y !== null && pt.y !== undefined);
+            } else {
+                currentData = rawData;
             }
         }
 

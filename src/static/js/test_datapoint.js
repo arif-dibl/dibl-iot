@@ -97,95 +97,163 @@ function getTimeRange() {
     return { start, end: now };
 }
 
-function showOutput(data, isError = false) {
-    const out = document.getElementById('responseOutput');
-    out.style.color = isError ? '#f55' : '#0f0';
-    out.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+// Visualization State
+let currentData = null;
+let chartInstance = null;
+
+function updateView() {
+    // Hide all
+    document.getElementById('responseOutput').style.display = 'none';
+    document.getElementById('tableOutput').style.display = 'none';
+    document.getElementById('graphOutput').style.display = 'none';
+
+    // Show Selected
+    const mode = document.querySelector('input[name="viewMode"]:checked').value;
+
+    if (!currentData || (Array.isArray(currentData) && currentData.length === 0)) {
+        document.getElementById('responseOutput').style.display = 'block';
+        if (mode !== 'json') {
+            // Show empty message in JSON box as fallback or clear others
+            document.getElementById('responseOutput').textContent = "No data to display.";
+        }
+        return;
+    }
+
+    if (mode === 'json') {
+        const out = document.getElementById('responseOutput');
+        out.style.display = 'block';
+        out.textContent = JSON.stringify(currentData, null, 2);
+    } else if (mode === 'table') {
+        document.getElementById('tableOutput').style.display = 'block';
+        renderTable(currentData);
+    } else if (mode === 'graph') {
+        document.getElementById('graphOutput').style.display = 'block';
+        renderGraph(currentData);
+    }
 }
+
+function renderTable(data) {
+    const container = document.getElementById('tableOutput');
+    if (!Array.isArray(data)) {
+        container.innerHTML = '<div style="padding:10px; color:#f55;">Data is not an array. Cannot render table.</div>';
+        return;
+    }
+
+    let html = '<table class="data-table"><thead><tr><th>Timestamp</th><th>Date</th><th>Value</th></tr></thead><tbody>';
+
+    // Sort by timestamp desc
+    const sorted = [...data].sort((a, b) => b.x - a.x);
+
+    sorted.forEach(pt => {
+        const date = new Date(pt.x).toLocaleString();
+        html += `<tr><td>${pt.x}</td><td>${date}</td><td>${pt.y}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function renderGraph(data) {
+    const ctx = document.getElementById('datapointChart').getContext('2d');
+
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    if (!Array.isArray(data)) return;
+
+    // Sort by timestamp asc for graph
+    const sorted = [...data].sort((a, b) => a.x - b.x);
+
+    const labels = sorted.map(pt => new Date(pt.x).toLocaleString());
+    const values = sorted.map(pt => pt.y);
+
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: currentAttribute || 'Value',
+                data: values,
+                borderColor: '#4CAF50',
+                backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                borderWidth: 2,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    ticks: { color: '#ccc', maxTicksLimit: 10 },
+                    grid: { color: '#444' }
+                },
+                y: {
+                    ticks: { color: '#ccc' },
+                    grid: { color: '#444' }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: '#fff' } }
+            }
+        }
+    });
+}
+
 
 async function fetchDatapoints() {
     if (!currentAssetId || !currentAttribute) {
-        return showOutput('Please select an asset and attribute.', true);
+        currentData = "Please select an asset and attribute.";
+        updateView();
+        return;
     }
-    showOutput('Fetching...');
+
+    // Show loading in JSON view temporarily
+    document.getElementById('responseOutput').textContent = "Fetching...";
+    document.getElementById('responseOutput').style.display = 'block';
+    document.getElementById('tableOutput').style.display = 'none';
+    document.getElementById('graphOutput').style.display = 'none';
 
     const { start, end } = getTimeRange();
-    // Official API: GET /api/{realm}/asset/datapoint/{assetId}/{attributeName}
+    // Official API: POST /api/{realm}/asset/datapoint/{assetId}/{attributeName}
     const endpoint = `/api/${realm}/asset/datapoint/${currentAssetId}/${currentAttribute}`;
+
+    const body = {
+        fromTimestamp: start,
+        toTimestamp: end,
+        type: "json"
+    };
 
     try {
         const res = await fetch('/api/debug/proxy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                method: 'GET',
-                endpoint: `${endpoint}?fromTimestamp=${start}&toTimestamp=${end}`,
-                body: null
+                method: 'POST', // Changed from GET to POST
+                endpoint: endpoint,
+                body: body
             })
         });
         const data = await res.json();
-        showOutput(data.data || data, data.status >= 400);
+
+        // Check for error in proxy envelope
+        if (data.status >= 400) {
+            currentData = data.data || "Error fetching data";
+        } else {
+            // Success
+            // API usually returns plain array: [{"x": ts, "y": val}, ...]
+            // Or sometimes wrapped. Let's assume array or data property.
+            currentData = data.data || data;
+            // If proxy returns {status: 200, data: [...]}
+            // currentData should be the array.
+            if (data.status === 200 && Array.isArray(data.data)) {
+                currentData = data.data;
+            }
+        }
+
     } catch (e) {
-        showOutput('Request failed: ' + e.message, true);
+        currentData = 'Request failed: ' + e.message;
     }
-}
 
-async function fetchDatapointPeriod() {
-    if (!currentAssetId || !currentAttribute) {
-        return showOutput('Please select an asset and attribute.', true);
-    }
-    showOutput('Fetching...');
-
-    const { start, end } = getTimeRange();
-    // Official API: POST /api/{realm}/asset/datapoint/period
-    const endpoint = `/api/${realm}/asset/datapoint/period`;
-    const body = {
-        assetId: currentAssetId,
-        attribute: currentAttribute,
-        fromTimestamp: start,
-        toTimestamp: end
-    };
-
-    try {
-        const res = await fetch('/api/debug/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ method: 'POST', endpoint, body })
-        });
-        const data = await res.json();
-        showOutput(data.data || data, data.status >= 400);
-    } catch (e) {
-        showOutput('Request failed: ' + e.message, true);
-    }
-}
-
-async function exportDatapoints() {
-    if (!currentAssetId || !currentAttribute) {
-        return showOutput('Please select an asset and attribute.', true);
-    }
-    showOutput('Exporting...');
-
-    const { start, end } = getTimeRange();
-    // Official API: POST /api/{realm}/asset/datapoint/export
-    const endpoint = `/api/${realm}/asset/datapoint/export`;
-    const body = {
-        attributeRefs: [{
-            id: currentAssetId,
-            name: currentAttribute
-        }],
-        fromTimestamp: start,
-        toTimestamp: end
-    };
-
-    try {
-        const res = await fetch('/api/debug/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ method: 'POST', endpoint, body })
-        });
-        const data = await res.json();
-        showOutput(data.data || data, data.status >= 400);
-    } catch (e) {
-        showOutput('Request failed: ' + e.message, true);
-    }
+    updateView();
 }

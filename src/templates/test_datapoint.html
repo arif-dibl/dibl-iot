@@ -4,64 +4,71 @@
 {% block header %}Datapoint Test{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 800px; margin: 0 auto;">
+<div class="card" style="max-width: 1000px; margin: 0 auto;">
     <h3>Test Datapoint APIs</h3>
     <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">
-        Select an asset, attribute, and time range to fetch or export datapoints.
+        Select an asset and attribute, then confirm to fetch datapoints.
     </p>
 
-    <!-- Selectors -->
-    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-        <div class="form-group" style="flex: 1; min-width: 200px;">
+    <!-- Selectors and Fetch Button -->
+    <div class="controls">
+        <div class="form-group">
             <label>Asset</label>
-            <select id="assetSelect" onchange="loadAttributes(this.value)" style="width: 100%; padding: 0.5rem;">
+            <select id="assetSelect" onchange="loadAttributes(this.value)">
                 <option value="">Loading...</option>
             </select>
         </div>
-        <div class="form-group" style="flex: 1; min-width: 200px;">
+        <div class="form-group">
             <label>Attribute</label>
-            <select id="attributeSelect" disabled style="width: 100%; padding: 0.5rem;">
+            <select id="attributeSelect" disabled>
                 <option value="">Select asset first...</option>
             </select>
         </div>
-        <div class="form-group" style="flex: 1; min-width: 150px;">
-            <label>Time Range</label>
-            <select id="timeSelect" style="width: 100%; padding: 0.5rem;">
-                <option value="last_24h" selected>Last 24 Hours</option>
-                <option value="last_hour">Last Hour</option>
-                <option value="last_7d">Last 7 Days</option>
-                <option value="today">Today</option>
+        <div class="form-group" id="subAttributeGroup" style="display: none;">
+            <label>Sub-Attribute</label>
+            <select id="subAttributeSelect">
+                <option value="">(Optional) Select key...</option>
             </select>
         </div>
+        <div class="form-group" style="flex: 0 0 150px; min-width: 150px;">
+            <label>Time Range</label>
+            <select id="timeSelect">
+                <option value="last_24h" selected>Last 24 Hours</option>
+                <option value="last_hour">Last Hour</option>
+                <option value="today">Today</option>
+                <option value="last_7d">Last 7 Days</option>
+            </select>
+        </div>
+        <button onclick="fetchDatapoints()">Fetch Datapoints</button>
     </div>
 
-    <!-- Action Buttons -->
-    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-        <button onclick="fetchDatapoints()">Get Recent Datapoints</button>
-        <button onclick="fetchDatapointPeriod()">Get Period</button>
-        <button onclick="exportDatapoints()">Export JSON</button>
+    <!-- View Mode Controls -->
+    <div class="view-options">
+        <strong>View Mode:</strong>
+        <label><input type="radio" name="viewMode" value="json" checked onchange="updateView()"> JSON</label>
+        <label><input type="radio" name="viewMode" value="table" onchange="updateView()"> Table</label>
+        <label><input type="radio" name="viewMode" value="graph" onchange="updateView()"> Graph</label>
     </div>
-
-    <hr style="border:0; border-top:1px solid var(--border); margin-bottom: 1.5rem;">
 
     <!-- Results -->
     <h4>Response</h4>
-    <div id="responseOutput" style="
-        background: #111; 
-        color: #0f0; 
-        padding: 1rem; 
-        border-radius: 6px; 
-        font-family: monospace; 
-        white-space: pre-wrap; 
-        max-height: 400px; 
-        overflow-y: auto;
-    ">Select an asset and attribute, then click an action button.</div>
+    <!-- JSON Output -->
+    <div id="responseOutput" class="output-box">Select an asset and click Fetch...</div>
+
+    <!-- Table Output -->
+    <div id="tableOutput" style="display: none; overflow-x: auto;"></div>
+
+    <!-- Graph Output -->
+    <div id="graphOutput" class="graph-container" style="display: none;">
+        <canvas id="datapointChart"></canvas>
+    </div>
 </div>
 
 <link rel="stylesheet" href="{{ url_for('static', path='css/test_api.css') }}">
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     window.USER_REALM = "{{ realm }}";
 </script>

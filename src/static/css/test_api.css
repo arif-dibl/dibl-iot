@@ -20,3 +20,111 @@
     color: var(--primary);
     word-break: break-all;
 }
+
+/* Datapoint Viewer Styles */
+.output-box {
+    background-color: #1a1a1a;
+    color: #0f0;
+    padding: 1rem;
+    border-radius: 6px;
+    min-height: 100px;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: monospace;
+    margin-top: 1rem;
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+.controls .form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.controls label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.controls select,
+.controls input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: white;
+    color: var(--text-dark);
+}
+
+.controls button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    height: 38px;
+    /* Match input height approx */
+}
+
+.controls button:hover {
+    background-color: var(--primary-hover);
+}
+
+.view-options {
+    margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.view-options label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    text-align: left;
+    color: var(--text-dark);
+}
+
+.data-table th {
+    background-color: var(--bg-light);
+    font-weight: 600;
+}
+
+.graph-container {
+    background: white;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-top: 1rem;
+    height: 400px;
+}

@@ -12,6 +12,14 @@
     margin-top: 1rem;
 }
 
+#tableOutput {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
 .controls {
     display: flex;
     gap: 1rem;
@@ -80,8 +88,16 @@
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1rem;
+    margin-top: 0;
     font-size: 0.9rem;
+}
+
+/* Sticky Header */
+.data-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--bg-light);
 }
 
 .data-table th,
@@ -95,6 +111,8 @@
 .data-table th {
     background-color: var(--bg-light);
     font-weight: 600;
+    box-shadow: 0 1px 0 var(--border);
+    /* Better border for sticky */
 }
 
 .graph-container {

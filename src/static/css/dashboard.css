@@ -498,8 +498,8 @@ body {
     margin: 0;
     padding: 0;
     gap: 0.5rem;
-    overflow-x: auto;
-    /* Allow scrolling on small screens */
+    gap: 0.5rem;
+    /* overflow-x: auto; REMOVED to allow dropdown overflow */
 }
 
 .nav-item {

@@ -261,7 +261,7 @@ function renderRules() {
                             ${rule.enabled ? 'ENABLED' : 'DISABLED'}
                         </span>
                     </div>
-                    <button class="btn-modern btn-ghost" onclick="deleteRule('${rule.id}')" title="Delete" style="color:var(--danger)">Delete</button>
+                    <button class="btn-sm btn-ghost" onclick="deleteRule('${rule.id}')" title="Delete" style="color:var(--danger); width: auto;">Delete</button>
                 </div>
             </div>
             
@@ -307,7 +307,7 @@ function renderRules() {
                 </div>
                 
                 <div style="margin-top: 0.5rem; text-align: right;">
-                     <button class="btn-modern btn-save-modern" style="width: 100%;" onclick="saveRule('${rule.id}')">Save Changes</button>
+                     <button class="btn-sm" style="width: 100%; margin-top: 1rem;" onclick="saveRule('${rule.id}')">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -421,11 +421,11 @@ function updatePinButton() {
     if (isRulesPinned) {
         btn.style.color = '#f1c40f'; // Yellow/Gold
         btn.style.fontWeight = 'bold';
-        btn.innerHTML = '<span class="nav-icon">★</span> Pinned';
+        btn.innerHTML = 'Pinned';
     } else {
         btn.style.color = '';
         btn.style.fontWeight = '';
-        btn.innerHTML = '<span class="nav-icon">★</span> Pin to Dashboard';
+        btn.innerHTML = 'Pin to Dashboard';
     }
 }
 

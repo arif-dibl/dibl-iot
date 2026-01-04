@@ -8,63 +8,96 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', path='images/favicon.png') }}">
     <link rel="shortcut icon" type="image/png" href="{{ url_for('static', path='images/favicon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}?v=2">
+    <!-- Load new split auth styles -->
     <link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/split_auth.css') }}?v=2">
 </head>
 
 <body>
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <img src="{{ url_for('static', path='images/logo.png') }}" alt="Logo">
-        </div>
-    </nav>
-    <div class="container">
-        <h2>DIBL IoT - Sign Up</h2>
-
-        {% if error %}
-        <div class="alert alert-error">{{ error }}</div>
-        {% endif %}
-        {% if success %}
-        <div class="alert alert-success">{{ success }}</div>
-        {% endif %}
-
-        <div id="signup-form">
-            <form action="/signup" method="POST">
-                <input type="hidden" name="realm" value="{{ realm }}">
-                <div class="form-group">
-                    <label for="signup-username">Username</label>
-                    <input type="text" id="signup-username" name="username" required>
+    <div class="split-container">
+        <!-- LEFT PANEL: Instructions & Info (60%) -->
+        <div class="info-panel">
+            <div class="info-content">
+                <h1 class="info-title">Join the Future<br>of Irrigation.</h1>
+                <p class="info-text">
+                    Sign up to start managing your farm's irrigation.
+                    It's easy, efficient, and helps you save costs.
+                </p>
+                <ul class="info-features">
+                    <li>Connect devices easily</li>
+                    <li>Your personal dashboard</li>
+                    <li>Get alerts on your phone</li>
+                    <li>Works day and night</li>
+                </ul>
+                <div class="info-links">
+                    <a href="https://dripirrigation.com.bd/" target="_blank" class="info-link">Visit Website</a>
+                    <a href="https://dripirrigation.com.bd/privacy-policy/" target="_blank" class="info-link">Privacy
+                        Policy</a>
+                    <a href="https://dripirrigation.com.bd/contact-us/" target="_blank" class="info-link">Contact Us</a>
                 </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="signup-password">Password</label>
-                    <input type="password" id="signup-password" name="password" required>
-                </div>
-                <div class="form-group checkbox-group">
-                    <input type="checkbox" id="terms-checkbox" name="terms" required
-                        oninvalid="this.setCustomValidity('Please accept the Terms and Conditions to proceed.')"
-                        oninput="this.setCustomValidity('')">
-                    <label for="terms-checkbox" class="inline-label">I accept the <a href="#" id="terms-link"
-                            onclick="openTermsModal(event)">Terms and Conditions</a></label>
-                </div>
-                <button type="submit">Sign Up</button>
-            </form>
-            <div class="toggle-link">
-                Already have an account? <a href="/">Sign In</a>
             </div>
         </div>
 
-        <!-- Terms and Conditions Modal -->
-        <div id="terms-modal" class="modal hidden">
-            <div class="modal-content">
-                <span class="close-modal" onclick="closeTermsModal()">&times;</span>
-                {% include 'terms_and_conditions.html' %}
-                <button class="btn-primary" onclick="closeTermsModal()">Close</button>
+        <!-- RIGHT PANEL: Signup Form (40%) -->
+        <div class="form-panel">
+            <div class="auth-wrapper">
+                <div class="brand-logo">
+                    <img src="{{ url_for('static', path='images/logo.png') }}" alt="DIBL IoT">
+                </div>
+                <h1 class="branding-title">DIBL IOT</h1>
+                <h2 class="auth-title">Create Account</h2>
+                <p class="auth-subtitle">Join us to start managing your devices</p>
+
+                {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
+                {% endif %}
+                {% if success %}
+                <div class="alert alert-success">{{ success }}</div>
+                {% endif %}
+
+                <div id="signup-form">
+                    <form action="/signup" method="POST">
+                        <input type="hidden" name="realm" value="{{ realm }}">
+                        <div class="form-group">
+                            <label for="signup-username">Username</label>
+                            <input type="text" id="signup-username" name="username" required
+                                placeholder="Choose a username">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required placeholder="Enter your email">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-password">Password</label>
+                            <input type="password" id="signup-password" name="password" required
+                                placeholder="Create a strong password">
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="terms-checkbox" name="terms" required
+                                oninvalid="this.setCustomValidity('Please accept the Terms and Conditions to proceed.')"
+                                oninput="this.setCustomValidity('')">
+                            <label for="terms-checkbox" class="inline-label">I accept the <a href="#" id="terms-link"
+                                    onclick="openTermsModal(event)">Terms and Conditions</a></label>
+                        </div>
+                        <button type="submit">Sign Up</button>
+                    </form>
+                    <div class="toggle-link">
+                        Already have an account? <a href="/">Sign In</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Terms and Conditions Modal -->
+    <div id="terms-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeTermsModal()">&times;</span>
+            {% include 'terms_and_conditions.html' %}
+            <button class="btn-primary" onclick="closeTermsModal()">Close</button>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', path='js/auth.js') }}?v=2"></script>
 </body>
 

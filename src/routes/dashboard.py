@@ -54,3 +54,9 @@ async def test_page(request: Request):
     if not get_valid_token(request): return RedirectResponse("/", status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("test_api.html", {"request": request, "realm": realm, "host": OR_HOSTNAME, "page": "test"})
+
+@router.get("/test/datapoint", response_class=HTMLResponse)
+async def test_datapoint_page(request: Request):
+    if not get_valid_token(request): return RedirectResponse("/", status_code=303)
+    realm = request.session.get("realm", DEFAULT_REALM)
+    return templates.TemplateResponse("test_datapoint.html", {"request": request, "realm": realm, "page": "test_datapoint"})

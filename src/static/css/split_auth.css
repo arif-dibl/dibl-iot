@@ -1,0 +1,174 @@
+/* Split Screen Layout for Auth Pages */
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+}
+
+/* Base Container */
+.split-container {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+    background: white;
+}
+
+/* Left Panel: Form Side (40%) */
+.form-panel {
+    flex: 4;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    position: relative;
+    background: white;
+}
+
+/* Right Panel: Info Side (60%) */
+.info-panel {
+    flex: 6;
+    background: linear-gradient(135deg, #00AF50 0%, #008f40 100%);
+    /* Green theme matching logo */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 4rem;
+    position: relative;
+}
+
+/* Content Width Limiter for Form */
+.auth-wrapper {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Override existing navbar for this layout if needed, 
+   or hide it since we might want a cleaner fullscreen look.
+   For now, let's keep the logo in the form panel.
+*/
+.navbar {
+    display: none;
+    /* Hide default navbar for this custom layout */
+}
+
+/* Form Panel Content */
+.brand-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.brand-logo img {
+    height: 60px;
+    width: auto;
+}
+
+.branding-title {
+    text-align: center;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.auth-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.auth-subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+/* Info Panel Content */
+.info-content {
+    max-width: 600px;
+}
+
+.info-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+.info-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.info-features {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 3rem;
+}
+
+.info-features li {
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.05rem;
+}
+
+.info-features li::before {
+    content: "✓";
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    margin-right: 1rem;
+    font-size: 0.8rem;
+}
+
+.info-links {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: auto;
+}
+
+.info-link {
+    color: white;
+    text-decoration: none;
+    opacity: 0.8;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
+}
+
+.info-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+    .split-container {
+        flex-direction: column;
+    }
+
+    .info-panel {
+        display: none;
+        /* Hide info panel on mobile to focus on login */
+    }
+
+    .form-panel {
+        padding: 1.5rem;
+    }
+}

@@ -1,5 +1,3 @@
-/* Split Screen Layout for Auth Pages */
-
 body {
     margin: 0;
     padding: 0;
@@ -33,7 +31,6 @@ body {
 .info-panel {
     flex: 6;
     background: linear-gradient(135deg, #00AF50 0%, #008f40 100%);
-    /* Green theme matching logo */
     color: white;
     display: flex;
     flex-direction: column;
@@ -49,13 +46,8 @@ body {
     max-width: 400px;
 }
 
-/* Override existing navbar for this layout if needed, 
-   or hide it since we might want a cleaner fullscreen look.
-   For now, let's keep the logo in the form panel.
-*/
 .navbar {
     display: none;
-    /* Hide default navbar for this custom layout */
 }
 
 /* Form Panel Content */
@@ -165,7 +157,6 @@ body {
 
     .info-panel {
         display: none;
-        /* Hide info panel on mobile to focus on login */
     }
 
     .form-panel {

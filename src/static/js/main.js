@@ -61,6 +61,24 @@ function timeAgo(dateOrTimestamp) {
     return date.toLocaleDateString();
 }
 
+
+// Shared Activity Logic
+const OFFLINE_TIMEOUT_MS = 5000;
+
+function getAssetStatus(lastActivityTimestamp) {
+    if (!lastActivityTimestamp) {
+        return { status: 'Offline', color: 'var(--danger)', dot: '🔴', isOffline: true };
+    }
+
+    const diffMs = Date.now() - lastActivityTimestamp;
+
+    if (diffMs <= OFFLINE_TIMEOUT_MS) {
+        return { status: 'Active', color: 'var(--success)', dot: '🟢', isOffline: false };
+    } else {
+        return { status: 'Offline', color: 'var(--danger)', dot: '🔴', isOffline: true };
+    }
+}
+
 // Global Toast
 function toast(msg) {
     const div = document.createElement('div');
@@ -81,14 +99,15 @@ async function pinWidget(assetId, attrName, key, defaultName) {
     try {
         let displayName = defaultName || key || attrName;
 
-        // Prompt for custom name UNLESS it is RuleTargets
-        if (attrName !== 'RuleTargets') {
+        // Prompt for custom name UNLESS it is RuleTargets or Timers
+        if (attrName !== 'RuleTargets' && !attrName.toLowerCase().startsWith('timer')) {
             const customName = prompt('Enter a display name for this dashboard widget:', displayName);
             if (customName === null) return; // Cancelled
             if (customName && customName.trim() !== '') displayName = customName.trim();
         } else {
-            // Force default name for rules if not provided
-            displayName = 'My Rules';
+            // Force default name for rules/timers if not provided
+            if (attrName === 'RuleTargets') displayName = 'My Rules';
+            // For timers, we keep the passed displayName (usually friendly name)
         }
 
         const payload = {

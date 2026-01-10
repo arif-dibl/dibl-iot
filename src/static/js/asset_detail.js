@@ -31,15 +31,11 @@ async function loadDetail() {
         document.getElementById('assetName').textContent = asset.name;
         document.getElementById('assetTypeBadge').textContent = asset.type;
 
-        // Update Last Update Text from EnvData if available, otherwise fallback
-        const envData = asset.attributes.EnvData;
-        const timerData = asset.attributes.Timer01;
-        if (envData && envData.timestamp) {
-            document.getElementById('lastUpdateText').textContent = `• Updated ${timeAgo(new Date(envData.timestamp))}`;
-        } else if (timerData && timerData.timestamp) {
-            document.getElementById('lastUpdateText').textContent = `• Updated ${timeAgo(new Date(timerData.timestamp))}`;
-        } else if (asset.lastActivityTimestamp) {
-            document.getElementById('lastUpdateText').textContent = `• Updated ${timeAgo(new Date(asset.lastActivityTimestamp))}`;
+        // Update Last Update Text
+        if (asset.lastActivityTimestamp) {
+            document.getElementById('lastUpdateText').textContent = `• Updated ${timeAgo(asset.lastActivityTimestamp)}`;
+        } else {
+            document.getElementById('lastUpdateText').textContent = '';
         }
 
         const attrContainer = document.getElementById('attributesList');
@@ -227,6 +223,7 @@ async function loadDetail() {
                             // Render Standalone First
                             standalone.forEach(item => {
                                 const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === item.k);
+                                const starIcon = isPinned ? '★' : '☆';
                                 const starColor = isPinned ? '#f1c40f' : '#ccc';
 
                                 let valueHtml;
@@ -307,7 +304,7 @@ async function loadDetail() {
                                         <div style="font-weight:600; color:#555; min-width:80px;">${getFriendlyLabel(item.k)}</div>
                                         ${valueHtml}
                                     </div>
-                                    ${shouldShowPin(key, item.k) ? `<button onclick="togglePin('${key}', '${item.k}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1.1rem; padding:0;">★</button>` : ''}
+                                    ${shouldShowPin(key, item.k) ? `<button onclick="togglePin('${key}', '${item.k}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1.1rem; padding:0;">${starIcon}</button>` : ''}
                                 </div>
                             `;
                             });
@@ -357,11 +354,15 @@ async function loadDetail() {
 
                     const pinnedItem = pinnedAttributes.find(p => p.assetId === ASSET_ID && p.attributeName === key && !p.key);
                     const isPinned = !!pinnedItem;
+                    const starIcon = isPinned ? '★' : '☆';
                     const starColor = isPinned ? '#f1c40f' : '#ccc';
-                    const editBtn = (isPinned && key !== 'RuleTargets') ? `<button onclick="renamePin('${key}')" style="background:none; border:none; color:#777; cursor:pointer; font-size:0.7rem; font-weight:600; padding:0; margin-right:8px;" title="Rename">RENAME</button>` : '';
+
+                    // No rename for Timers or Rules
+                    const isTimer = key.toLowerCase().startsWith('timer');
+                    const editBtn = (isPinned && key !== 'RuleTargets' && !isTimer) ? `<button onclick="renamePin('${key}')" style="background:none; border:none; color:#777; cursor:pointer; font-size:0.7rem; font-weight:600; padding:0; margin-right:8px;" title="Rename">RENAME</button>` : '';
 
                     const pinButtonHtml = shouldShowPin(key, null) ? `
-                         <button onclick="togglePin('${key}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1.2rem; padding:0;">★</button>
+                         <button onclick="togglePin('${key}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1.2rem; padding:0;">${starIcon}</button>
                      ` : '';
 
                     html += `
@@ -664,9 +665,11 @@ async function togglePin(attrName, key) {
 
         // If not pinned, prompt for a custom name
         if (!isPinned) {
-            // New Requirement: Don't prompt for rules
-            if (attrName === 'RuleTargets') {
-                payload.displayName = 'My Rules';
+            // New Requirement: Don't prompt for rules or timers
+            if (attrName === 'RuleTargets' || (key && key.toLowerCase().startsWith('timer'))) {
+                // Determine default friendly name
+                if (attrName === 'RuleTargets') payload.displayName = 'My Rules';
+                else payload.displayName = key; // Use key (friendly name equivalent for now)
             } else {
                 const defaultName = key ? `${attrName} → ${key}` : attrName;
                 const customName = prompt('Enter a display name for this pin:', defaultName);

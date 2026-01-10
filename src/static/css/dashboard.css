@@ -1,5 +1,3 @@
-/* Dashboard layout overrides and additions */
-
 /* Dashboard Sections */
 .dashboard-section {
     margin-bottom: 2rem;
@@ -185,7 +183,6 @@
     justify-content: flex-end;
 }
 
-/* Toggles - Overriding previous styles specifically for this section */
 .switch-toggle-col .toggle-switch {
     width: 90px;
     height: 50px;
@@ -194,7 +191,6 @@
 .switch-toggle-col .slider {
     border-radius: 50px;
     background-color: #e0e0e0;
-    /* Light grey when off matching image */
 }
 
 .switch-toggle-col .slider:before {
@@ -203,22 +199,16 @@
     left: 4px;
     bottom: 4px;
     background-color: #999;
-    /* Dark grey knob matching image */
 }
 
 .switch-toggle-col input:checked+.slider {
     background-color: #e0e0e0;
-    /* Keep track light grey even when on (if mimicking specific style) or Primary */
 }
 
 .switch-toggle-col input:checked+.slider:before {
     transform: translateX(40px);
     background-color: var(--primary);
-    /* Optional: Color the knob when on? Or keep grey? Let's use primary for feedback */
 }
-
-/* Keep the generic toggle styles for other parts of the app below if needed, or overwrite global if they are unique. 
-   Here I added specificity via .switch-toggle-col to ensure it applies to these cards. */
 
 /* Sensor Grid */
 .sensor-grid {
@@ -499,7 +489,6 @@ body {
     padding: 0;
     gap: 0.5rem;
     gap: 0.5rem;
-    /* overflow-x: auto; REMOVED to allow dropdown overflow */
 }
 
 .nav-item {
@@ -513,7 +502,7 @@ body {
     transition: all 0.2s;
     border-bottom: 3px solid transparent;
     border-left: none;
-    /* Reset sidebar style */
+
     white-space: nowrap;
 }
 
@@ -534,10 +523,8 @@ body {
     margin-top: 0;
     border-top: none;
     margin-left: auto;
-    /* Push to right if not using flex spacer */
 }
 
-/* Note: HTML uses spacer div, but keep this just in case */
 
 .nav-icon {
     margin-right: 8px;
@@ -571,7 +558,6 @@ body {
     color: var(--text-dark);
 }
 
-/* Cards & Grid */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -643,7 +629,6 @@ body {
     border-bottom: none;
 }
 
-/* Toggles */
 /* Toggles */
 .toggle-switch {
     position: relative;
@@ -749,4 +734,24 @@ input:checked+.slider:before {
 .btn-ghost:hover {
     background-color: var(--bg-light);
     color: var(--text-dark);
+}
+
+/* Idle State (Red and Disabled) */
+.switch-item.idle {
+    background-color: #fee2e2;
+    /* Light red background */
+    border-color: #ef4444;
+    /* Red border */
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.switch-item.idle .switch-label {
+    color: #7f1d1d;
+    /* Dark red text */
+}
+
+.switch-item.idle .toggle-switch {
+    pointer-events: none;
+    opacity: 0.6;
 }

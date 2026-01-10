@@ -17,6 +17,14 @@ async function loadTimers() {
             return;
         }
 
+        // Fetch User Preferences for Pinning Status
+        let pinnedItems = [];
+        try {
+            const prefsRes = await fetch('/api/user/preferences');
+            const prefs = await prefsRes.json();
+            pinnedItems = prefs.pinned || [];
+        } catch (e) { console.error("Prefs error", e); }
+
         let hasTimers = false;
 
         for (const asset of assets) {
@@ -40,7 +48,7 @@ async function loadTimers() {
                 let timersHtml = '';
                 for (const key of sortedKeys) {
                     const val = timerAttributes[key];
-                    timersHtml += renderEditableTimer(asset.id, key, val);
+                    timersHtml += renderEditableTimer(asset.id, key, val, pinnedItems);
                 }
 
                 const html = `
@@ -75,7 +83,7 @@ async function loadTimers() {
     }
 }
 
-function renderEditableTimer(assetId, key, val) {
+function renderEditableTimer(assetId, key, val, pinnedItems = []) {
     // Determine friendly name properly
     let friendlyName = key;
     // You might want to use the global friendlyNames here if available, or just the key
@@ -172,12 +180,11 @@ function renderEditableTimer(assetId, key, val) {
                 <span>${friendlyName}</span>
                 <span onclick="event.stopPropagation(); pinWidget('${assetId}', '${key}', null, '${friendlyName}')" 
                       title="Pin to Dashboard"
-                      style="cursor:pointer; font-size:1.1rem; color:#ccc; transition:color 0.2s;"
-                      onmouseover="this.style.color='#f1c40f'"
-                      onmouseout="this.style.color='#ccc'">
-                    ★
+                      style="cursor:pointer; font-size:1.1rem; color:${pinnedItems.some(p => p.assetId === assetId && p.attributeName === key) ? '#f1c40f' : '#ccc'}; transition:color 0.2s;">
+                    ${pinnedItems.some(p => p.assetId === assetId && p.attributeName === key) ? '★' : '☆'}
                 </span>
             </div>
+            ${items._timestamp ? `<div style="font-size:0.75rem; color:#999; margin-bottom:1rem; text-align:right;">Last modified: ${new Date(items._timestamp).toLocaleString()}</div>` : ''}
             ${innerHtml}
         </div>
     `;

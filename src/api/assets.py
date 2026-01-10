@@ -162,11 +162,29 @@ async def get_user_assets(request: Request):
             if "attributes" in a:
                 for k, v in a["attributes"].items():
                     if isinstance(v, dict) and "value" in v:
-                        flat_attrs[k] = v["value"]
-                        if k == "EnvData" and "timestamp" in v:
-                            last_activity_ts = v["timestamp"]
-                        elif not last_activity_ts and k == "Timer01" and "timestamp" in v:
-                            last_activity_ts = v["timestamp"]
+                        val = v["value"]
+                        ts = v.get("timestamp")
+                        
+                        # Inject timestamp for Rules and Timers
+                        if k == "RuleTargets" or k.startswith("Timer"):
+                            # Try to ensure it's a dict so we can inject _timestamp
+                            if isinstance(val, str):
+                                try:
+                                    parsed = json.loads(val)
+                                    if isinstance(parsed, dict):
+                                        val = parsed
+                                except:
+                                    pass
+                            
+                            if isinstance(val, dict) and ts:
+                                val["_timestamp"] = ts
+
+                        flat_attrs[k] = val
+                        
+                        # Check ONLY MoistureData for Activity Detection per user request
+                        if ts and k == "MoistureData":
+                            if last_activity_ts is None or ts > last_activity_ts:
+                                last_activity_ts = ts
                     else:
                         flat_attrs[k] = v
             
@@ -203,11 +221,29 @@ async def get_single_asset(request: Request, id: str):
         if "attributes" in a:
             for k, v in a["attributes"].items():
                 if isinstance(v, dict) and "value" in v:
-                    flat_attrs[k] = v["value"]
-                    if k == "EnvData" and "timestamp" in v:
-                        last_activity_ts = v["timestamp"]
-                    elif not last_activity_ts and k == "Timer01" and "timestamp" in v:
-                        last_activity_ts = v["timestamp"]
+                    val = v["value"]
+                    ts = v.get("timestamp")
+
+                    # Inject timestamp for Rules and Timers
+                    if k == "RuleTargets" or k.startswith("Timer"):
+                        # Try to ensure it's a dict so we can inject _timestamp
+                        if isinstance(val, str):
+                            try:
+                                parsed = json.loads(val)
+                                if isinstance(parsed, dict):
+                                    val = parsed
+                            except:
+                                pass
+                        
+                        if isinstance(val, dict) and ts:
+                            val["_timestamp"] = ts
+
+                    flat_attrs[k] = val
+
+                    # Check ONLY MoistureData for Activity Detection per user request
+                    if ts and k == "MoistureData":
+                        if last_activity_ts is None or ts > last_activity_ts:
+                            last_activity_ts = ts
                 else:
                     flat_attrs[k] = v
         return {
@@ -277,6 +313,15 @@ async def unlink_user_asset_api(request: Request, asset_id: str):
     url = f"{OR_MANAGER_URL}/api/master/asset/user/link/{realm}/{user_id}/{asset_id}"
     try:
         res = requests.delete(url, headers=headers)
+        
+        # Cleanup local preferences (pinned items)
+        prefs = load_preferences()
+        if user_id in prefs and "pinned" in prefs[user_id]:
+            original_count = len(prefs[user_id]["pinned"])
+            prefs[user_id]["pinned"] = [p for p in prefs[user_id]["pinned"] if p.get("assetId") != asset_id]
+            if len(prefs[user_id]["pinned"]) < original_count:
+                save_preferences(prefs)
+                
         return {"status": "success"} if res.status_code in [200, 204] else {"status": "error", "message": f"OR API Error: {res.status_code}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}

@@ -3,6 +3,8 @@ let ruleIdCounter = 1;
 let currentAssetId = null;
 let allAttributes = {};
 let isRulesPinned = false;
+let rulesTimestamp = null;
+
 
 // Load assets on page load
 async function init() {
@@ -43,6 +45,14 @@ async function loadAsset(assetId) {
         const asset = await res.json();
         allAttributes = asset.attributes || {};
 
+        // Extract timestamp from RuleTargets (injected by backend)
+        let rTargets = asset.attributes['RuleTargets'];
+        if (rTargets && rTargets._timestamp) {
+            rulesTimestamp = rTargets._timestamp;
+        } else {
+            rulesTimestamp = null;
+        }
+
         // Load existing rules from localStorage
         const stored = localStorage.getItem(`rules_${assetId}`);
         if (stored) {
@@ -51,7 +61,72 @@ async function loadAsset(assetId) {
             rules.forEach(r => { if (r.enabled === undefined) r.enabled = true; });
             ruleIdCounter = Math.max(...rules.map(r => parseInt(r.id.split('_')[1]) || 0), 0) + 1;
         } else {
+            // Attempt to recover from RuleTargets attribute
             rules = [];
+
+            if (typeof rTargets === 'string') {
+                try { rTargets = JSON.parse(rTargets); } catch (e) { rTargets = {}; }
+            }
+
+            if (rTargets && typeof rTargets === 'object') {
+                console.log('Recovering rules from RuleTargets...', rTargets);
+                // RuleTargets Key: sensorKey_ruleId
+                // RuleTargets Value: operator:threshold:relay:relayValue:ruleName
+
+                Object.entries(rTargets).forEach(([key, valStr]) => {
+                    try {
+                        // Key format: t0_rule_1 or just t0 (old)
+                        // If it has a ruleId suffix, extract it
+                        let ruleId = `rule_${ruleIdCounter++}`;
+                        const keyParts = key.split('_rule_');
+                        let sensorKey = keyParts[0];
+
+                        if (keyParts.length > 1) {
+                            ruleId = `rule_${keyParts[1]}`;
+                            // Update counter if needed
+                            const numId = parseInt(keyParts[1]);
+                            if (!isNaN(numId) && numId >= ruleIdCounter) ruleIdCounter = numId + 1;
+                        }
+
+                        const parts = valStr.split(':');
+                        if (parts.length >= 4) {
+                            // Map Groovy op back to UI op
+                            let op = parts[0];
+                            if (op === '==') op = '=';
+
+                            const rName = parts.length > 4 ? parts[4] : `Rule ${ruleIdCounter}`;
+                            const rVal = parts[3] === '1';
+
+                            // Determine sensor path (inverse of parseThresholdAttribute)
+                            // We have to guess the prefix based on the key
+                            let sensorPath = '';
+                            if (asset.attributes.EnvData && asset.attributes.EnvData[sensorKey] !== undefined) sensorPath = `EnvData.${sensorKey}`;
+                            else if (asset.attributes.MoistureData && asset.attributes.MoistureData[sensorKey] !== undefined) sensorPath = `MoistureData.${sensorKey}`;
+                            else if (asset.attributes.NPKData && asset.attributes.NPKData[sensorKey] !== undefined) sensorPath = `NPKData.${sensorKey}`;
+
+                            // If we found a valid sensor path, add the rule
+                            if (sensorPath) {
+                                rules.push({
+                                    id: ruleId,
+                                    name: rName,
+                                    sensor: sensorPath,
+                                    operator: op,
+                                    value: parseFloat(parts[1]),
+                                    relay: `RelayData.${parts[2]}`,
+                                    relayState: rVal,
+                                    enabled: true // Targets usually exist only if active, so default to enabled
+                                });
+                            }
+                        }
+                    } catch (e) { console.error('Error parsing rule recovery:', e); }
+                });
+
+                // Save recovered rules to local storage
+                if (rules.length > 0) {
+                    localStorage.setItem(`rules_${assetId}`, JSON.stringify(rules));
+                    toast('Restored rules from device');
+                }
+            }
         }
 
         renderRules();
@@ -244,7 +319,14 @@ function renderRules() {
     const sensors = getSensorOptions();
     const relays = getRelayOptions();
 
-    container.innerHTML = rules.map(rule => `
+    let timestampHtml = '';
+    if (rulesTimestamp) {
+        const date = new Date(rulesTimestamp);
+        const formatted = date.toLocaleString();
+        timestampHtml = `<div style="grid-column: 1/-1; text-align: right; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;">Last Updated: ${formatted}</div>`;
+    }
+
+    container.innerHTML = timestampHtml + rules.map(rule => `
         <div class="rule-card">
             <div class="rule-card-header">
                 <input type="text" class="rule-name-input" value="${rule.name || ''}" 

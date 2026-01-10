@@ -15,15 +15,11 @@ async function loadDashboard() {
         const now = Date.now();
 
         assets.forEach(a => {
-            if (a.lastActivityTimestamp) {
-                const diffMinutes = (now - a.lastActivityTimestamp) / (1000 * 60);
-                if (diffMinutes <= 1.0) {
-                    online++;
-                } else {
-                    offline++;
-                }
-            } else {
+            const status = getAssetStatus(a.lastActivityTimestamp);
+            if (status.isOffline) {
                 offline++;
+            } else {
+                online++;
             }
         });
 
@@ -48,6 +44,10 @@ async function loadDashboard() {
         // Load User-Pinnable Sections
         loadWidgets(assets);
 
+        // Force Write-Back (Keep Alive) - Requested Feature
+        keepAlive(assets);
+
+
     } catch (e) {
         console.error('Failed to load dashboard:', e);
     }
@@ -63,7 +63,9 @@ async function loadSwitches(assets) {
     for (const asset of assets) {
         const relayData = asset.attributes?.RelayData;
         if (relayData && typeof relayData === 'object') {
-            html += renderSwitchCard(asset.name, asset.id, relayData);
+            const status = getAssetStatus(asset.lastActivityTimestamp);
+            // Use isOffline to trigger the red/disabled state (formerly idle)
+            html += renderSwitchCard(asset.name, asset.id, relayData, status.isOffline);
         }
     }
 
@@ -74,7 +76,7 @@ async function loadSwitches(assets) {
     }
 }
 
-function renderSwitchCard(assetName, assetId, relayData) {
+function renderSwitchCard(assetName, assetId, relayData, isIdle = false) {
     const keys = Object.keys(relayData).sort();
     let switchesHtml = '<div class="switch-grid">';
 
@@ -86,14 +88,14 @@ function renderSwitchCard(assetName, assetId, relayData) {
         const safeKey = k.replace(/'/g, "\\'");
 
         switchesHtml += `
-            <div class="switch-item ${boolVal ? 'switch-on' : 'switch-off'}">
+            <div class="switch-item ${boolVal ? 'switch-on' : 'switch-off'} ${isIdle ? 'idle' : ''}">
                 <div class="switch-info-col">
                     <div class="switch-label">${storedName}</div>
                     <span class="switch-rename-btn" onclick="renameSwitch('${safeAssetId}', '${safeKey}')">RENAME</span>
                 </div>
                 <div class="switch-toggle-col">
                     <label class="toggle-switch">
-                        <input type="checkbox" ${boolVal ? 'checked' : ''} onchange="toggleSwitch('${safeAssetId}', '${safeKey}', this.checked)">
+                        <input type="checkbox" ${boolVal ? 'checked' : ''} ${isIdle ? 'disabled' : ''} onchange="toggleSwitch('${safeAssetId}', '${safeKey}', this.checked)">
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -171,6 +173,11 @@ async function loadWidgets(assets = []) {
     try {
         const res = await fetch(`/api/user/dashboard/widgets?t=${Date.now()}`);
         let widgets = await res.json();
+
+        // ensure unique IDs for localStorage mapping
+        widgets.forEach(w => {
+            if (!w.id) w.id = `${w.assetId}_${w.attributeName}_${w.key || ''}`;
+        });
 
         // Apply local overrides for names
         widgets = widgets.map(w => {
@@ -539,8 +546,8 @@ function wrapWidgetCard(w, title, contentHtml) {
             <div class="widget-card-header" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>${title}</span>
                 <div style="display:flex; gap:8px;">
-                    ${!isRuleParams ? `<span onclick="renameWidget('${w.id}', '${title.replace(/'/g, "\\'")}')" style="cursor:pointer; color:#777; font-size:0.8rem; font-weight:600;">RENAME</span>` : ''}
-                    <span onclick="unpinWidget('${w.id}')" style="cursor:pointer; color:#999; font-weight:bold;">✕</span>
+                    ${!isRuleParams && !w.attributeName.toLowerCase().startsWith('timer') ? `<span onclick="renameWidget('${w.id}', '${title.replace(/'/g, "\\'")}')" style="cursor:pointer; color:#777; font-size:0.8rem; font-weight:600;">RENAME</span>` : ''}
+                    <span onclick="unpinWidget('${w.assetId}', '${w.attributeName}', '${w.key || ''}')" style="cursor:pointer; color:#999; font-weight:bold;">✕</span>
                 </div>
             </div>
             ${contentHtml}
@@ -550,18 +557,31 @@ function wrapWidgetCard(w, title, contentHtml) {
 
 // Widget Actions
 
-async function unpinWidget(widgetId) {
+async function unpinWidget(assetId, attributeName, key) {
     if (!confirm('Remove this widget from dashboard?')) return;
     try {
-        const res = await fetch(`/api/user/dashboard/widgets/${widgetId}`, { method: 'DELETE' });
-        if (res.ok) {
+        const payload = {
+            assetId: assetId,
+            attributeName: attributeName,
+            key: key || null
+        };
+
+        const res = await fetch('/api/user/preferences/pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
             toast('Widget removed');
             loadWidgets();
         } else {
-            toast('Failed to remove widget');
+            toast('Failed to remove widget: ' + (data.message || 'Unknown error'));
         }
     } catch (e) {
         console.error(e);
+        toast('Connection error');
     }
 }
 
@@ -630,3 +650,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto-update every 1 second
     setInterval(loadDashboard, 1000);
 });
+
+async function keepAlive(assets) {
+    for (const asset of assets) {
+        if (asset.attributes?.RelayData) {
+            try {
+                // Post current value back to server to force timestamp update
+                await fetch(`/api/asset/${asset.id}/attribute/RelayData`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value: asset.attributes.RelayData })
+                });
+            } catch (e) {
+                console.error('[Dashboard] Keep-alive failed for', asset.id, e);
+            }
+        }
+    }
+}

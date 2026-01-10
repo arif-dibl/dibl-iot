@@ -40,8 +40,8 @@
         "Timer05": "Timer 5"
     },
     "keys": {
-        "t0": "Temperature 0",
-        "h0": "Humidity 0",
+        "t0": "Board Temperature",
+        "h0": "Board Humidity",
         "t1": "Temperature 1",
         "h1": "Humidity 1",
         "t2": "Temperature 2",

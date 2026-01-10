@@ -17,28 +17,11 @@ async function loadAssets() {
         }
 
         grid.innerHTML = assets.map(a => {
-            // Calculate activity status
-            let activityStatus = 'unknown';
-            let statusColor = 'var(--text-muted)';
-            let statusDot = '⚪';
-
-            if (a.lastActivityTimestamp) {
-                const diffMinutes = (Date.now() - a.lastActivityTimestamp) / (1000 * 60);
-                if (diffMinutes <= 0.5) {
-                    activityStatus = 'Active';
-                    statusColor = 'var(--success)';
-                    statusDot = '🟢';
-                } else if (diffMinutes <= 5.0) {
-                    activityStatus = 'Idle';
-                    statusColor = '#f0ad4e';
-                    statusDot = '🟡';
-                } else {
-                    activityStatus = 'Offline';
-                    statusColor = 'var(--danger)';
-                    statusDot = '🔴';
-                }
-                activityStatus += ` (${timeAgo(a.lastActivityTimestamp)})`;
-            }
+            // Use Shared Logic
+            const status = getAssetStatus(a.lastActivityTimestamp);
+            const activityStatus = status.status;
+            const statusColor = status.color;
+            const statusDot = status.dot;
 
             return `
 <div class="card asset-card" style="cursor:pointer; position:relative; transition:transform 0.2s; display:flex; flex-direction:column; gap:0.75rem;"
@@ -59,6 +42,7 @@ async function loadAssets() {
          <div style="display:flex; align-items:center; gap:6px; font-size:0.9rem; background:#f8f9fa; padding:3px 10px; border-radius:12px; border:1px solid #eee;">
             <span>${statusDot}</span>
             <span style="color:${statusColor}; font-weight:700;">${activityStatus}</span>
+            ${a.lastActivityTimestamp ? `<span style="color:#999; font-weight:400; margin-left:4px; font-size:0.8rem;">(${timeAgo(a.lastActivityTimestamp)})</span>` : ''}
         </div>
     </div>
 
@@ -179,6 +163,18 @@ async function unlinkAsset(id) {
 
         if (data.status === 'success') {
             toast('IoT Device Unlinked');
+
+            // Cleanup localStorage
+            localStorage.removeItem(`rules_${id}`);
+            localStorage.removeItem(`widget_name_${id}`);
+
+            // Cleanup generic prefixes/patterns
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith(`switch_name_${id}_`) || key.startsWith(`rule_name_${id}_`)) {
+                    localStorage.removeItem(key);
+                }
+            });
+
             // Add a small delay for backend propagation
             setTimeout(loadAssets, 500);
         } else {

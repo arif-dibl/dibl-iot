@@ -90,19 +90,40 @@ async function loadAttributes(assetId) {
 
             // Check for Map/JSON type
             const attr = attrs[currentAttribute];
-            if (attr && (attr.type === 'textMap' || typeof attr.value === 'object')) {
-                subGroup.style.display = 'block';
-                subSelect.innerHTML = '<option value="">(Optional) Select key...</option>';
+            let keys = [];
+            let isJsonAttribute = false;
 
-                let keys = [];
-                try {
-                    // Try to get keys from current value
-                    const val = typeof attr.value === 'string' ? JSON.parse(attr.value) : attr.value;
-                    if (val && typeof val === 'object') {
-                        keys = Object.keys(val).sort();
+            console.log('Selected attribute:', currentAttribute);
+            console.log('Attribute object:', attr);
+
+            if (attr) {
+                // The attribute could be the value directly OR have a .value property
+                let val = attr.value !== undefined ? attr.value : attr;
+                console.log('Using val:', val);
+
+                // Try to parse if string
+                if (typeof val === 'string') {
+                    try {
+                        val = JSON.parse(val);
+                        console.log('Parsed value:', val);
+                    } catch (e) {
+                        console.log('Not JSON string');
                     }
-                } catch (e) { console.log('Parsing error for keys', e); }
+                }
 
+                // Check if value is an object with keys
+                if (val && typeof val === 'object' && !Array.isArray(val)) {
+                    keys = Object.keys(val).sort();
+                    isJsonAttribute = keys.length > 0;
+                    console.log('Detected keys:', keys);
+                }
+            }
+
+            console.log('isJsonAttribute:', isJsonAttribute);
+
+            if (isJsonAttribute) {
+                subGroup.style.display = 'block';
+                subSelect.innerHTML = '<option value="">(All Keys)</option>';
                 keys.forEach(k => {
                     const opt = document.createElement('option');
                     opt.value = k;
@@ -230,9 +251,15 @@ function renderGraph(data) {
 
     const labels = sorted.map(pt => new Date(pt.x).toLocaleString());
     const values = sorted.map(pt => {
-        // Attempt to convert to number if possible
-        const v = Number(pt.y);
-        return isNaN(v) ? 0 : v; // Fallback to 0 if not a number? Or null.
+        let val = pt.y;
+
+        // Handle boolean strings or actual booleans
+        if (val === 'true' || val === true) return 1;
+        if (val === 'false' || val === false) return 0;
+
+        // Attempt to convert to number
+        const v = Number(val);
+        return isNaN(v) ? 0 : v;
     });
 
     chartInstance = new Chart(ctx, {
@@ -251,6 +278,11 @@ function renderGraph(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
             scales: {
                 x: {
                     ticks: { color: '#ccc', maxTicksLimit: 10 },
@@ -262,7 +294,25 @@ function renderGraph(data) {
                 }
             },
             plugins: {
-                legend: { labels: { color: '#fff' } }
+                legend: { labels: { color: '#fff' } },
+                tooltip: {
+                    enabled: true,
+                    mode: 'nearest',
+                    intersect: false,
+                    displayColors: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: { size: 13 },
+                    bodyFont: { size: 13, weight: 'bold' },
+                    padding: 10,
+                    callbacks: {
+                        title: function (context) {
+                            return context[0].label;
+                        },
+                        label: function (context) {
+                            return `Value: ${context.parsed.y}`;
+                        }
+                    }
+                }
             }
         }
     });

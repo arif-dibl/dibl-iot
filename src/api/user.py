@@ -88,6 +88,9 @@ async def change_user_password(request: Request):
 @router.get("/asset-partners")
 async def get_asset_partners(request: Request):
     from core.auth import get_admin_token
+    from core.config import IGNORED_USERS_FILE
+    import json
+    import os
     realm = request.session.get("realm", DEFAULT_REALM)
     user_id = request.session.get("user_id")
     access_token = get_valid_token(request)
@@ -107,11 +110,12 @@ async def get_asset_partners(request: Request):
         admin_headers = {"Authorization": f"Bearer {admin_token}"}
         
         # Try fetching all links.
-        links_res = requests.get(f"{OR_MANAGER_URL}/api/master/asset/user/link", headers=admin_headers, verify=False)
+        links_res = requests.get(f"{OR_MANAGER_URL}/api/master/asset/user/link", params={"realm": realm}, headers=admin_headers, verify=False)
         all_links = links_res.json() if links_res.status_code == 200 else []
         
-        # 3. Filter relevant links
-        partners_map = {} # asset_id -> set(user_ids)
+        # 3. Filter relevant links and cache names
+        partners_map = {} # asset_id -> set(user_id)
+        user_name_cache = {} # user_id -> full name
         
         for link in all_links:
             lid = link.get("id", {})
@@ -122,34 +126,72 @@ async def get_asset_partners(request: Request):
             if l_realm == realm and l_asset in my_assets and l_user != user_id:
                 if l_asset not in partners_map: partners_map[l_asset] = set()
                 partners_map[l_asset].add(l_user)
-        
+                
+                # Use name from link if available, fallback to cache or Unknown
+                if "userFullName" in link:
+                    user_name_cache[l_user] = link["userFullName"]
+
         if not partners_map: return []
         
-        # 4. Resolve User Names (Admin)
+        # 4. Resolve User Names (Fallback for missing names)
+        # Only lookup if not in cache (though links usually have it)
         all_partner_ids = set()
         for uids in partners_map.values():
             all_partner_ids.update(uids)
             
-        user_cache = {}
         for pid in all_partner_ids:
-            u_res = requests.get(f"{OR_MANAGER_URL}/api/{realm}/user/user/{pid}", headers=admin_headers, verify=False)
-            if u_res.status_code == 200:
-                u_data = u_res.json()
-                name = u_data.get("firstName") or u_data.get("username", "Unknown")
-                if u_data.get("lastName"): name += f" {u_data.get('lastName')}"
-                user_cache[pid] = name
-            else:
-                user_cache[pid] = "Unknown"
-                
+            if pid not in user_name_cache:
+                try:
+                    u_res = requests.get(f"{OR_MANAGER_URL}/api/{realm}/user/user/{pid}", headers=admin_headers, verify=False)
+                    if u_res.status_code == 200:
+                        u_data = u_res.json()
+                        name = u_data.get("firstName") or u_data.get("username", "Unknown")
+                        if u_data.get("lastName"): name += f" {u_data.get('lastName')}"
+                        user_name_cache[pid] = name
+                    else:
+                        user_name_cache[pid] = "Unknown"
+                except:
+                    user_name_cache[pid] = "Unknown"
+
         # 5. Build Response
+        # Load ignored patterns
+        ignored_prefixes = []
+        ignored_usernames = []
+        if os.path.exists(IGNORED_USERS_FILE):
+            try:
+                with open(IGNORED_USERS_FILE, 'r') as f:
+                    data = json.load(f)
+                    ignored_prefixes = data.get("ignored_prefixes", [])
+                    ignored_usernames = data.get("ignored_usernames", [])
+            except: pass
+
         result = []
         for aid, user_ids in partners_map.items():
-            user_names = [user_cache.get(uid, "Unknown") for uid in user_ids]
-            result.append({
-                "assetId": aid,
-                "assetName": my_assets[aid],
-                "users": user_names
-            })
+            valid_names = []
+            for uid in user_ids:
+                name = user_name_cache.get(uid, "Unknown")
+                
+                # Check Ignore Filters
+                is_ignored = False
+                if name != "Unknown":
+                    # Check exact username match (if name looks like a username)
+                    if name in ignored_usernames: is_ignored = True
+                    
+                    # Check prefixes
+                    for prefix in ignored_prefixes:
+                        if name.startswith(prefix):
+                            is_ignored = True
+                            break
+                            
+                if not is_ignored:
+                    valid_names.append(name)
+            
+            if valid_names:
+                result.append({
+                    "assetId": aid,
+                    "assetName": my_assets[aid],
+                    "users": valid_names
+                })
             
         return result
         

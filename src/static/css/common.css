@@ -44,6 +44,14 @@ button:disabled,
     font-size: 0.85rem;
 }
 
+.btn-secondary {
+    background-color: #607d8b;
+}
+
+.btn-secondary:hover {
+    background-color: #546e7a;
+}
+
 .btn-ghost {
     background-color: transparent;
     color: var(--text-muted);

@@ -4,65 +4,123 @@
 {% block header %}History Logs{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 1000px; margin: 0 auto;">
-    <h3>History Logs</h3>
-    <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">
-        Select an asset and attribute, then confirm to fetch datapoints.
-    </p>
-
-    <!-- Selectors and Fetch Button -->
-    <div class="controls">
-        <div class="form-group">
-            <label>Asset</label>
-            <select id="assetSelect" onchange="loadAttributes(this.value)">
-                <option value="">Loading...</option>
-            </select>
+<div style="margin-bottom: 2rem;">
+    <!-- Asset/Attribute Selection Bar -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem; flex: 1; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <label style="font-weight: 600; white-space: nowrap; color: var(--text-muted);">Device:</label>
+                    <select id="assetSelect" onchange="loadAttributes(this.value)"
+                        style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; min-width: 200px; font-size: 0.95rem;">
+                        <option value="">Choose a device...</option>
+                    </select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <label style="font-weight: 600; white-space: nowrap; color: var(--text-muted);">Group:</label>
+                    <select id="attributeSelect" disabled
+                        style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; min-width: 180px; font-size: 0.95rem;">
+                        <option value="">Select a device first...</option>
+                    </select>
+                </div>
+                <div id="subAttributeGroup" style="display: none; align-items: center; gap: 0.75rem;">
+                    <label style="font-weight: 600; white-space: nowrap; color: var(--text-muted);">Elements:</label>
+                    <select id="subAttributeSelect"
+                        style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; min-width: 150px; font-size: 0.95rem;">
+                        <option value="">(All)</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Attribute</label>
-            <select id="attributeSelect" disabled>
-                <option value="">Select asset first...</option>
-            </select>
-        </div>
-        <div class="form-group" id="subAttributeGroup" style="display: none;">
-            <label>Sub-Attribute</label>
-            <select id="subAttributeSelect">
-                <option value="">(Optional) Select key...</option>
-            </select>
-        </div>
-        <div class="form-group" style="flex: 0 0 150px; min-width: 150px;">
-            <label>Time Range</label>
-            <select id="timeSelect">
-                <option value="last_24h" selected>Last 24 Hours</option>
-                <option value="last_hour">Last Hour</option>
-                <option value="today">Today</option>
-                <option value="last_7d">Last 7 Days</option>
-            </select>
-        </div>
-        <button onclick="fetchDatapoints()">Fetch Datapoints</button>
-        <button onclick="exportDatapoints()" class="secondary-btn"
-            style="margin-left: 10px; background-color: #607d8b;">Export CSV</button>
     </div>
 
-    <!-- View Mode Controls -->
-    <div class="view-options">
-        <strong>View Mode:</strong>
-        <label><input type="radio" name="viewMode" value="json" checked onchange="updateView()"> Raw</label>
-        <label><input type="radio" name="viewMode" value="table" onchange="updateView()"> Table</label>
-        <label><input type="radio" name="viewMode" value="graph" onchange="updateView()"> Graph</label>
+    <!-- Time Range Card -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div
+            style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1.5rem;">
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap; flex: 1;">
+                <!-- Start -->
+                <div>
+                    <label
+                        style="display: block; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.85rem;">START
+                        DATE / TIME</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="date" id="startDate"
+                            style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
+                        <input type="time" id="startTime"
+                            style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; width: 110px;">
+                    </div>
+                </div>
+                <!-- End -->
+                <div>
+                    <label
+                        style="display: block; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.85rem;">END
+                        DATE / TIME</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="date" id="endDate"
+                            style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
+                        <input type="time" id="endTime"
+                            style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; width: 110px;">
+                    </div>
+                </div>
+            </div>
+            <!-- Buttons -->
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn-sm" onclick="fetchDatapoints()">Fetch Data</button>
+                <button class="btn-sm btn-secondary" onclick="exportDatapoints()">Export CSV</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Results -->
-    <h4>Response</h4>
-    <!-- JSON Output -->
-    <div id="responseOutput" class="output-box">Select an asset and click Fetch...</div>
+    <!-- Results Section with View Mode -->
+    <div class="card">
+        <!-- Header with View Options -->
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            <h4 style="margin: 0; color: var(--text-dark);">Data Results</h4>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <span style="font-weight: 500; color: var(--text-muted); font-size: 0.85rem;">Show as:</span>
+                <label
+                    style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; color: var(--text-dark); font-weight: 500; font-size: 0.9rem;">
+                    <input type="radio" name="viewMode" value="table" checked onchange="updateView()"> Table
+                </label>
+                <label
+                    style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; color: var(--text-dark); font-weight: 500; font-size: 0.9rem;">
+                    <input type="radio" name="viewMode" value="graph" onchange="updateView()"> Chart
+                </label>
+                <label
+                    style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; color: var(--text-muted); font-weight: 500; font-size: 0.9rem;">
+                    <input type="radio" name="viewMode" value="json" onchange="updateView()"> Raw Data
+                </label>
+            </div>
+        </div>
 
-    <!-- Table Output -->
-    <div id="tableOutput" style="display: none; overflow-x: auto;"></div>
+        <!-- Initial/Feedback Message -->
+        <div id="initialMessage" class="output-box"
+            style="text-align: center; color: var(--text-muted); font-family: inherit; font-size: 1rem;">
+            Choose a device and group above, then click <strong>Fetch Data</strong> to see the history.
+        </div>
 
-    <!-- Graph Output -->
-    <div id="graphOutput" class="graph-container" style="display: none;">
-        <canvas id="datapointChart"></canvas>
+        <!-- Raw JSON Data Output -->
+        <div id="jsonWrapper" style="display: none; position: relative;">
+            <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy
+            </button>
+            <pre id="responseOutput" class="output-box"></pre>
+        </div>
+
+        <!-- Table Output -->
+        <div id="tableOutput" style="display: none; overflow-x: auto;"></div>
+
+        <!-- Graph Output -->
+        <div id="graphOutput" class="graph-container" style="display: none;">
+            <canvas id="datapointChart"></canvas>
+        </div>
     </div>
 </div>
 

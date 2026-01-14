@@ -54,7 +54,7 @@
                             History Logs
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a href="/logout" class="nav-item logout">
+                        <a href="/logout" class="nav-item logout" onclick="clearDiblCache()">
                             Logout
                         </a>
                     </div>
@@ -67,7 +67,8 @@
             <div class="page-header">
                 <h1 class="page-title">{% block header %}Dashboard{% endblock %}</h1>
                 <div class="user-info">
-                    <span style="color: #666; font-size: 0.9rem;">Welcome, User</span>
+                    <span style="color: #666; font-size: 0.9rem;">Welcome, {{ request.session.username or
+                        'User'}}</span>
                 </div>
             </div>
 

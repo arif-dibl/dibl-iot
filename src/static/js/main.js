@@ -1,11 +1,34 @@
 // Utilities
 let friendlyNames = { attributes: {}, keys: {} };
 
+// Cache config
+const FRIENDLY_NAMES_CACHE_KEY = 'dibl_friendly_names';
+const FRIENDLY_NAMES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 async function fetchFriendlyNames() {
     try {
+        // Check sessionStorage cache first
+        const cached = sessionStorage.getItem(FRIENDLY_NAMES_CACHE_KEY);
+        if (cached) {
+            const { data, timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp < FRIENDLY_NAMES_CACHE_TTL) {
+                friendlyNames = data;
+                return; // Use cached data
+            }
+        }
+
+        // Fetch from server
         const res = await fetch('/api/friendly-names');
         friendlyNames = await res.json();
-    } catch (e) { console.error('Failed to load friendly names:', e); }
+
+        // Cache in sessionStorage
+        sessionStorage.setItem(FRIENDLY_NAMES_CACHE_KEY, JSON.stringify({
+            data: friendlyNames,
+            timestamp: Date.now()
+        }));
+    } catch (e) {
+        console.error('Failed to load friendly names:', e);
+    }
 }
 
 // Helper: Friendly Labels
@@ -92,8 +115,14 @@ function toast(msg) {
     }, 3000);
 }
 
-// Auto-fetch on load
-fetchFriendlyNames();
+// Fire-and-forget: fetch friendly names without blocking page load
+fetchFriendlyNames().catch(() => { });
+
+// Clear all DIBL caches (called on logout)
+function clearDiblCache() {
+    sessionStorage.removeItem(FRIENDLY_NAMES_CACHE_KEY);
+}
+
 // Shared Pinning Logic
 async function pinWidget(assetId, attrName, key, defaultName) {
     try {

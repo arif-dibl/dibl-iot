@@ -101,6 +101,25 @@ async def get_dashboard_widgets(request: Request):
     headers = {"Authorization": f"Bearer {access_token}"}
     widgets = []
     try:
+        # First, get the list of assets actually linked to this user
+        linked_assets_url = f"{OR_MANAGER_URL}/api/{realm}/asset/user/current"
+        linked_res = requests.get(linked_assets_url, headers=headers)
+        linked_asset_ids = set()
+        if linked_res.status_code == 200:
+            linked_assets = linked_res.json()
+            linked_asset_ids = set(a["id"] for a in linked_assets)
+        
+        # Filter pinned items to only include assets that are linked to user
+        valid_pinned = [p for p in pinned if p["assetId"] in linked_asset_ids]
+        
+        # Clean up orphaned pins (assets no longer linked to user)
+        if len(valid_pinned) < len(pinned):
+            prefs[user_id]["pinned"] = valid_pinned
+            save_preferences(prefs)
+            pinned = valid_pinned
+        
+        if not pinned: return []
+        
         unique_asset_ids = list(set([p["assetId"] for p in pinned]))
         assets_cache = {}
         for aid in unique_asset_ids:

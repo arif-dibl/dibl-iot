@@ -306,7 +306,7 @@ function renderNPKCard(w) {
 function renderRuleCard(w, assetAttributes = null) {
     let rulesList = [];
     if (w.value && typeof w.value === 'object') {
-        rulesList = Object.entries(w.value);
+        rulesList = Object.entries(w.value).filter(([key]) => !key.startsWith('_'));
     }
 
     let content;

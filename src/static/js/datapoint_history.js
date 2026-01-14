@@ -8,6 +8,11 @@ let realm = 'master';
 document.addEventListener('DOMContentLoaded', async () => {
     // Priority: window.USER_REALM passed from template
     realm = window.USER_REALM || 'master';
+
+    // Initialize DateTime Pickers
+    initDateTimePickers();
+
+    // Load Assets
     await loadAssets();
 
     // Sub-Attribute Listener
@@ -16,6 +21,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentSubAttribute = subSelect.value;
     };
 });
+
+// Note: friendlyNames is loaded globally by main.js
+
+// Initialize date and time inputs with min/max and defaults
+function initDateTimePickers() {
+    const startDateInput = document.getElementById('startDate');
+    const startTimeInput = document.getElementById('startTime');
+    const endDateInput = document.getElementById('endDate');
+    const endTimeInput = document.getElementById('endTime');
+
+    const now = new Date();
+    const minDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)); // 30 days ago
+    const defaultStart = new Date(now.getTime() - (24 * 60 * 60 * 1000)); // 24 hours ago
+
+    // Format helpers
+    const formatDate = (d) => {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    };
+    const formatTime = (d) => {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    // Set min/max for date inputs
+    startDateInput.min = formatDate(minDate);
+    startDateInput.max = formatDate(now);
+    startDateInput.value = formatDate(defaultStart);
+
+    endDateInput.min = formatDate(minDate);
+    endDateInput.max = formatDate(now);
+    endDateInput.value = formatDate(now);
+
+    // Set default times
+    startTimeInput.value = '00:00';
+    endTimeInput.value = '00:01';
+
+    // Update end min when start changes
+    startDateInput.addEventListener('change', () => {
+        endDateInput.min = startDateInput.value;
+    });
+}
 
 async function loadAssets() {
     const select = document.getElementById('assetSelect');
@@ -33,11 +80,11 @@ async function loadAssets() {
         const assets = Array.isArray(data) ? data : (data.assets || []);
 
         if (assets.length === 0) {
-            select.innerHTML = '<option value="">No linked assets</option>';
+            select.innerHTML = '<option value="">No linked devices</option>';
             return;
         }
 
-        select.innerHTML = '<option value="">Select asset...</option>';
+        select.innerHTML = '<option value="">Select device...</option>';
         assets.forEach(a => {
             const opt = document.createElement('option');
             opt.value = a.id;
@@ -46,7 +93,7 @@ async function loadAssets() {
         });
     } catch (e) {
         console.error(e);
-        select.innerHTML = '<option value="">Error loading assets</option>';
+        select.innerHTML = '<option value="">Error loading devices</option>';
     }
 }
 
@@ -63,7 +110,7 @@ async function loadAttributes(assetId) {
     currentSubAttribute = null;
 
     if (!assetId) {
-        select.innerHTML = '<option value="">Select asset first...</option>';
+        select.innerHTML = '<option value="">Select device first...</option>';
         return;
     }
 
@@ -72,7 +119,7 @@ async function loadAttributes(assetId) {
         const asset = await res.json();
         const attrs = asset.attributes || {};
 
-        select.innerHTML = '<option value="">Select attribute...</option>';
+        select.innerHTML = '<option value="">Select group...</option>';
 
         // Only use actual attribute keys, do not expand JSON
         Object.keys(attrs).sort().forEach(key => {
@@ -123,7 +170,7 @@ async function loadAttributes(assetId) {
 
             if (isJsonAttribute) {
                 subGroup.style.display = 'block';
-                subSelect.innerHTML = '<option value="">(All Keys)</option>';
+                subSelect.innerHTML = '<option value="">(All Elements)</option>';
                 keys.forEach(k => {
                     const opt = document.createElement('option');
                     opt.value = k;
@@ -142,18 +189,30 @@ async function loadAttributes(assetId) {
 }
 
 function getTimeRange() {
-    const sel = document.getElementById('timeSelect').value;
-    const now = Date.now();
-    let start = now - 24 * 3600000; // default 24h
+    const startDateInput = document.getElementById('startDate');
+    const startTimeInput = document.getElementById('startTime');
+    const endDateInput = document.getElementById('endDate');
+    const endTimeInput = document.getElementById('endTime');
 
-    if (sel === 'last_hour') start = now - 3600000;
-    else if (sel === 'last_7d') start = now - 7 * 24 * 3600000;
-    else if (sel === 'today') {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        start = d.getTime();
+    // Combine date and time
+    const startStr = `${startDateInput.value}T${startTimeInput.value || '00:00'}`;
+    const endStr = `${endDateInput.value}T${endTimeInput.value || '23:59'}`;
+
+    let start = new Date(startStr).getTime();
+    let end = new Date(endStr).getTime();
+
+    // Validation fallback
+    if (isNaN(start)) start = Date.now() - 24 * 3600000;
+    if (isNaN(end)) end = Date.now();
+
+    // Ensure start < end
+    if (start > end) {
+        const temp = start;
+        start = end;
+        end = temp;
     }
-    return { start, end: now };
+
+    return { start, end };
 }
 
 // Visualization State
@@ -162,7 +221,8 @@ let chartInstance = null;
 
 function updateView() {
     // Hide all
-    document.getElementById('responseOutput').style.display = 'none';
+    document.getElementById('initialMessage').style.display = 'none';
+    document.getElementById('jsonWrapper').style.display = 'none';
     document.getElementById('tableOutput').style.display = 'none';
     document.getElementById('graphOutput').style.display = 'none';
 
@@ -170,18 +230,22 @@ function updateView() {
     const mode = document.querySelector('input[name="viewMode"]:checked').value;
 
     if (!currentData || (Array.isArray(currentData) && currentData.length === 0)) {
-        document.getElementById('responseOutput').style.display = 'block';
-        if (mode !== 'json') {
-            // Show empty message in JSON box as fallback or clear others
-            document.getElementById('responseOutput').textContent = "No data to display.";
+        const msg = document.getElementById('initialMessage');
+        msg.style.display = 'block';
+        if (typeof currentData === 'string') {
+            msg.textContent = currentData;
+        } else {
+            msg.innerHTML = 'Choose a device and group above, then click <strong>Fetch Data</strong> to see the history.';
         }
         return;
     }
 
     if (mode === 'json') {
+        const wrapper = document.getElementById('jsonWrapper');
         const out = document.getElementById('responseOutput');
-        out.style.display = 'block';
+        wrapper.style.display = 'block';
         out.textContent = JSON.stringify(currentData, null, 2);
+        resetCopyButton();
     } else if (mode === 'table') {
         document.getElementById('tableOutput').style.display = 'block';
         renderTable(currentData);
@@ -194,46 +258,76 @@ function updateView() {
 function renderTable(data) {
     const container = document.getElementById('tableOutput');
     if (!Array.isArray(data)) {
-        container.innerHTML = '<div style="padding:10px; color:#f55;">Data is not an array. Cannot render table.</div>';
+        container.innerHTML = '<div style="padding:10px; color:#f55;">Unable to display data in table format.</div>';
         return;
     }
 
-    let html = '<table class="data-table"><thead><tr><th>Timestamp</th><th>Date</th><th>Value</th></tr></thead><tbody>';
+    // Determine Display Name using Friendly Names
+    let displayText = currentAttribute;
 
-    // Sort by timestamp desc
+    // Check if friendlyNames is loaded and has attributes
+    if (typeof friendlyNames !== 'undefined' && friendlyNames.attributes) {
+        if (friendlyNames.attributes[currentAttribute]) {
+            displayText = friendlyNames.attributes[currentAttribute];
+        }
+    }
+
+    if (currentSubAttribute) {
+        let subFriendly = currentSubAttribute;
+        if (typeof friendlyNames !== 'undefined' && friendlyNames.keys && friendlyNames.keys[currentSubAttribute]) {
+            subFriendly = friendlyNames.keys[currentSubAttribute];
+        }
+        displayText += ` (${subFriendly})`;
+    } else if (currentAttribute === 'EnvData' || currentAttribute === 'MoistureData' || currentAttribute === 'RelayData') {
+        displayText += ' (All)';
+    }
+
+    let html = '<table class="data-table"><thead><tr><th>Attribute Name</th><th>Date</th><th>Time</th><th>Value</th></tr></thead><tbody>';
+
+    // Sort by timestamp desc (newest first)
     const sorted = [...data].sort((a, b) => b.x - a.x);
 
     sorted.forEach(pt => {
-        const date = new Date(pt.x).toLocaleString();
+        const d = new Date(pt.x);
+        const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); // e.g., "11 Jan 2026"
+        const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); // e.g., "10:15 AM"
+
         let val = pt.y;
         let displayVal = val;
 
         try {
-            // Attempt to parse stringified JSON if it looks like an object
+            // Parse JSON if stringified
             if (typeof val === 'string' && (val.trim().startsWith('{') || val.trim().startsWith('['))) {
                 val = JSON.parse(val);
             }
 
             if (val && typeof val === 'object') {
-                // Format as styled key-value list
-                displayVal = '<div style="font-size:0.85em; max-height:150px; overflow-y:auto;">';
+                // Format object as key-value pairs
+                displayVal = '<div class="val-object">';
                 Object.keys(val).sort().forEach(k => {
                     let v = val[k];
                     if (typeof v === 'object' && v !== null) v = JSON.stringify(v);
-                    displayVal += `<div style="margin-bottom:2px;"><span style="color:#666; font-weight:600;">${k}:</span> ${v}</div>`;
+                    displayVal += `<div><span class="val-key">${k}:</span> ${v}</div>`;
                 });
                 displayVal += '</div>';
+            } else if (typeof val === 'boolean') {
+                displayVal = val ? '<span style="color:#27ae60;">✓ Yes</span>' : '<span style="color:#e74c3c;">✗ No</span>';
             } else {
                 displayVal = String(val);
             }
         } catch (e) {
-            // Fallback to raw string if parsing fails
             displayVal = String(pt.y);
         }
 
-        html += `<tr><td>${pt.x}</td><td>${date}</td><td>${displayVal}</td></tr>`;
+        html += `<tr><td><strong>${displayText}</strong></td><td>${dateStr}</td><td>${timeStr}</td><td>${displayVal}</td></tr>`;
     });
     html += '</tbody></table>';
+
+    // Add summary
+    html = `<div style="margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--text-muted);">
+        Showing <strong>${sorted.length}</strong> records
+    </div>` + html;
+
     container.innerHTML = html;
 }
 
@@ -321,14 +415,15 @@ function renderGraph(data) {
 
 async function fetchDatapoints() {
     if (!currentAssetId || !currentAttribute) {
-        currentData = "Please select an asset and attribute.";
+        currentData = "Please select a device and group.";
         updateView();
         return;
     }
 
-    // Show loading in JSON view temporarily
-    document.getElementById('responseOutput').textContent = "Fetching...";
-    document.getElementById('responseOutput').style.display = 'block';
+    // Show loading
+    document.getElementById('initialMessage').textContent = "Fetching...";
+    document.getElementById('initialMessage').style.display = 'block';
+    document.getElementById('jsonWrapper').style.display = 'none';
     document.getElementById('tableOutput').style.display = 'none';
     document.getElementById('graphOutput').style.display = 'none';
 
@@ -398,7 +493,7 @@ async function fetchDatapoints() {
 
 async function exportDatapoints() {
     if (!currentAssetId || !currentAttribute) {
-        alert("Please select an asset and attribute first.");
+        alert("Please select a device and group first.");
         return;
     }
 
@@ -462,4 +557,35 @@ async function exportDatapoints() {
         btn.textContent = originalText;
         btn.disabled = false;
     }
+}
+
+function copyToClipboard() {
+    const text = document.getElementById('responseOutput').textContent;
+    const btn = document.getElementById('copyBtn');
+
+    navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('success');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Copied!
+        `;
+
+        setTimeout(() => {
+            btn.classList.remove('success');
+            btn.innerHTML = originalHtml;
+        }, 2000);
+    }).catch(err => {
+        console.error('Could not copy text: ', err);
+        btn.textContent = "Error";
+    });
+}
+
+function resetCopyButton() {
+    const btn = document.getElementById('copyBtn');
+    btn.classList.remove('success');
+    btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy
+    `;
 }

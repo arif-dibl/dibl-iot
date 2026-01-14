@@ -26,3 +26,6 @@ arduino-feature.md
 device-feature.md
 feature.md
 
+# --- Tests ---
+tests/
+

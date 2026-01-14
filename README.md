@@ -31,7 +31,6 @@ DIBL_IOT/
 ├── config/                 # Configuration files
 │   ├── asset_template.json # Template for new device provisioning
 │   ├── friendly_names.json # UI display name mappings
-│   ├── mapsettings.json    # Map visualization settings
 │   └── ignored_users.json  # User filter configs
 ├── deploy/
 │   └── Dockerfile          # Build definition for Custom UI service

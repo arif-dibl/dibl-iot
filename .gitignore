@@ -20,11 +20,13 @@ env/
 .vscode/
 # --- Data ---
 data/maps/*.mbtiles
+data/maps/*.bak
 # --- Documentation ---
 GIT_MANUAL.md
 arduino-feature.md
 device-feature.md
 feature.md
+ARCHITECT_REPORT.md
 
 # --- Tests ---
 tests/

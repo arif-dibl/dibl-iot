@@ -12,13 +12,11 @@ async function loadProfile() {
 
         userProfile = data;
 
-        // Set form fields
         document.getElementById('username').value = data.username || '';
         document.getElementById('email').value = data.email || '';
         document.getElementById('firstName').value = data.firstName || '';
         document.getElementById('lastName').value = data.lastName || '';
 
-        // Set display
         const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ') || data.username || 'User';
         document.getElementById('displayName').textContent = fullName;
         document.getElementById('displayEmail').textContent = data.email || '';
@@ -53,7 +51,7 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
 
         if (data.status === 'success') {
             toast('Profile updated successfully!');
-            loadProfile(); // Refresh display
+            loadProfile();
         } else {
             toast('Error: ' + (data.error || 'Unknown error'));
         }
@@ -130,9 +128,7 @@ async function loadLinkedUsers() {
                     </div>
                     <div style="display:flex; flex-wrap:wrap; gap:10px;">
                         ${item.users.map(u => {
-                // Extract Initial
                 const initial = (u && u.length > 0) ? u[0].toUpperCase() : '?';
-                // Random color for avatar background based on name
                 const colors = ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e'];
                 let hash = 0;
                 for (let i = 0; i < u.length; i++) hash = u.charCodeAt(i) + ((hash << 5) - hash);

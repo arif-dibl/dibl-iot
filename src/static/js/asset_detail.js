@@ -1,11 +1,9 @@
 let pinnedAttributes = [];
-const openGroups = new Set(); // Track OPEN groups (default all closed)
+const openGroups = new Set();
 
 function shouldShowPin(key, itemKey) {
     if (key === 'RelayData') return false;
-    if (key && key.includes('RelayNode')) return false; // Possible variant
-    // Check if key contains 'Relay' generally, but be careful not to hide non-relay things if user names them so.
-    // For now, strict RelayData is safest per requirements.
+    if (key && key.includes('RelayNode')) return false; 
     if (itemKey && itemKey.startsWith('r') && key === 'RelayData') return false;
     return true;
 }
@@ -74,7 +72,7 @@ async function loadDetail() {
             const customSort = (a, b) => {
                 const getSuffix = (str) => {
                     const match = str.match(/(\d+)$/);
-                    return match ? parseInt(match[0], 10) : -1; // -1 for no suffix (top priority)
+                    return match ? parseInt(match[0], 10) : -1; 
                 };
 
                 const suffixA = getSuffix(a);
@@ -83,7 +81,6 @@ async function loadDetail() {
                 if (suffixA !== suffixB) {
                     return suffixA - suffixB;
                 }
-                // Secondary sort: Alphabetic
                 return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
             };
 
@@ -117,7 +114,6 @@ async function loadDetail() {
                     // Format value based on type
                     let displayVal = '';
                     if (key === 'RuleTargets') {
-                        // Custom intuitive display for RuleTargets
                         let rulesCount = 0;
                         let rulesList = [];
                         if (val && typeof val === 'object') {
@@ -151,7 +147,6 @@ async function loadDetail() {
                             </div>
                         `;
                     } else if (typeof val === 'object' && val !== null) {
-                        // Special Handling for Timers: Render as single Read-Only Summary Card
                         if (key.toLowerCase().startsWith('timer')) {
                             const isActive = String(val['Status']).toUpperCase() === 'ON' || String(val['Status']).toUpperCase() === 'ACTIVE';
                             const onTime = `${String(val['OnHour'] || 0).padStart(2, '0')}:${String(val['OnMinute'] || 0).padStart(2, '0')}`;
@@ -311,7 +306,6 @@ async function loadDetail() {
 
                             // Render Groups Side-by-Side
                             Object.entries(groups).forEach(([prefix, items]) => {
-                                // Generic Group Rendering (Timers handled above)
                                 displayVal += `<div style="display:flex; flex-wrap:wrap; gap:0.5rem; padding:0.5rem; background:#fff; border-radius:6px; border:1px solid #dee2e6; box-shadow:0 1px 2px rgba(0,0,0,0.03);">`;
                                 items.forEach((item, idx) => {
                                     const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === item.k);
@@ -357,7 +351,6 @@ async function loadDetail() {
                     const starIcon = isPinned ? '★' : '☆';
                     const starColor = isPinned ? '#f1c40f' : '#ccc';
 
-                    // No rename for Timers or Rules
                     const isTimer = key.toLowerCase().startsWith('timer');
                     const editBtn = (isPinned && key !== 'RuleTargets' && !isTimer) ? `<button onclick="renamePin('${key}')" style="background:none; border:none; color:#777; cursor:pointer; font-size:0.7rem; font-weight:600; padding:0; margin-right:8px;" title="Rename">RENAME</button>` : '';
 
@@ -417,10 +410,10 @@ async function toggleAttribute(attrName, newValue) {
         const data = await res.json();
         if (data.status === 'success') {
             toast(`${attrName} turned ${newValue ? 'ON' : 'OFF'}`);
-            loadDetail(); // Reload to update UI state
+            loadDetail();
         } else {
             toast(`Failed to update ${attrName}: ${data.message}`);
-            loadDetail(); // Reload to revert UI state
+            loadDetail();
         }
     } catch (e) {
         toast('Failed to update attribute');
@@ -429,7 +422,6 @@ async function toggleAttribute(attrName, newValue) {
 }
 
 async function toggleNestedAttribute(attrName, nestedKey, newValue) {
-    // For nested JSON attributes, we need to fetch the current object, update the key, and put it back
     try {
         const res = await fetch(`/api/asset/${ASSET_ID}`);
         const asset = await res.json();
@@ -437,7 +429,7 @@ async function toggleNestedAttribute(attrName, nestedKey, newValue) {
         if (asset && asset.attributes && asset.attributes[attrName] !== undefined) {
             let currentVal = asset.attributes[attrName];
 
-            // Handle case where value is a JSON string
+            // If value is a JSON
             if (typeof currentVal === 'string') {
                 try {
                     currentVal = JSON.parse(currentVal);
@@ -449,7 +441,7 @@ async function toggleNestedAttribute(attrName, nestedKey, newValue) {
             }
 
             if (typeof currentVal === 'object' && currentVal !== null) {
-                // Special handling for Status: convert bool/string to "ON"/"OFF"
+                // Convert bool/string to "ON"/"OFF"
                 if (nestedKey === 'Status') {
                     currentVal[nestedKey] = newValue ? 'ON' : 'OFF';
                 } else {
@@ -483,7 +475,7 @@ async function toggleNestedAttribute(attrName, nestedKey, newValue) {
 }
 
 async function updateNestedValue(attrName, nestedKey, newValue) {
-    // For updating nested string/number values in textMap attributes (like Timer OnHour, OnMinute, etc.)
+    // Timer OnHour, OnMinute
     try {
         const res = await fetch(`/api/asset/${ASSET_ID}`);
         const asset = await res.json();
@@ -491,7 +483,6 @@ async function updateNestedValue(attrName, nestedKey, newValue) {
         if (asset && asset.attributes && asset.attributes[attrName] !== undefined) {
             let currentVal = asset.attributes[attrName];
 
-            // Handle case where value is a JSON string
             if (typeof currentVal === 'string') {
                 try {
                     currentVal = JSON.parse(currentVal);
@@ -503,7 +494,6 @@ async function updateNestedValue(attrName, nestedKey, newValue) {
             }
 
             if (typeof currentVal === 'object' && currentVal !== null) {
-                // Update the key with new value (as string for textMap)
                 currentVal[nestedKey] = String(newValue);
 
                 const updateRes = await fetch(`/api/asset/${ASSET_ID}/attribute/${attrName}`, {
@@ -601,7 +591,7 @@ async function toggleTimerOutput(attrName, nestedKey, relay) {
             // Normalize to internal r1, r2 format for processing
             let activeOutputs = [];
 
-            // Map "OUT 01" -> "r1", etc.
+            // Map "OUT 01" -> "r1" ... ...
             const mapOutToR = (str) => {
                 const parts = str.split(',').map(s => s.trim());
                 return parts.map(p => {
@@ -693,7 +683,7 @@ async function togglePin(attrName, key) {
     } catch (e) { toast('Action failed'); }
 }
 
-// --- CIRCULAR WHEEL PICKER LOGIC (CENTERED) ---
+// --- CIRCULAR WHEEL PICKER LOGIC ---
 let currentPickerTarget = null;
 let currentPickerValue = 0;
 
@@ -708,7 +698,6 @@ function openWheelPicker(e, attrName, nestedKey, currentVal, maxVal) {
     currentPickerValue = currentVal;
     title.textContent = nestedKey;
 
-    // Populate list (Tripled for circularity)
     let html = '';
     const items = [];
     for (let i = 0; i <= maxVal; i++) items.push(i);
@@ -727,7 +716,7 @@ function openWheelPicker(e, attrName, nestedKey, currentVal, maxVal) {
     overlay.style.display = 'block';
 
     const itemHeight = 50;
-    const middleOffset = (maxVal + 1) * itemHeight; // Offset of the second set
+    const middleOffset = (maxVal + 1) * itemHeight; 
     // Centering logic: ScrollTop = (index * height)
     const targetScroll = middleOffset + (currentVal * itemHeight);
     list.scrollTop = targetScroll;
@@ -790,7 +779,7 @@ function copyIdToClipboard() {
 
 async function renamePin(attrName, key) {
     const newName = prompt('Enter a new display name:');
-    if (newName === null) return; // Cancelled
+    if (newName === null) return;
 
     try {
         const payload = { assetId: ASSET_ID, attributeName: attrName, displayName: newName };

@@ -7,6 +7,8 @@ from api import assets as assets_api, rules as rules_api, user as user_api, debu
 app = FastAPI(title="DIBL IoT Custom UI") # Reload trigger v3
 
 # Session Middleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 
 # Static Files

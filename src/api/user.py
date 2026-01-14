@@ -133,8 +133,8 @@ async def get_asset_partners(request: Request):
 
         if not partners_map: return []
         
-        # 4. Resolve User Names (Fallback for missing names)
-        # Only lookup if not in cache (though links usually have it)
+        # 4. Resolve User Names
+        # Only lookup if not in cache
         all_partner_ids = set()
         for uids in partners_map.values():
             all_partner_ids.update(uids)
@@ -174,7 +174,7 @@ async def get_asset_partners(request: Request):
                 # Check Ignore Filters
                 is_ignored = False
                 if name != "Unknown":
-                    # Check exact username match (if name looks like a username)
+                    # Check exact username match
                     if name in ignored_usernames: is_ignored = True
                     
                     # Check prefixes

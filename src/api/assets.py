@@ -101,7 +101,7 @@ async def get_dashboard_widgets(request: Request):
     headers = {"Authorization": f"Bearer {access_token}"}
     widgets = []
     try:
-        # First, get the list of assets actually linked to this user
+        # Get the list of assets actually linked to this user
         linked_assets_url = f"{OR_MANAGER_URL}/api/{realm}/asset/user/current"
         linked_res = requests.get(linked_assets_url, headers=headers)
         linked_asset_ids = set()
@@ -112,7 +112,7 @@ async def get_dashboard_widgets(request: Request):
         # Filter pinned items to only include assets that are linked to user
         valid_pinned = [p for p in pinned if p["assetId"] in linked_asset_ids]
         
-        # Clean up orphaned pins (assets no longer linked to user)
+        # Clean up orphaned pins
         if len(valid_pinned) < len(pinned):
             prefs[user_id]["pinned"] = valid_pinned
             save_preferences(prefs)
@@ -186,7 +186,6 @@ async def get_user_assets(request: Request):
                         
                         # Inject timestamp for Rules and Timers
                         if k == "RuleTargets" or k.startswith("Timer"):
-                            # Try to ensure it's a dict so we can inject _timestamp
                             if isinstance(val, str):
                                 try:
                                     parsed = json.loads(val)
@@ -200,7 +199,7 @@ async def get_user_assets(request: Request):
 
                         flat_attrs[k] = val
                         
-                        # Check ONLY MoistureData for Activity Detection per user request
+                        # MoistureData for Activity Detection
                         if ts and k == "MoistureData":
                             if last_activity_ts is None or ts > last_activity_ts:
                                 last_activity_ts = ts
@@ -245,7 +244,6 @@ async def get_single_asset(request: Request, id: str):
 
                     # Inject timestamp for Rules and Timers
                     if k == "RuleTargets" or k.startswith("Timer"):
-                        # Try to ensure it's a dict so we can inject _timestamp
                         if isinstance(val, str):
                             try:
                                 parsed = json.loads(val)
@@ -259,7 +257,7 @@ async def get_single_asset(request: Request, id: str):
 
                     flat_attrs[k] = val
 
-                    # Check ONLY MoistureData for Activity Detection per user request
+                    # MoistureData for Activity Detection per user request
                     if ts and k == "MoistureData":
                         if last_activity_ts is None or ts > last_activity_ts:
                             last_activity_ts = ts
@@ -333,7 +331,7 @@ async def unlink_user_asset_api(request: Request, asset_id: str):
     try:
         res = requests.delete(url, headers=headers)
         
-        # Cleanup local preferences (pinned items)
+        # Cleanup local preferences
         prefs = load_preferences()
         if user_id in prefs and "pinned" in prefs[user_id]:
             original_count = len(prefs[user_id]["pinned"])

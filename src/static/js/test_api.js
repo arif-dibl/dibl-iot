@@ -8,7 +8,6 @@ function copyUrl(url, method = 'GET', body = null) {
         document.getElementById('reqBody').value = '';
     }
 
-    // Use document title as brief visual feedback
     const prev = document.title;
     document.title = "Copied!";
     setTimeout(() => document.title = prev, 1000);

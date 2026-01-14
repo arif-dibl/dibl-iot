@@ -9,99 +9,103 @@
             "name": "EnvData",
             "type": "textMap",
             "value": {
-                "light": "",
-                "t0": "",
-                "h0": "",
-                "t1": "",
-                "h1": "",
-                "t2": "",
-                "h2": "",
-                "t3": "",
-                "h3": "",
-                "t4": "",
-                "h4": ""
+                "light": "--",
+                "t0": "--",
+                "h0": "--",
+                "t1": "--",
+                "h1": "--",
+                "t2": "--",
+                "h2": "--",
+                "t3": "--",
+                "h3": "--",
+                "t4": "--",
+                "h4": "--"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "MoistureData": {
             "name": "MoistureData",
             "type": "textMap",
             "value": {
-                "m1": "",
-                "m2": "",
-                "m3": "",
-                "m4": ""
+                "m1": "--",
+                "m2": "--",
+                "m3": "--",
+                "m4": "--"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "NPKData": {
             "name": "NPKData",
             "type": "textMap",
             "value": {
-                "m01": "",
-                "t01": "",
-                "ec01": "",
-                "ph01": "",
-                "n01": "",
-                "p01": "",
-                "k01": "",
-                "m02": "",
-                "t02": "",
-                "ec02": "",
-                "ph02": "",
-                "n02": "",
-                "p02": "",
-                "k02": "",
-                "m03": "",
-                "t03": "",
-                "ec03": "",
-                "ph03": "",
-                "n03": "",
-                "p03": "",
-                "k03": "",
-                "m04": "",
-                "t04": "",
-                "ec04": "",
-                "ph04": "",
-                "n04": "",
-                "p04": "",
-                "k04": ""
+                "m01": "--",
+                "t01": "--",
+                "ec01": "--",
+                "ph01": "--",
+                "n01": "--",
+                "p01": "--",
+                "k01": "--",
+                "m02": "--",
+                "t02": "--",
+                "ec02": "--",
+                "ph02": "--",
+                "n02": "--",
+                "p02": "--",
+                "k02": "--",
+                "m03": "--",
+                "t03": "--",
+                "ec03": "--",
+                "ph03": "--",
+                "n03": "--",
+                "p03": "--",
+                "k03": "--",
+                "m04": "--",
+                "t04": "--",
+                "ec04": "--",
+                "ph04": "--",
+                "n04": "--",
+                "p04": "--",
+                "k04": "--"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "RelayData": {
             "name": "RelayData",
             "type": "textMap",
             "value": {
-                "r1": "",
-                "r2": "",
-                "r3": "",
-                "r4": ""
+                "r1": "--",
+                "r2": "--",
+                "r3": "--",
+                "r4": "--"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "RuleTargets": {
@@ -113,107 +117,260 @@
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "Timer01": {
             "name": "Timer01",
             "type": "textMap",
             "value": {
-                "Status": "",
-                "Days": "",
+                "Status": "OFF",
+                "Days": "NONE",
                 "Outputs": "",
-                "OnHour": "",
-                "OnMinute": "",
-                "OffHour": "",
-                "OffMinute": ""
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "Timer02": {
             "name": "Timer02",
             "type": "textMap",
             "value": {
-                "Status": "",
-                "Days": "",
+                "Status": "OFF",
+                "Days": "NONE",
                 "Outputs": "",
-                "OnHour": "",
-                "OnMinute": "",
-                "OffHour": "",
-                "OffMinute": ""
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "Timer03": {
             "name": "Timer03",
             "type": "textMap",
             "value": {
-                "Status": "",
-                "Days": "",
+                "Status": "OFF",
+                "Days": "NONE",
                 "Outputs": "",
-                "OnHour": "",
-                "OnMinute": "",
-                "OffHour": "",
-                "OffMinute": ""
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "Timer04": {
             "name": "Timer04",
             "type": "textMap",
             "value": {
-                "Status": "",
-                "Days": "",
+                "Status": "OFF",
+                "Days": "NONE",
                 "Outputs": "",
-                "OnHour": "",
-                "OnMinute": "",
-                "OffHour": "",
-                "OffMinute": ""
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         },
         "Timer05": {
             "name": "Timer05",
             "type": "textMap",
             "value": {
-                "Status": "",
-                "Days": "",
+                "Status": "OFF",
+                "Days": "NONE",
                 "Outputs": "",
-                "OnHour": "",
-                "OnMinute": "",
-                "OffHour": "",
-                "OffMinute": ""
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
             },
             "meta": {
                 "readOnly": false,
                 "showOnDashboard": true,
                 "ruleState": true,
                 "accessRestrictedRead": true,
-                "accessRestrictedWrite": true
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
+            }
+        },
+        "Timer06": {
+            "name": "Timer06",
+            "type": "textMap",
+            "value": {
+                "Status": "OFF",
+                "Days": "NONE",
+                "Outputs": "",
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
+            },
+            "meta": {
+                "readOnly": false,
+                "showOnDashboard": true,
+                "ruleState": true,
+                "accessRestrictedRead": true,
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
+            }
+        },
+        "Timer07": {
+            "name": "Timer07",
+            "type": "textMap",
+            "value": {
+                "Status": "OFF",
+                "Days": "NONE",
+                "Outputs": "",
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
+            },
+            "meta": {
+                "readOnly": false,
+                "showOnDashboard": true,
+                "ruleState": true,
+                "accessRestrictedRead": true,
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
+            }
+        },
+        "Timer08": {
+            "name": "Timer08",
+            "type": "textMap",
+            "value": {
+                "Status": "OFF",
+                "Days": "NONE",
+                "Outputs": "",
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
+            },
+            "meta": {
+                "readOnly": false,
+                "showOnDashboard": true,
+                "ruleState": true,
+                "accessRestrictedRead": true,
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
+            }
+        },
+        "Timer09": {
+            "name": "Timer09",
+            "type": "textMap",
+            "value": {
+                "Status": "OFF",
+                "Days": "NONE",
+                "Outputs": "",
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
+            },
+            "meta": {
+                "readOnly": false,
+                "showOnDashboard": true,
+                "ruleState": true,
+                "accessRestrictedRead": true,
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
+            }
+        },
+        "Timer10": {
+            "name": "Timer10",
+            "type": "textMap",
+            "value": {
+                "Status": "OFF",
+                "Days": "NONE",
+                "Outputs": "",
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
+            },
+            "meta": {
+                "readOnly": false,
+                "showOnDashboard": true,
+                "ruleState": true,
+                "accessRestrictedRead": true,
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
+            }
+        },
+        "Timer11": {
+            "name": "Timer11",
+            "type": "textMap",
+            "value": {
+                "Status": "OFF",
+                "Days": "NONE",
+                "Outputs": "",
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
+            },
+            "meta": {
+                "readOnly": false,
+                "showOnDashboard": true,
+                "ruleState": true,
+                "accessRestrictedRead": true,
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
+            }
+        },
+        "Timer12": {
+            "name": "Timer12",
+            "type": "textMap",
+            "value": {
+                "Status": "OFF",
+                "Days": "NONE",
+                "Outputs": "",
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
+            },
+            "meta": {
+                "readOnly": false,
+                "showOnDashboard": true,
+                "ruleState": true,
+                "accessRestrictedRead": true,
+                "accessRestrictedWrite": true,
+                "storeDataPoints": true
             }
         }
     }

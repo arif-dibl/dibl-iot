@@ -24,11 +24,9 @@ function closeTermsModal() {
     }
 }
 
-// Ensure functions are global
 window.openTermsModal = openTermsModal;
 window.closeTermsModal = closeTermsModal;
 
-// Add event listener as a backup to inline onclick
 document.addEventListener('DOMContentLoaded', () => {
     const termsLink = document.getElementById('terms-link');
     if (termsLink) {
@@ -36,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Close modal if user clicks outside of it
 window.onclick = function (event) {
     const modal = document.getElementById('terms-modal');
     if (event.target == modal) {

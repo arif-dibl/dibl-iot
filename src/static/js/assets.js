@@ -175,7 +175,6 @@ async function unlinkAsset(id) {
                 }
             });
 
-            // Add a small delay for backend propagation
             setTimeout(loadAssets, 500);
         } else {
             toast('Error unlinking asset');

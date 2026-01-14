@@ -1,17 +1,14 @@
-// Dashboard JS - Handles Overview, Switches, Sensors, and Timers sections
-
-// --- Main Entry Point ---
 async function loadDashboard() {
     try {
         const res = await fetch(`/api/user/assets?t=${Date.now()}`);
         const data = await res.json();
         const assets = Array.isArray(data) ? data : (data.assets || []);
 
-        // Overview Stats
         document.getElementById('totalAssets').textContent = assets.length;
 
         let online = 0;
         let offline = 0;
+        // eslint-disable-next-line
         const now = Date.now();
 
         assets.forEach(a => {
@@ -26,7 +23,6 @@ async function loadDashboard() {
         document.getElementById('onlineDevices').textContent = online;
         document.getElementById('offlineDevices').textContent = offline;
 
-        // Rules Count
         let totalRules = 0;
         assets.forEach(a => {
             const storedRules = localStorage.getItem(`rules_${a.id}`);
@@ -38,22 +34,15 @@ async function loadDashboard() {
         });
         document.getElementById('activeRules').textContent = totalRules;
 
-        // Load Fixed Sections
         loadSwitches(assets);
-
-        // Load User-Pinnable Sections
         loadWidgets(assets);
-
-        // Force Write-Back (Keep Alive) - Requested Feature
         keepAlive(assets);
-
 
     } catch (e) {
         console.error('Failed to load dashboard:', e);
     }
 }
 
-// --- Fixed Section: Switches (RelayData) ---
 async function loadSwitches(assets) {
     const container = document.getElementById('switchesContainer');
     if (!container) return;
@@ -64,7 +53,6 @@ async function loadSwitches(assets) {
         const relayData = asset.attributes?.RelayData;
         if (relayData && typeof relayData === 'object') {
             const status = getAssetStatus(asset.lastActivityTimestamp);
-            // Use isOffline to trigger the red/disabled state (formerly idle)
             html += renderSwitchCard(asset.name, asset.id, relayData, status.isOffline);
         }
     }
@@ -83,7 +71,6 @@ function renderSwitchCard(assetName, assetId, relayData, isIdle = false) {
     keys.forEach(k => {
         const boolVal = toBool(relayData[k]);
         const storedName = localStorage.getItem(`switch_name_${assetId}_${k}`) || getFriendlyLabel(k);
-        // Escape quotes to prevent syntax errors in inline handlers
         const safeAssetId = assetId.replace(/'/g, "\\'");
         const safeKey = k.replace(/'/g, "\\'");
 
@@ -122,7 +109,6 @@ async function toggleSwitch(assetId, key, newValue) {
         const asset = await res.json();
         let relayData = asset.attributes?.RelayData || {};
 
-        // Ensure relayData is an object
         if (typeof relayData === 'string') {
             try {
                 relayData = JSON.parse(relayData);
@@ -132,7 +118,6 @@ async function toggleSwitch(assetId, key, newValue) {
             }
         }
 
-        // Use dictionary directly
         relayData[key] = newValue;
 
         console.log('[Dashboard] Sending updated RelayData:', relayData);
@@ -149,8 +134,6 @@ async function toggleSwitch(assetId, key, newValue) {
     } catch (e) {
         toast('Failed to toggle switch');
         console.error('[Dashboard] Toggle error:', e);
-        // Revert UI if needed (optional, implemented by simple reload or direct manipulation)
-        // For now, alerting user via toast is sufficient
     }
 }
 
@@ -160,11 +143,10 @@ function renameSwitch(assetId, key) {
     if (newName && newName.trim()) {
         localStorage.setItem(`switch_name_${assetId}_${key}`, newName.trim());
         toast('Switch renamed');
-        loadDashboard(); // Reload to show updated name
+        loadDashboard();
     }
 }
 
-// --- User-Pinnable Section: Sensors & Timers ---
 async function loadWidgets(assets = []) {
     const sensorsContainer = document.getElementById('sensorsContainer');
     const timersContainer = document.getElementById('timersContainer');
@@ -174,19 +156,16 @@ async function loadWidgets(assets = []) {
         const res = await fetch(`/api/user/dashboard/widgets?t=${Date.now()}`);
         let widgets = await res.json();
 
-        // ensure unique IDs for localStorage mapping
         widgets.forEach(w => {
             if (!w.id) w.id = `${w.assetId}_${w.attributeName}_${w.key || ''}`;
         });
 
-        // Apply local overrides for names
         widgets = widgets.map(w => {
             const localName = localStorage.getItem(`widget_name_${w.id}`);
             if (localName) w.displayName = localName;
             return w;
         });
 
-        // Filter out RelayData and Thresholds
         widgets = widgets.filter(w =>
             !w.attributeName.toLowerCase().includes('threshold') &&
             !w.attributeName.toLowerCase().includes('relaydata') &&
@@ -201,22 +180,19 @@ async function loadWidgets(assets = []) {
         const timers = widgets.filter(w => w.attributeName.toLowerCase().startsWith('timer'));
         const rules = widgets.filter(w => w.attributeName.toLowerCase() === 'ruletargets');
 
-        // Render Sensors
         if (sensors.length === 0) {
             sensorsContainer.innerHTML = '<div class="empty-placeholder">No sensors pinned. Go to Device Details to pin some!</div>';
         } else {
             sensorsContainer.innerHTML = sensors.map(w => renderSensorCard(w)).join('');
         }
 
-        // Render Timers
         if (timers.length === 0) {
             timersContainer.innerHTML = '<div class="empty-placeholder">No timers pinned. Go to Device Details to pin some!</div>';
         } else {
             timersContainer.innerHTML = timers.map(w => renderTimerCard(w)).join('');
         }
 
-        // Render Rules
-        if (rulesContainer) { // Ensure container exists
+        if (rulesContainer) {
             if (rules.length === 0) {
                 rulesContainer.innerHTML = '<div class="empty-placeholder">No rules pinned. Go to Device Details to pin some!</div>';
             } else {
@@ -243,8 +219,6 @@ function renderSensorCard(w) {
     if (attr === 'ruletargets') return renderRuleCard(w);
     return renderGenericCard(w);
 }
-
-// --- Specialized Renderers ---
 
 function renderNPKCard(w) {
     if (!w.value || typeof w.value !== 'object') return renderGenericCard(w);
@@ -316,7 +290,6 @@ function renderRuleCard(w, assetAttributes = null) {
         content = `<div style="padding:1rem; display:flex; flex-direction:column; gap:0.5rem;">`;
 
         rulesList.forEach(([ruleKey, ruleRaw]) => {
-            // Parse logic (inlined for dashboard.js context)
             let parsed = null;
             if (ruleRaw && typeof ruleRaw === 'string') {
                 const parts = ruleRaw.split(':');
@@ -334,15 +307,12 @@ function renderRuleCard(w, assetAttributes = null) {
             }
 
             if (parsed) {
-                // Extract sensor key from ruleKey
-                const sensorKey = ruleKey.split('_')[0]; // Simple split on first underscore part
+                const sensorKey = ruleKey.split('_')[0];
                 const sensorName = getFriendlyLabel(sensorKey);
 
-                // Determine if rule is active
                 let isActive = false;
                 let currentVal = null;
                 if (assetAttributes) {
-                    // Try to find sensor value in EnvData, MoistureData, NPKData
                     const sensorBags = ['EnvData', 'MoistureData', 'NPKData'];
                     for (const bag of sensorBags) {
                         if (assetAttributes[bag] && typeof assetAttributes[bag] === 'object') {
@@ -363,19 +333,16 @@ function renderRuleCard(w, assetAttributes = null) {
                     }
                 }
 
-                // Use custom name if available, else friendlify key
                 const displayTitle = parsed.ruleName || getFriendlyLabel(ruleKey);
 
-                // Operator Colors
                 const opColors = {
-                    'Greater Than': '#e67e22', // Orange
-                    'Less Than': '#3498db',    // Blue
-                    'Equal To': '#2ecc71',     // Green
-                    'Not': '#e74c3c'           // Red
+                    'Greater Than': '#e67e22',
+                    'Less Than': '#3498db',
+                    'Equal To': '#2ecc71',
+                    'Not': '#e74c3c'
                 };
                 const opColor = opColors[parsed.op] || '#8e44ad';
 
-                // Switch Colors 
                 const switchColors = ['#9b59b6', '#d35400', '#009688', '#e91e63', '#795548', '#2c3e50', '#16a085', '#5f27cd'];
                 const getSwitchColor = (str) => {
                     let hash = 0;
@@ -384,7 +351,6 @@ function renderRuleCard(w, assetAttributes = null) {
                 };
                 const switchColor = getSwitchColor(parsed.targetName);
 
-                // Styling for active state
                 const activeStyle = isActive
                     ? `border-left: 6px solid #2ecc71; background: #e8f8f5; box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2); transform: scale(1.02);`
                     : `border-left: 4px solid var(--primary); background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05);`;
@@ -459,15 +425,12 @@ function renderMoistureCard(w) {
 }
 
 function renderTimerCard(w) {
-    // Basic Timer display, similar to generic for now
     if (!w.value || typeof w.value !== 'object') return renderGenericCard(w);
 
-    // Check for Status
     let status = w.value['Status'] || 'Unknown';
     if (typeof status === 'string') status = status.toUpperCase();
     const isActive = status === 'ACTIVE' || status === 'ON';
 
-    // Build mini summary
     let content = `
         <div style="padding:1rem; display:flex; flex-direction:column; gap:0.5rem;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -476,7 +439,6 @@ function renderTimerCard(w) {
             </div>
     `;
 
-    // Show schedule summary
     if (w.value['OnHour'] !== undefined && w.value['OffHour'] !== undefined) {
         const onTime = `${String(w.value['OnHour']).padStart(2, '0')}:${String(w.value['OnMinute'] || 0).padStart(2, '0')}`;
         const offTime = `${String(w.value['OffHour']).padStart(2, '0')}:${String(w.value['OffMinute'] || 0).padStart(2, '0')}`;
@@ -497,7 +459,6 @@ function renderTimerCard(w) {
 
     content += '</div>';
 
-    // Show Days
     if (w.value['Days']) {
         content += `
             <div style="padding:0 1rem 1rem 1rem;">
@@ -507,9 +468,7 @@ function renderTimerCard(w) {
          `;
     }
 
-    // Show Outputs
     if (w.value['Outputs']) {
-        // Clean up output string "OUT 01, OUT 02" -> "1, 2"
         let outStr = w.value['Outputs'].replace(/OUT\s0?/g, '');
         content += `
             <div style="padding:0 1rem 1rem 1rem;">
@@ -535,10 +494,7 @@ function renderGenericCard(w) {
 }
 
 function wrapWidgetCard(w, title, contentHtml) {
-    const isFixed = !w.id; // If no widget ID, it's likely a fixed card or handled differently (but our API widgets always have ID if from DB)
-    // Actually, w object comes from API, so it has .id (the db id of the widget)
-    // w: { id, assetId, attributeName, ... }
-
+    const isFixed = !w.id;
     const isRuleParams = w.attributeName && w.attributeName === 'RuleTargets';
 
     return `
@@ -554,8 +510,6 @@ function wrapWidgetCard(w, title, contentHtml) {
         </div>
     `;
 }
-
-// Widget Actions
 
 async function unpinWidget(assetId, attributeName, key) {
     if (!confirm('Remove this widget from dashboard?')) return;
@@ -600,9 +554,7 @@ async function renameWidget(widgetId, currentName) {
     }
 }
 
-// Utils
 function getFriendlyLabel(key) {
-    // Try to get from global friendly names loaded in main.js
     const names = window.friendlyNames || {};
     if (names.keys && names.keys[key]) {
         return names.keys[key];
@@ -611,13 +563,11 @@ function getFriendlyLabel(key) {
         return names.attributes[key];
     }
 
-    // Fallback patterns (Temperature, Humidity, Moisture, Switch)
     if (/^t(\d+)?$/i.test(key)) return key.replace(/t/i, 'Temperature');
     if (/^h(\d+)?$/i.test(key)) return key.replace(/h/i, 'Humidity');
     if (/^m(\d+)?$/i.test(key)) return key.replace(/m/i, 'Moisture');
     if (/^r(\d+)?$/i.test(key)) return key.replace(/r/i, 'Switch');
 
-    // Very basic fallback
     return key.replace(/([A-Z])/g, ' $1').trim();
 }
 
@@ -643,11 +593,8 @@ function toast(msg) {
     setTimeout(() => div.remove(), 3000);
 }
 
-// Init
-// Init
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboard();
-    // Auto-update every 1 second
     setInterval(loadDashboard, 1000);
 });
 
@@ -655,7 +602,6 @@ async function keepAlive(assets) {
     for (const asset of assets) {
         if (asset.attributes?.RelayData) {
             try {
-                // Post current value back to server to force timestamp update
                 await fetch(`/api/asset/${asset.id}/attribute/RelayData`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

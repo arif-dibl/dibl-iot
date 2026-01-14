@@ -17,7 +17,6 @@ async function loadTimers() {
             return;
         }
 
-        // Fetch User Preferences for Pinning Status
         let pinnedItems = [];
         try {
             const prefsRes = await fetch('/api/user/preferences');
@@ -28,7 +27,6 @@ async function loadTimers() {
         let hasTimers = false;
 
         for (const asset of assets) {
-            // Filter for Timer attributes
             const timerAttributes = {};
             if (asset.attributes) {
                 for (const [key, val] of Object.entries(asset.attributes)) {
@@ -58,7 +56,7 @@ async function loadTimers() {
                             style="background:#f8f9fa; padding:1rem 1.5rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;"
                         >
                             <div style="font-weight:600; font-size:1.1rem; color:#333;">
-                                ${asset.name} <span style="color:var(--text-muted); font-weight:400; font-size:0.9rem;">(${Object.keys(timerAttributes).length} Timers)</span>
+                                ${asset.name} <span style="color:var(--text-muted; font-weight:400; font-size:0.9rem;) (${Object.keys(timerAttributes).length} Timers)</span>
                             </div>
                             <span id="icon-${assetIdClean}" style="transition:transform 0.2s; transform: ${isOpen ? 'rotate(0deg)' : 'rotate(-90deg)'};">▼</span>
                         </div>
@@ -84,38 +82,25 @@ async function loadTimers() {
 }
 
 function renderEditableTimer(assetId, key, val, pinnedItems = []) {
-    // Determine friendly name properly
     let friendlyName = key;
-    // You might want to use the global friendlyNames here if available, or just the key
-    // For now we use the key or simple logic
     friendlyName = key.replace(/(\d+)/, ' $1');
 
     if (typeof val !== 'object' || val === null) {
         return `<div style="padding:1rem; border:1px solid #eee;">${key}: ${val}</div>`;
     }
 
-    const items = val; // It's a JSON object
+    const items = val;
 
-    // Check Status
     const status = items['Status'] || 'OFF';
     const isActive = String(status).toUpperCase() === 'ON' || String(status).toUpperCase() === 'ACTIVE';
     const activeColor = isActive ? 'var(--primary)' : 'var(--text-muted)';
 
-    // Helper to render wheel picker or toggle logic
-    // We need to render the content exactly like asset_detail but ensuring IDs work for multiple assets
-
-    // Sort keys within the timer JSON
     const sortedInnerKeys = Object.keys(items).sort((a, b) => {
-        // Custom sort if needed
         return a.localeCompare(b);
     });
 
     let innerHtml = '';
 
-    // We will render specific controls for known keys
-    // Defined order: Status, Time, Days, Outputs
-
-    // 1. Status Checkbox
     innerHtml += `
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:0.5rem; margin-bottom:0.5rem;">
             <div style="font-weight:600; color:#555;">Status</div>
@@ -129,7 +114,6 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
         </div>
     `;
 
-    // 2. Time (Start / End)
     const onHour = items['OnHour'] !== undefined ? items['OnHour'] : 0;
     const onMinute = items['OnMinute'] !== undefined ? items['OnMinute'] : 0;
     const offHour = items['OffHour'] !== undefined ? items['OffHour'] : 0;
@@ -156,7 +140,6 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
         </div>
     `;
 
-    // 3. Days
     const daysVal = items['Days'] || '';
     innerHtml += `
         <div style="margin-bottom:0.5rem;">
@@ -165,7 +148,6 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
         </div>
         `;
 
-    // 4. Outputs
     const outputsVal = items['Outputs'] || '';
     innerHtml += `
         <div style="margin-bottom:0.25rem;">
@@ -224,20 +206,12 @@ function renderDaysSelector(assetId, attrName, nestedKey, val) {
 
 function renderOutputsSelector(assetId, attrName, nestedKey, val) {
     const relayOptions = ['r1', 'r2', 'r3', 'r4'];
-    const currentOutputs = (val || '').toLowerCase(); // "OUT 01" -> check logic logic inside toggle
+    const currentOutputs = (val || '').toLowerCase();
 
-    // We need to know which are active based on the "OUT 0X" string usually, but let's reuse valid logic
-    // Actually, visually we need to parse it here to show active state
-    // "OUT 01, OUT 02" 
-
-    // Quick parse helper matches toggleTimerOutput logic
     const isActive = (rLabel) => {
-        // rLabel is 'r1'
-        // We check if currentOutputs contains 'out 01' (if r1)
         const num = rLabel.replace('r', '');
-        const target = `out 0${num}`; // approximate check
+        const target = `out 0${num}`;
         if (currentOutputs.includes(target) || currentOutputs.includes(rLabel)) return true;
-        // Handle "OUT 1" vs "OUT 01"
         return currentOutputs.includes(`out ${num}`) || currentOutputs.includes(`out 0${num}`);
     };
 
@@ -273,7 +247,6 @@ function toggleAssetGroup(id) {
     }
 }
 
-// Reuse logic from asset_detail.js but adapted to take assetId as arg
 async function toggleNestedAttribute(assetId, attrName, nestedKey, newValue) {
     try {
         const res = await fetch(`/api/asset/${assetId}`);
@@ -308,7 +281,7 @@ async function updateNestedValue(assetId, attrName, nestedKey, newValue) {
         }
 
         if (typeof currentVal === 'object') {
-            currentVal[nestedKey] = String(newValue); // TextMap expects strings often
+            currentVal[nestedKey] = String(newValue);
             await saveAttribute(assetId, attrName, currentVal);
         }
     } catch (e) {
@@ -327,7 +300,6 @@ async function toggleDay(assetId, attrName, nestedKey, day) {
         }
 
         if (typeof currentVal === 'object') {
-            // Same logic as asset_detail
             let currentDaysStr = (currentVal[nestedKey] || '').toUpperCase();
             const daysOrder = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
             let activeDays = [];
@@ -365,7 +337,7 @@ async function toggleTimerOutput(assetId, attrName, nestedKey, relay) {
                 return parts.map(p => {
                     if (p.startsWith('OUT')) {
                         const num = parseInt(p.replace('OUT', '').trim());
-                        return `r${num}`;
+                        return `r\${num}`;
                     }
                     return p.toLowerCase();
                 }).filter(p => p.startsWith('r'));
@@ -379,7 +351,7 @@ async function toggleTimerOutput(assetId, attrName, nestedKey, relay) {
             const mapRToOut = (rFormatList) => {
                 return rFormatList.map(r => {
                     const num = parseInt(r.replace('r', ''));
-                    return `OUT ${String(num).padStart(2, '0')}`;
+                    return `OUT \${String(num).padStart(2, '0')}`;
                 });
             };
 
@@ -406,7 +378,6 @@ async function saveAttribute(assetId, attrName, value) {
 }
 
 
-// --- WHEEL PICKER ---
 let currentPickerTarget = null;
 function openWheelPicker(e, assetId, attrName, nestedKey, currentVal, maxVal) {
     e.stopPropagation();
@@ -419,14 +390,10 @@ function openWheelPicker(e, assetId, attrName, nestedKey, currentVal, maxVal) {
     currentPickerValue = currentVal;
     title.textContent = nestedKey;
 
-    // ... Copy wheel population logic from asset_detail.js or allow it to be shared ...
-    // For simplicity, defining minimalistic version here or we duplicate code. 
-    // Duplicating for robustness since we are splitting files.
-
     let html = '';
     const addRange = () => {
         for (let i = 0; i <= maxVal; i++) {
-            html += `<div class="wheel-item" data-value="${i}">${String(i).padStart(2, '0')}</div>`;
+            html += `<div class="wheel-item" data-value="\${i}">\${String(i).padStart(2, '0')}</div>`;
         }
     };
     addRange(); addRange(); addRange();

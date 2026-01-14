@@ -6,7 +6,6 @@ let isRulesPinned = false;
 let rulesTimestamp = null;
 
 
-// Load assets on page load
 async function init() {
     try {
         const res = await fetch('/api/user/assets');
@@ -39,13 +38,11 @@ async function loadAsset(assetId) {
     document.getElementById('addRuleBtn').disabled = false;
     document.getElementById('pinRulesBtn').disabled = false;
 
-    // Load asset attributes
     try {
         const res = await fetch(`/api/asset/${currentAssetId}`);
         const asset = await res.json();
         allAttributes = asset.attributes || {};
 
-        // Extract timestamp from RuleTargets (injected by backend)
         let rTargets = asset.attributes['RuleTargets'];
         if (rTargets && rTargets._timestamp) {
             rulesTimestamp = rTargets._timestamp;
@@ -53,15 +50,12 @@ async function loadAsset(assetId) {
             rulesTimestamp = null;
         }
 
-        // Load existing rules from localStorage
         const stored = localStorage.getItem(`rules_${assetId}`);
         if (stored) {
             rules = JSON.parse(stored);
-            // Migration: Ensure 'enabled' property exists
             rules.forEach(r => { if (r.enabled === undefined) r.enabled = true; });
             ruleIdCounter = Math.max(...rules.map(r => parseInt(r.id.split('_')[1]) || 0), 0) + 1;
         } else {
-            // Attempt to recover from RuleTargets attribute
             rules = [];
 
             if (typeof rTargets === 'string') {
@@ -70,41 +64,32 @@ async function loadAsset(assetId) {
 
             if (rTargets && typeof rTargets === 'object') {
                 console.log('Recovering rules from RuleTargets...', rTargets);
-                // RuleTargets Key: sensorKey_ruleId
-                // RuleTargets Value: operator:threshold:relay:relayValue:ruleName
 
                 Object.entries(rTargets).forEach(([key, valStr]) => {
                     try {
-                        // Key format: t0_rule_1 or just t0 (old)
-                        // If it has a ruleId suffix, extract it
                         let ruleId = `rule_${ruleIdCounter++}`;
                         const keyParts = key.split('_rule_');
                         let sensorKey = keyParts[0];
 
                         if (keyParts.length > 1) {
                             ruleId = `rule_${keyParts[1]}`;
-                            // Update counter if needed
                             const numId = parseInt(keyParts[1]);
                             if (!isNaN(numId) && numId >= ruleIdCounter) ruleIdCounter = numId + 1;
                         }
 
                         const parts = valStr.split(':');
                         if (parts.length >= 4) {
-                            // Map Groovy op back to UI op
                             let op = parts[0];
                             if (op === '==') op = '=';
 
                             const rName = parts.length > 4 ? parts[4] : `Rule ${ruleIdCounter}`;
                             const rVal = parts[3] === '1';
 
-                            // Determine sensor path (inverse of parseThresholdAttribute)
-                            // We have to guess the prefix based on the key
                             let sensorPath = '';
                             if (asset.attributes.EnvData && asset.attributes.EnvData[sensorKey] !== undefined) sensorPath = `EnvData.${sensorKey}`;
                             else if (asset.attributes.MoistureData && asset.attributes.MoistureData[sensorKey] !== undefined) sensorPath = `MoistureData.${sensorKey}`;
                             else if (asset.attributes.NPKData && asset.attributes.NPKData[sensorKey] !== undefined) sensorPath = `NPKData.${sensorKey}`;
 
-                            // If we found a valid sensor path, add the rule
                             if (sensorPath) {
                                 rules.push({
                                     id: ruleId,
@@ -114,14 +99,13 @@ async function loadAsset(assetId) {
                                     value: parseFloat(parts[1]),
                                     relay: `RelayData.${parts[2]}`,
                                     relayState: rVal,
-                                    enabled: true // Targets usually exist only if active, so default to enabled
+                                    enabled: true
                                 });
                             }
                         }
                     } catch (e) { console.error('Error parsing rule recovery:', e); }
                 });
 
-                // Save recovered rules to local storage
                 if (rules.length > 0) {
                     localStorage.setItem(`rules_${assetId}`, JSON.stringify(rules));
                     toast('Restored rules from device');
@@ -159,7 +143,6 @@ async function deleteRule(ruleId) {
 
     const rule = rules.find(r => r.id === ruleId);
     if (rule && rule.sensor) {
-        // Clear the RuleTargets entry for this specific rule
         await clearRuleTarget(rule.sensor, ruleId);
     }
 
@@ -184,14 +167,10 @@ async function saveRule(ruleId) {
             btn.disabled = true;
         }
 
-        // Sync target relay mapping with RuleTargets only
-        // Sync target relay mapping with RuleTargets only
         if (rule.enabled) {
-            // Ensure relayState is defined (default true/ON if undefined)
             const state = rule.relayState !== undefined ? rule.relayState : true;
             await updateRuleTargets(rule.sensor, rule.relay, state, rule.operator, rule.value, ruleId, rule.name);
         } else if (!rule.enabled && rule.sensor) {
-            // If disabled, ensure it's removed from backend (just in case)
             await clearRuleTarget(rule.sensor, ruleId);
         }
 
@@ -220,8 +199,6 @@ function parseThresholdAttribute(sensorPath) {
     } else if (sensorPath.startsWith('MoistureData.')) {
         return { thresholdAttr: 'MoistureThresholds', key: sensorPath.split('.')[1] };
     } else if (sensorPath.startsWith('NPKData.')) {
-        // NPKData.m01 -> keys are m01, t01, etc.
-        // No threshold attribute available for NPK, but we still return the key for identifying the rule target
         return { thresholdAttr: '', key: sensorPath.split('.')[1] };
     }
     return { thresholdAttr: '', key: '' };
@@ -233,7 +210,6 @@ function saveToLocalStorage() {
 
 function getKeysFromAttribute(attrName) {
     if (!allAttributes[attrName]) return [];
-    // Backend returns flattened attributes, so value is already the direct value
     let val = allAttributes[attrName];
 
     if (typeof val === 'string') {
@@ -249,15 +225,12 @@ function getKeysFromAttribute(attrName) {
 function getSensorOptions() {
     const sensors = [];
 
-    // EnvData
     getKeysFromAttribute('EnvData').forEach(k =>
         sensors.push({ value: `EnvData.${k}`, label: `EnvData.${k}` }));
 
-    // MoistureData
     getKeysFromAttribute('MoistureData').forEach(k =>
         sensors.push({ value: `MoistureData.${k}`, label: `MoistureData.${k}` }));
 
-    // NPKData
     getKeysFromAttribute('NPKData').forEach(k =>
         sensors.push({ value: `NPKData.${k}`, label: `NPKData.${k}` }));
 
@@ -282,18 +255,15 @@ async function toggleRuleState(ruleId, isEnabled) {
 
     rule.enabled = isEnabled;
 
-    // Update UI immediately (disabled style)
     const card = document.querySelector(`input[onchange*="${ruleId}"][type="checkbox"]`).closest('.rule-card');
     if (card) {
         if (isEnabled) {
             card.classList.remove('rule-disabled');
-            // Re-sync to backend
             if (rule.relay) {
-                await saveRule(ruleId); // Re-use save logic to push to backend
+                await saveRule(ruleId);
             }
         } else {
             card.classList.add('rule-disabled');
-            // Remove from backend
             if (rule.sensor) {
                 await clearRuleTarget(rule.sensor, ruleId);
                 toast(`Rule "${rule.name}" disabled`);
@@ -302,7 +272,7 @@ async function toggleRuleState(ruleId, isEnabled) {
     }
 
     saveToLocalStorage();
-    renderRules(); // Re-render to update text label (ENABLED/DISABLED)
+    renderRules();
 }
 
 function renderRules() {
@@ -397,7 +367,6 @@ function renderRules() {
 }
 
 function getOperatorCode(op) {
-    // Normalize checking
     const o = op.toLowerCase().trim();
     if (o === '>' || o === 'greater than') return 1;
     if (o === '<' || o === 'less than') return 2;
@@ -407,15 +376,10 @@ function getOperatorCode(op) {
 }
 
 async function updateRuleTargets(sensorPath, targetRelay, targetState, operator, threshold, ruleId, ruleName) {
-    // Store in RuleTargets attribute
-    // Format: { "sensorKey_ruleId": "operator:threshold:relay:relayValue:ruleName", ... }
-    // Example: { "t0_rule_1": "<:20:r1:0:MyRule" }
-
     const attrName = "RuleTargets";
     const { key: sensorKey } = parseThresholdAttribute(sensorPath);
     if (!sensorKey) return;
 
-    // Create unique key combining sensor and rule ID
     const uniqueKey = `${sensorKey}_${ruleId}`;
 
     console.log(`[Rules] Syncing targets...`);
@@ -427,18 +391,14 @@ async function updateRuleTargets(sensorPath, targetRelay, targetState, operator,
         try { targets = JSON.parse(targets); } catch (e) { targets = {}; }
     }
 
-    // Handle null/undefined case
     if (!targets) targets = {};
 
     targets = { ...targets };
-    // Clean target relay string "RelayData.r1" -> "r1"
     let rVal = targetRelay;
     if (rVal.includes('.')) rVal = rVal.split('.')[1];
 
-    // Construct new format: "operator:threshold:relay:relayValue:ruleName"
-    // Map UI operator to Groovy-compatible format
     let groovyOp = operator;
-    if (operator === '=') groovyOp = '=='; // Groovy uses == for equality
+    if (operator === '=') groovyOp = '==';
 
     const valToStore = `${groovyOp}:${threshold}:${rVal}:${targetState ? '1' : '0'}:${ruleName || ''}`;
 
@@ -458,7 +418,6 @@ async function clearRuleTarget(sensorPath, ruleId) {
     const { key: sensorKey } = parseThresholdAttribute(sensorPath);
     if (!sensorKey) return;
 
-    // Use the same unique key format
     const uniqueKey = `${sensorKey}_${ruleId}`;
 
     console.log(`[Rules] Clearing target for ${uniqueKey}...`);
@@ -501,7 +460,7 @@ function updatePinButton() {
     if (!btn) return;
 
     if (isRulesPinned) {
-        btn.style.color = '#f1c40f'; // Yellow/Gold
+        btn.style.color = '#f1c40f';
         btn.style.fontWeight = 'bold';
         btn.innerHTML = 'Pinned';
     } else {
@@ -514,10 +473,6 @@ function updatePinButton() {
 async function pinRulesToDashboard() {
     if (!currentAssetId) return;
 
-    // We can use the same endpoint; if it toggles, we just need to update our local state
-    // But since main.js pinWidget is blind, let's implement the specific logic here or handle the UI update after
-
-    // Using the same logic as asset_detail.js -> POST /api/user/preferences/pin toggles if exists
     try {
         const payload = {
             assetId: currentAssetId,
@@ -533,7 +488,7 @@ async function pinRulesToDashboard() {
 
         const data = await res.json();
         if (data.status === 'success') {
-            isRulesPinned = !isRulesPinned; // Toggle state
+            isRulesPinned = !isRulesPinned;
             updatePinButton();
             toast(isRulesPinned ? 'Pinned to dashboard' : 'Removed from dashboard');
         } else {
@@ -545,7 +500,6 @@ async function pinRulesToDashboard() {
     }
 }
 
-// Init
 document.addEventListener('DOMContentLoaded', () => {
     init();
 });

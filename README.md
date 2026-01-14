@@ -2,7 +2,7 @@
 
 A custom Internet of Things (IoT) user interface built for the DIBL platform, designed to interact with an OpenRemote backend. This application provides a user-friendly dashboard for monitoring environmental sensors (NPK, Moisture, Environment), controlling actuators (relays), managing automation rules, and visualizing historical data.
 
-## 📋 Project Overview
+## Project Overview
 
 The **DIBL IoT Custom UI** serves as a specialized frontend for end-users, abstracted away from the complexity of the core OpenRemote Manager. It features a responsive design, role-based access control (proxying permissions), and specific workflows for device linking and configuration.
 
@@ -16,7 +16,7 @@ The **DIBL IoT Custom UI** serves as a specialized frontend for end-users, abstr
 *   **Profile Management:** User profile updates and password management via Keycloak integration.
 *   **Custom Maps:** Map visualization support with configurable layers.
 
-## 🛠 Technology Stack
+## Technology Stack
 
 *   **Backend:** Python 3.9, FastAPI
 *   **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
@@ -24,7 +24,7 @@ The **DIBL IoT Custom UI** serves as a specialized frontend for end-users, abstr
 *   **Containerization:** Docker, Docker Compose
 *   **IoT Platform:** OpenRemote (Manager, Keycloak, PostgreSQL, Proxy)
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 DIBL_IOT/
@@ -45,7 +45,7 @@ DIBL_IOT/
 └── docker-compose.yml      # Orchestration for full stack
 ```
 
-## 🚀 Setup & Deployment
+## Setup & Deployment
 
 ### Prerequisites
 *   Docker & Docker Compose installed on the host machine.
@@ -71,7 +71,7 @@ Configuration is handled primarily through `docker-compose.yml` and `src/core/co
 *   `KC_DB_PASSWORD`: Keycloak database password.
 *   `POSTGRES_PASSWORD`: PostgreSQL password.
 
-## 🔧 Development
+## Development
 
 The application is built with **FastAPI**.
 *   **Backend Entry:** `src/main.py`
@@ -82,10 +82,7 @@ The application is built with **FastAPI**.
 1.  **Backend:** Add new API endpoints in `src/api/` and include them in `main.py`.
 2.  **Frontend:** Create new templates in `src/templates/` and add corresponding static assets in `src/static/`.
 
-## 🤝 Contribution
+## Contribution
 
 Please ensure all code follows the project's structure (Separation of API, Core, and Routes).
 
-## 📄 License
-
-[License Information Here]

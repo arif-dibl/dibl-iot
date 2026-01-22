@@ -39,7 +39,8 @@ services:
 
   postgresql:
     restart: always
-    image: openremote/postgresql:${POSTGRESQL_VERSION:-latest}
+    # image: openremote/postgresql:${POSTGRESQL_VERSION:-latest}  # 'latest' tag doesn't exist
+    image: openremote/postgresql:${POSTGRESQL_VERSION:-15.6.0.4}
     shm_size: 128mb
     volumes:
       - postgresql-data:/var/lib/postgresql/data

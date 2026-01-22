@@ -20,9 +20,9 @@ services:
       manager:
         condition: service_healthy
     ports:
-      - "80:80" # Needed for SSL generation using letsencrypt
+      # - "80:80" # LE generation handled by Coolify
       # - "${OR_SSL_PORT:-443}:443"  # Commented out for Coolify - defaults to -1 which is invalid
-      - "443:443" # Static port for Coolify compatibility
+      # - "443:443"  # Removed for Coolify - it handles SSL termination
       - "8883:8883"
       - "127.0.0.1:8404:8404" # Localhost metrics access
       # - "${PRIVATE_IP:-127.0.0.1}:8404:8404"  # Commented out for Coolify

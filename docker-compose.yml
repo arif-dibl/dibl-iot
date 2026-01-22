@@ -32,7 +32,7 @@ services:
       - proxy-data:/deployment
     environment:
       LE_EMAIL: ${OR_EMAIL_ADMIN:-}
-      DOMAINNAME: ${OR_HOSTNAME:-localhost}
+      DOMAINNAME: ${OR_HOSTNAME:-vgscg4skscg88oscgwoc0kwc.185.169.252.53.sslip.io}
       DOMAINNAMES: ${OR_ADDITIONAL_HOSTNAMES:-}
       # USE A CUSTOM PROXY CONFIG - COPY FROM https://raw.githubusercontent.com/openremote/proxy/main/haproxy.cfg
       #HAPROXY_CONFIG: '/data/proxy/haproxy.cfg'
@@ -56,7 +56,7 @@ services:
       - ./deploy:/deployment
     environment:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:-secret}
-      KC_HOSTNAME: ${OR_HOSTNAME:-localhost}
+      KC_HOSTNAME: ${OR_HOSTNAME:-vgscg4skscg88oscgwoc0kwc.185.169.252.53.sslip.io}
       # KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}  # Commented out for Coolify - defaults to -1
       KC_HOSTNAME_PORT: 443 # Static port for Coolify compatibility
       KC_HTTP_RELATIVE_PATH: /auth # Restore the context path expected by OpenRemote
@@ -84,7 +84,7 @@ services:
       OR_EMAIL_FROM:
       OR_EMAIL_ADMIN:
       OR_METRICS_ENABLED: ${OR_METRICS_ENABLED:-true}
-      OR_HOSTNAME: ${OR_HOSTNAME:-localhost}
+      OR_HOSTNAME: ${OR_HOSTNAME:-vgscg4skscg88oscgwoc0kwc.185.169.252.53.sslip.io}
       OR_ADDITIONAL_HOSTNAMES: ${OR_ADDITIONAL_HOSTNAMES:-}
       # OR_SSL_PORT: ${OR_SSL_PORT:--1}  # Commented out for Coolify - defaults to -1
       OR_SSL_PORT: 443 # Static port for Coolify compatibility
@@ -107,7 +107,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-      OR_HOSTNAME: ${OR_HOSTNAME:-localhost}
+      OR_HOSTNAME: ${OR_HOSTNAME:-vgscg4skscg88oscgwoc0kwc.185.169.252.53.sslip.io}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:-secret}
     depends_on:
       keycloak:

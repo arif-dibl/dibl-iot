@@ -20,15 +20,13 @@ services:
       manager:
         condition: service_healthy
     ports:
-      # Commented out for Coolify - Coolify's Traefik handles SSL termination
-      # - "80:80" # Needed for SSL generation using letsencrypt
-      # - "${OR_SSL_PORT:-443}:443"
-      - "8883:8883" # MQTT port - keep this if you need MQTT access
-      # - "127.0.0.1:8404:8404" # Localhost metrics access
-      # - "${PRIVATE_IP:-127.0.0.1}:8404:8404"
-    expose:
-      - "80"
-      - "443"
+      - "80:80" # Needed for SSL generation using letsencrypt
+      - "${OR_SSL_PORT:-443}:443"
+      - "8883:8883"
+      - "127.0.0.1:8404:8404" # Localhost metrics access
+      - "${PRIVATE_IP:-127.0.0.1}:8404:8404"
+        # Allows to also expose metrics on a given IP address,
+        # intended to be IP of the interface of the private subnet of the EC2 VM
     volumes:
       - proxy-data:/deployment
     environment:
@@ -52,8 +50,6 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-    expose:
-      - "8080"
     volumes:
       - ./deploy:/deployment
     environment:
@@ -68,11 +64,11 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-    expose:
-      - "8080"
-    # ports:
-    #   - "127.0.0.1:8405:8405" # Localhost metrics access
-    #   - "${PRIVATE_IP:-127.0.0.1}:8405:8405"
+    ports:
+      - "127.0.0.1:8405:8405" # Localhost metrics access
+      - "${PRIVATE_IP:-127.0.0.1}:8405:8405"
+        # Allows to also expose metrics on a given IP address,
+        # intended to be IP of the interface of the private subnet of the EC2 VM
     environment:
       OR_SETUP_TYPE:
       OR_ADMIN_PASSWORD:
@@ -103,8 +99,8 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     restart: always
-    expose:
-      - "5000"
+    ports:
+      - "5000:5000"
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:-localhost}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:-secret}

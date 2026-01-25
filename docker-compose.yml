@@ -49,12 +49,18 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
+    expose:
+      - "8080"
     volumes:
       - ./deploy:/deployment
     environment:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:-secret}
       KC_HOSTNAME: ${OR_HOSTNAME:-localhost}
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:-443}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`${SERVICE_FQDN_MANAGER:-localhost}`) && PathPrefix(`/auth`)"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
 
   manager:
     #    privileged: true
@@ -89,6 +95,10 @@ services:
     volumes:
       # - ./deployment:/deployment
       - manager-data:/storage
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.manager.rule=Host(`${SERVICE_FQDN_MANAGER:-localhost}`)"
+      - "traefik.http.services.manager.loadbalancer.server.port=8080"
 
   custom-ui:
     build:

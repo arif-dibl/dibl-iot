@@ -1,13 +1,5 @@
 # OpenRemote v3 - Coolify Production Deployment
-# ============================================
-# এই ফাইলটি Coolify-তে ডেপ্লয় করার জন্য তৈরি
-# Option 1: sslip.io auto-generated domain ব্যবহার করুন
-#
-# ব্যবহারের আগে:
-# 1. Coolify-তে এই প্রজেক্ট তৈরি করুন
-# 2. Coolify যে domain দেয় সেটি OR_HOSTNAME-এ সেট করুন
-# 3. OR_ADMIN_PASSWORD সেট করুন
-# 4. Deploy করুন
+# Use with sslip.io auto-generated domain or custom domain
 
 volumes:
   proxy-data:

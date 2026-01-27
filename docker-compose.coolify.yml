@@ -33,6 +33,12 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
 
   manager:
     restart: always
@@ -61,6 +67,12 @@ services:
       OR_SETUP_IMPORT_DEMO_AGENT_VELBUS:
     volumes:
       - manager-data:/storage
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/master/info" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   proxy:
     image: openremote/proxy:${PROXY_VERSION:-latest}

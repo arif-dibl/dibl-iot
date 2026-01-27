@@ -5,7 +5,13 @@ deploy/manager/app/manager_config.json
 *.pem
 *.crt
 *.csr
+
+# Environment files (keep .env.example as template)
 .env
+.env.local
+.env.production
+!.env.example
+
 # --- Python ---
 __pycache__/
 *.pyc

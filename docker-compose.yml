@@ -20,10 +20,11 @@ services:
       manager:
         condition: service_healthy
     ports:
-      - "8883:8883" # MQTT port for IoT devices
-    expose:
-      - "80"
-      - "443"
+      - "80:80" # Needed for SSL generation using letsencrypt
+      - "${OR_SSL_PORT:-443}:443"
+      - "8883:8883"
+      - "127.0.0.1:8404:8404" # Localhost metrics access
+      - "${PRIVATE_IP:-127.0.0.1}:8404:8404"
         # Allows to also expose metrics on a given IP address,
         # intended to be IP of the interface of the private subnet of the EC2 VM
     volumes:
@@ -49,18 +50,12 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-    expose:
-      - "8080"
     volumes:
       - ./deploy:/deployment
     environment:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:-secret}
       KC_HOSTNAME: ${OR_HOSTNAME:-localhost}
-      KC_HOSTNAME_PORT: ${OR_SSL_PORT:-443}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.keycloak.rule=Host(`${SERVICE_FQDN_MANAGER:-localhost}`) && PathPrefix(`/auth`)"
-      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
 
   manager:
     #    privileged: true
@@ -69,8 +64,11 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-    expose:
-      - "8080"
+    ports:
+      - "127.0.0.1:8405:8405" # Localhost metrics access
+      - "${PRIVATE_IP:-127.0.0.1}:8405:8405"
+        # Allows to also expose metrics on a given IP address,
+        # intended to be IP of the interface of the private subnet of the EC2 VM
     environment:
       OR_SETUP_TYPE:
       OR_ADMIN_PASSWORD:
@@ -84,7 +82,7 @@ services:
       OR_METRICS_ENABLED: ${OR_METRICS_ENABLED:-true}
       OR_HOSTNAME: ${OR_HOSTNAME:-localhost}
       OR_ADDITIONAL_HOSTNAMES:
-      OR_SSL_PORT: ${OR_SSL_PORT:-443}
+      OR_SSL_PORT: ${OR_SSL_PORT:--1}
       OR_DEV_MODE: ${OR_DEV_MODE:-false}
 
       # The following variables will configure the demo
@@ -95,18 +93,14 @@ services:
     volumes:
       # - ./deployment:/deployment
       - manager-data:/storage
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.manager.rule=Host(`${SERVICE_FQDN_MANAGER:-localhost}`)"
-      - "traefik.http.services.manager.loadbalancer.server.port=8080"
 
   custom-ui:
     build:
       context: .
       dockerfile: deploy/Dockerfile
     restart: always
-    expose:
-      - "5000"
+    ports:
+      - "5000:5000"
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:-localhost}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:-secret}

@@ -35,11 +35,18 @@ services:
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
     labels:
       - "traefik.enable=true"
-      # Route /auth and /realms paths to Keycloak
-      - "traefik.http.routers.keycloak.rule=Host(`${OR_HOSTNAME}`) && (PathPrefix(`/auth`) || PathPrefix(`/realms`) || PathPrefix(`/resources`) || PathPrefix(`/robots.txt`))"
+      # Route /auth and /realms paths to Keycloak (priority 100 = high)
+      - "traefik.http.routers.keycloak.priority=100"
+      - "traefik.http.routers.keycloak.rule=Host(`${OR_HOSTNAME}`) && PathPrefix(`/auth`)"
       - "traefik.http.routers.keycloak.entrypoints=http,https"
       - "traefik.http.routers.keycloak.tls=true"
       - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      # Additional router for /realms
+      - "traefik.http.routers.keycloak-realms.priority=100"
+      - "traefik.http.routers.keycloak-realms.rule=Host(`${OR_HOSTNAME}`) && PathPrefix(`/realms`)"
+      - "traefik.http.routers.keycloak-realms.entrypoints=http,https"
+      - "traefik.http.routers.keycloak-realms.tls=true"
+      - "traefik.http.routers.keycloak-realms.service=keycloak"
 
   manager:
     restart: always
@@ -70,11 +77,24 @@ services:
       - manager-data:/storage
     labels:
       - "traefik.enable=true"
-      # Route /manager, /api, /websocket paths to Manager
-      - "traefik.http.routers.manager.rule=Host(`${OR_HOSTNAME}`) && (PathPrefix(`/manager`) || PathPrefix(`/api`) || PathPrefix(`/websocket`) || PathPrefix(`/shared`) || PathPrefix(`/console`))"
+      # Route /manager path to Manager (priority 100 = high)
+      - "traefik.http.routers.manager.priority=100"
+      - "traefik.http.routers.manager.rule=Host(`${OR_HOSTNAME}`) && PathPrefix(`/manager`)"
       - "traefik.http.routers.manager.entrypoints=http,https"
       - "traefik.http.routers.manager.tls=true"
       - "traefik.http.services.manager.loadbalancer.server.port=8080"
+      # Additional router for /api
+      - "traefik.http.routers.manager-api.priority=100"
+      - "traefik.http.routers.manager-api.rule=Host(`${OR_HOSTNAME}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.manager-api.entrypoints=http,https"
+      - "traefik.http.routers.manager-api.tls=true"
+      - "traefik.http.routers.manager-api.service=manager"
+      # Additional router for /websocket
+      - "traefik.http.routers.manager-ws.priority=100"
+      - "traefik.http.routers.manager-ws.rule=Host(`${OR_HOSTNAME}`) && PathPrefix(`/websocket`)"
+      - "traefik.http.routers.manager-ws.entrypoints=http,https"
+      - "traefik.http.routers.manager-ws.tls=true"
+      - "traefik.http.routers.manager-ws.service=manager"
 
   custom-ui:
     build:

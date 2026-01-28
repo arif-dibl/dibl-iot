@@ -16,7 +16,7 @@ CONFIG_DIR = os.path.join(BASE_DIR, "config")
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 # Hardcoded Realm
-DEFAULT_REALM = "master"
+DEFAULT_REALM = "dibl-iot"
 PREFS_FILE = os.path.join(DATA_DIR, "user_preferences.json")
 FRIENDLY_NAMES_FILE = os.path.join(CONFIG_DIR, "friendly_names.json")
 IGNORED_USERS_FILE = os.path.join(CONFIG_DIR, "ignored_users.json")

@@ -78,6 +78,12 @@ services:
       LE_EMAIL: ${OR_EMAIL_ADMIN:-}
       DOMAINNAME: ${OR_HOSTNAME:?Hostname required}
       DOMAINNAMES: ${OR_ADDITIONAL_HOSTNAMES:-}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openremote-proxy.rule=Host(`${OR_HOSTNAME}`)"
+      - "traefik.http.routers.openremote-proxy.entrypoints=http,https"
+      - "traefik.http.routers.openremote-proxy.tls=true"
+      - "traefik.http.services.openremote-proxy.loadbalancer.server.port=80"
 
   custom-ui:
     build:

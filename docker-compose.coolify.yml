@@ -1,8 +1,8 @@
-# OpenRemote v3 - Coolify Production Deployment
-# Use with sslip.io auto-generated domain or custom domain
+# OpenRemote v3 - Coolify Production Deployment (Direct Routing)
+# Traefik handles all external routing, bypassing OpenRemote's internal proxy
+# This avoids SSL conflicts and redirect loops with Coolify
 
 volumes:
-  proxy-data:
   manager-data:
   postgresql-data:
 
@@ -33,6 +33,13 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
+    labels:
+      - "traefik.enable=true"
+      # Route /auth and /realms paths to Keycloak
+      - "traefik.http.routers.keycloak.rule=Host(`${OR_HOSTNAME}`) && (PathPrefix(`/auth`) || PathPrefix(`/realms`) || PathPrefix(`/resources`) || PathPrefix(`/robots.txt`))"
+      - "traefik.http.routers.keycloak.entrypoints=http,https"
+      - "traefik.http.routers.keycloak.tls=true"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
 
   manager:
     restart: always
@@ -61,40 +68,30 @@ services:
       OR_SETUP_IMPORT_DEMO_AGENT_VELBUS:
     volumes:
       - manager-data:/storage
-
-  proxy:
-    image: openremote/proxy:${PROXY_VERSION:-latest}
-    restart: always
-    depends_on:
-      manager:
-        condition: service_healthy
-    ports:
-      # - "80:80"
-      # - "443:443"
-      - "8883:8883"
-    volumes:
-      - proxy-data:/deployment
-    environment:
-      LE_EMAIL: ${OR_EMAIL_ADMIN:-}
-      DOMAINNAME: ${OR_HOSTNAME:?Hostname required}
-      DOMAINNAMES: ${OR_ADDITIONAL_HOSTNAMES:-}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.openremote-proxy.rule=Host(`${OR_HOSTNAME}`)"
-      - "traefik.http.routers.openremote-proxy.entrypoints=http,https"
-      - "traefik.http.routers.openremote-proxy.tls=true"
-      - "traefik.http.services.openremote-proxy.loadbalancer.server.port=80"
+      # Route /manager, /api, /websocket paths to Manager
+      - "traefik.http.routers.manager.rule=Host(`${OR_HOSTNAME}`) && (PathPrefix(`/manager`) || PathPrefix(`/api`) || PathPrefix(`/websocket`) || PathPrefix(`/shared`) || PathPrefix(`/console`))"
+      - "traefik.http.routers.manager.entrypoints=http,https"
+      - "traefik.http.routers.manager.tls=true"
+      - "traefik.http.services.manager.loadbalancer.server.port=8080"
 
   custom-ui:
     build:
       context: .
       dockerfile: deploy/Dockerfile
     restart: always
-    ports:
-      - "5000:5000"
     depends_on:
       keycloak:
         condition: service_healthy
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
+    labels:
+      - "traefik.enable=true"
+      # Route root and other paths to Custom UI (lowest priority)
+      - "traefik.http.routers.custom-ui.rule=Host(`${OR_HOSTNAME}`)"
+      - "traefik.http.routers.custom-ui.entrypoints=http,https"
+      - "traefik.http.routers.custom-ui.tls=true"
+      - "traefik.http.routers.custom-ui.priority=1"
+      - "traefik.http.services.custom-ui.loadbalancer.server.port=5000"

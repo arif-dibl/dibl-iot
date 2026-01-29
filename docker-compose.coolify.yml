@@ -114,7 +114,7 @@ services:
     image: openremote/proxy:${PROXY_VERSION:-latest}
     restart: always
     depends_on:
-      manager:
+      manager: 
         condition: service_healthy
     ports:
       - "8883:8883"

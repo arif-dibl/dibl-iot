@@ -9,6 +9,11 @@ OR_MANAGER_URL = os.getenv("OR_MANAGER_URL", "http://manager:8080")
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://keycloak:8080/auth")
 
 # -------------------------
+# APP PREFIX (for reverse proxy subpath deployment)
+# -------------------------
+APP_PREFIX = os.environ.get("APP_PREFIX", "")
+
+# -------------------------
 # PATH CONFIGURATION
 # -------------------------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

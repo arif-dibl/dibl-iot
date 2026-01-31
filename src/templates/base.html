@@ -23,16 +23,16 @@
                 <span>DIBL IoT</span>
             </div>
             <nav class="nav-links">
-                <a href="/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}">
+                <a href="{{ prefix }}/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}">
                     Dashboard
                 </a>
-                <a href="/assets" class="nav-item {% if page == 'assets' %}active{% endif %}">
+                <a href="{{ prefix }}/assets" class="nav-item {% if page == 'assets' %}active{% endif %}">
                     My IoT Devices
                 </a>
-                <a href="/rules" class="nav-item {% if page == 'rules' %}active{% endif %}">
+                <a href="{{ prefix }}/rules" class="nav-item {% if page == 'rules' %}active{% endif %}">
                     Rules
                 </a>
-                <a href="/timers" class="nav-item {% if page == 'timers' %}active{% endif %}">
+                <a href="{{ prefix }}/timers" class="nav-item {% if page == 'timers' %}active{% endif %}">
                     Timers
                 </a>
                 <div style="flex:1"></div> <!-- Spacer -->
@@ -44,17 +44,17 @@
                     </button>
                     <div class="dropdown-content" id="navMenuContent">
 
-                        <a href="/settings" class="nav-item {% if page == 'settings' %}active{% endif %}">
+                        <a href="{{ prefix }}/settings" class="nav-item {% if page == 'settings' %}active{% endif %}">
                             User Settings
                         </a>
-                        <a href="/test" class="nav-item {% if page == 'test' %}active{% endif %}">
+                        <a href="{{ prefix }}/test" class="nav-item {% if page == 'test' %}active{% endif %}">
                             Test API
                         </a>
-                        <a href="/history-logs" class="nav-item {% if page == 'history_logs' %}active{% endif %}">
+                        <a href="{{ prefix }}/history-logs" class="nav-item {% if page == 'history_logs' %}active{% endif %}">
                             History Logs
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a href="/logout" class="nav-item logout" onclick="clearDiblCache()">
+                        <a href="{{ prefix }}/logout" class="nav-item logout" onclick="clearDiblCache()">
                             Logout
                         </a>
                     </div>

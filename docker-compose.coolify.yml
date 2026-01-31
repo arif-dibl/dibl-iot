@@ -47,7 +47,7 @@ configs:
           acl is_resources path_beg /resources
           use_backend keycloak_backend if is_resources
 
-          # Route custom-ui paths
+          # Route custom-ui paths - strip /customui prefix before forwarding
           acl is_customui path_beg /customui
           use_backend customui_backend if is_customui
 
@@ -164,3 +164,5 @@ services:
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
+      # Subpath prefix for reverse proxy routing
+      APP_PREFIX: /customui

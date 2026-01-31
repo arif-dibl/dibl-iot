@@ -1,6 +1,7 @@
 # OpenRemote v3 - Coolify Production Deployment (Option B: Custom HAProxy)
 # Uses Docker Compose configs to embed HAProxy config inline
 # Traefik handles SSL termination, HAProxy handles internal routing
+# X-Forwarded headers and custom-ui routing
 
 configs:
   haproxy-config:
@@ -23,6 +24,12 @@ configs:
       frontend http
           bind *:80
 
+          # CRITICAL: Forward original protocol and host info from Traefik
+          http-request set-header X-Forwarded-Proto https
+          http-request set-header X-Forwarded-Port 443
+          http-request set-header X-Forwarded-Host %[req.hdr(host)]
+          http-request set-header X-Real-IP %[src]
+
           # Health endpoint for docker healthcheck
           acl url_docker_health path /docker-health
           http-request set-log-level silent if url_docker_health
@@ -40,6 +47,10 @@ configs:
           acl is_resources path_beg /resources
           use_backend keycloak_backend if is_resources
 
+          # Route custom-ui paths
+          acl is_customui path_beg /customui
+          use_backend customui_backend if is_customui
+
           # Everything else goes to Manager
           default_backend manager_backend
 
@@ -48,6 +59,9 @@ configs:
 
       backend keycloak_backend
           server keycloak keycloak:8080 resolvers docker_resolver init-addr none
+
+      backend customui_backend
+          server customui custom-ui:5000 resolvers docker_resolver init-addr none
 
 volumes:
   proxy-data:
@@ -81,6 +95,11 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
+      # CRITICAL: Trust X-Forwarded headers from Traefik/HAProxy
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
 
   manager:
     restart: always
@@ -114,7 +133,7 @@ services:
     image: openremote/proxy:${PROXY_VERSION:-latest}
     restart: always
     depends_on:
-      manager: 
+      manager:
         condition: service_healthy
     ports:
       - "8883:8883"

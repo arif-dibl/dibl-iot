@@ -47,7 +47,7 @@ configs:
           acl is_resources path_beg /resources
           use_backend keycloak_backend if is_resources
 
-          # Route custom-ui paths - strip /customui prefix before forwarding
+          # Route custom-ui paths (FastAPI handles /customui prefix via APP_PREFIX env var)
           acl is_customui path_beg /customui
           use_backend customui_backend if is_customui
 

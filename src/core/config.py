@@ -8,6 +8,9 @@ OR_ADMIN_PASSWORD = os.getenv("OR_ADMIN_PASSWORD", "secret")
 OR_MANAGER_URL = os.getenv("OR_MANAGER_URL", "http://manager:8080")
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://keycloak:8080/auth")
 
+# Subpath prefix for reverse proxy deployment (e.g., "/customui")
+APP_PREFIX = os.environ.get("APP_PREFIX", "")
+
 # -------------------------
 # PATH CONFIGURATION
 # -------------------------

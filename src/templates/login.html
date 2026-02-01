@@ -56,7 +56,7 @@
                 {% endif %}
 
                 <div id="login-form">
-                    <form action="/login" method="POST">
+                    <form action="{{ prefix }}/login" method="POST">
                         <input type="hidden" name="realm" value="{{ realm }}">
                         <div class="form-group">
                             <label for="username">Username</label>
@@ -70,7 +70,7 @@
                         <button type="submit">Sign In</button>
                     </form>
                     <div class="toggle-link">
-                        Don't have an account? <a href="/signup">Sign Up</a>
+                        Don't have an account? <a href="{{ prefix }}/signup">Sign Up</a>
                     </div>
                 </div>
             </div>

@@ -11,7 +11,6 @@ KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://keycloak:8080/auth")
 # -------------------------
 # PATH CONFIGURATION
 # -------------------------
-APP_PREFIX = os.getenv("APP_PREFIX", "")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
 DATA_DIR = os.path.join(BASE_DIR, "data")

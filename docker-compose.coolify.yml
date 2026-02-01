@@ -28,6 +28,12 @@ configs:
           http-request set-log-level silent if url_docker_health
           http-request return status 200 if url_docker_health
 
+          # Route custom-ui paths (strip /customui prefix before forwarding)
+          acl is_customui path_beg /customui
+          http-request replace-path ^/customui(/.*)$ \1 if is_customui
+          http-request replace-path ^/customui$ / if is_customui
+          use_backend customui_backend if is_customui
+
           # Route auth paths to Keycloak
           acl is_auth path_beg /auth
           use_backend keycloak_backend if is_auth
@@ -48,6 +54,9 @@ configs:
 
       backend keycloak_backend
           server keycloak keycloak:8080 resolvers docker_resolver init-addr none
+
+      backend customui_backend
+          server customui custom-ui:5000 resolvers docker_resolver init-addr none
 
 volumes:
   proxy-data:
@@ -116,6 +125,8 @@ services:
     depends_on:
       manager:
         condition: service_healthy
+      custom-ui:
+        condition: service_started
     ports:
       - "8883:8883"
     configs:

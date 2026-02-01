@@ -2,7 +2,7 @@ import requests
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from core.config import DEFAULT_REALM, KEYCLOAK_URL, OR_HOSTNAME, OR_ADMIN_PASSWORD, APP_PREFIX
+from core.config import DEFAULT_REALM, KEYCLOAK_URL, OR_HOSTNAME, OR_ADMIN_PASSWORD
 from core.auth import get_admin_token, assign_roles_to_user, perform_auto_login_logic
 
 router = APIRouter(tags=["auth"])
@@ -11,18 +11,18 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/", response_class=HTMLResponse)
 async def index_page(request: Request):
     if request.session.get("access_token") and request.session.get("username"):
-        return RedirectResponse(f"{APP_PREFIX}/dashboard")
+        return RedirectResponse("/dashboard")
     return templates.TemplateResponse("login.html", {"request": request})
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_get(request: Request):
-    return RedirectResponse(f"{APP_PREFIX}/")
+    return RedirectResponse("/")
 
 @router.post("/login", response_class=HTMLResponse)
 async def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
     success, result = perform_auto_login_logic(request, DEFAULT_REALM, username, password)
     if success:
-        return RedirectResponse(f"{APP_PREFIX}/dashboard", status_code=303)
+        return RedirectResponse("/dashboard", status_code=303)
     return templates.TemplateResponse("login.html", {"request": request, "error": result})
 
 @router.get("/signup", response_class=HTMLResponse)
@@ -68,4 +68,4 @@ async def signup_post(request: Request, username: str = Form(...), email: str = 
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
-    return RedirectResponse(f"{APP_PREFIX}/", status_code=302)
+    return RedirectResponse("/", status_code=302)

@@ -109,7 +109,7 @@ services:
       OR_SETUP_IMPORT_DEMO_AGENT_VELBUS:
     volumes:
       - manager-data:/storage
-
+ 
   proxy:
     image: openremote/proxy:${PROXY_VERSION:-latest}
     restart: always

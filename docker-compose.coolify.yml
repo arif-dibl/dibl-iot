@@ -88,6 +88,9 @@ services:
         condition: service_healthy
     volumes:
       - ./deploy:/deployment
+    # CRITICAL: Allow internal resolution of public hostname for token validation
+    extra_hosts:
+      - "${OR_HOSTNAME}:host-gateway"
     environment:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
@@ -104,6 +107,10 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
+    # CRITICAL: Allow internal resolution of public hostname for JWT validation
+    # This fixes the hairpin NAT issue where Manager can't reach Keycloak's JWKS endpoint
+    extra_hosts:
+      - "${OR_HOSTNAME}:host-gateway"
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
@@ -152,6 +159,9 @@ services:
       - "traefik.http.services.openremote.loadbalancer.server.scheme=http"
       - "traefik.http.services.openremote.loadbalancer.healthcheck.path=/docker-health"
       - "traefik.http.routers.openremote.priority=1"
+      # WebSocket and header passthrough support
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.openremote.middlewares=sslheader"
 
   custom-ui:
     build:
@@ -161,6 +171,9 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
+    # Allow internal hostname resolution
+    extra_hosts:
+      - "${OR_HOSTNAME}:host-gateway"
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}

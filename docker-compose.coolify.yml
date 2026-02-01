@@ -1,7 +1,4 @@
-# OpenRemote v3 - Coolify Production Deployment (Option B: Custom HAProxy)
-# Uses Docker Compose configs to embed HAProxy config inline
-# Traefik handles SSL termination, HAProxy handles internal routing
-# X-Forwarded headers and custom-ui routing
+# OpenRemote v4
 
 configs:
   haproxy-config:

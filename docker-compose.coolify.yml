@@ -110,8 +110,6 @@ services:
       OR_SSL_PORT: ${OR_SSL_PORT:--1}
       OR_DEV_MODE: ${OR_DEV_MODE:-false}
       OR_METRICS_ENABLED: ${OR_METRICS_ENABLED:-true}
-      # CRITICAL: Tell Manager to validate tokens against external hostname (fixes 401 issuer mismatch)
-      OR_KEYCLOAK_HOST: ${OR_HOSTNAME:?Hostname required}
       OR_SETUP_TYPE:
       OR_SETUP_RUN_ON_RESTART:
       OR_EMAIL_HOST:
@@ -127,13 +125,6 @@ services:
       OR_SETUP_IMPORT_DEMO_AGENT_VELBUS:
     volumes:
       - manager-data:/storage
-    # Extended healthcheck for slow startup (especially first deployment)
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/master/info" ]
-      interval: 30s
-      timeout: 20s
-      retries: 20
-      start_period: 300s
 
   proxy:
     image: openremote/proxy:${PROXY_VERSION:-latest}

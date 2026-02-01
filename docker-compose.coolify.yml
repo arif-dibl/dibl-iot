@@ -127,6 +127,13 @@ services:
       OR_SETUP_IMPORT_DEMO_AGENT_VELBUS:
     volumes:
       - manager-data:/storage
+    # Extended healthcheck for slow startup (especially first deployment)
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/master/info" ]
+      interval: 30s
+      timeout: 20s
+      retries: 20
+      start_period: 300s
 
   proxy:
     image: openremote/proxy:${PROXY_VERSION:-latest}

@@ -1,4 +1,6 @@
-# OpenRemote v4
+# OpenRemote v3 - Coolify Production Deployment (Option B: Custom HAProxy)
+# Uses Docker Compose configs to embed HAProxy config inline
+# Traefik handles SSL termination, HAProxy handles internal routing
 
 configs:
   haproxy-config:
@@ -21,12 +23,6 @@ configs:
       frontend http
           bind *:80
 
-          # CRITICAL: Forward original protocol and host info from Traefik
-          http-request set-header X-Forwarded-Proto https
-          http-request set-header X-Forwarded-Port 443
-          http-request set-header X-Forwarded-Host %[req.hdr(host)]
-          http-request set-header X-Real-IP %[src]
-
           # Health endpoint for docker healthcheck
           acl url_docker_health path /docker-health
           http-request set-log-level silent if url_docker_health
@@ -44,10 +40,6 @@ configs:
           acl is_resources path_beg /resources
           use_backend keycloak_backend if is_resources
 
-          # Route custom-ui paths (FastAPI handles /customui prefix via APP_PREFIX env var)
-          acl is_customui path_beg /customui
-          use_backend customui_backend if is_customui
-
           # Everything else goes to Manager
           default_backend manager_backend
 
@@ -56,9 +48,6 @@ configs:
 
       backend keycloak_backend
           server keycloak keycloak:8080 resolvers docker_resolver init-addr none
-
-      backend customui_backend
-          server customui custom-ui:5000 resolvers docker_resolver init-addr none
 
 volumes:
   proxy-data:
@@ -88,41 +77,23 @@ services:
         condition: service_healthy
     volumes:
       - ./deploy:/deployment
-    # CRITICAL: Allow internal resolution of public hostname for token validation
-    extra_hosts:
-      - "${OR_HOSTNAME}:host-gateway"
     environment:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
-      # CRITICAL: Trust X-Forwarded headers from Traefik/HAProxy
-      KC_PROXY_HEADERS: xforwarded
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HTTP_ENABLED: "true"
-      # CRITICAL: Fix the issuer URL in JWT tokens to match the external URL
-      # This ensures tokens are issued with the correct 'iss' claim that the Manager expects
-      KEYCLOAK_ISSUER_BASE_URI: https://${OR_HOSTNAME}/auth
- 
+
   manager:
     restart: always
     image: openremote/manager:${MANAGER_VERSION:-latest}
     depends_on:
       keycloak:
         condition: service_healthy
-    # CRITICAL: Allow internal resolution of public hostname for JWT validation
-    # This fixes the hairpin NAT issue where Manager can't reach Keycloak's JWKS endpoint
-    extra_hosts:
-      - "${OR_HOSTNAME}:host-gateway"
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       OR_SSL_PORT: ${OR_SSL_PORT:--1}
       OR_DEV_MODE: ${OR_DEV_MODE:-false}
       OR_METRICS_ENABLED: ${OR_METRICS_ENABLED:-true}
-      # CRITICAL: Tell Manager to use internal Keycloak hostname for token validation
-      OR_KEYCLOAK_HOST: keycloak
-      OR_KEYCLOAK_PORT: 8080
       OR_SETUP_TYPE:
       OR_SETUP_RUN_ON_RESTART:
       OR_EMAIL_HOST:
@@ -162,12 +133,6 @@ services:
       - "traefik.http.routers.openremote.entrypoints=http,https"
       - "traefik.http.routers.openremote.tls=true"
       - "traefik.http.services.openremote.loadbalancer.server.port=80"
-      - "traefik.http.services.openremote.loadbalancer.server.scheme=http"
-      - "traefik.http.services.openremote.loadbalancer.healthcheck.path=/docker-health"
-      - "traefik.http.routers.openremote.priority=1"
-      # WebSocket and header passthrough support
-      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.routers.openremote.middlewares=sslheader"
 
   custom-ui:
     build:
@@ -177,11 +142,6 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-    # Allow internal hostname resolution
-    extra_hosts:
-      - "${OR_HOSTNAME}:host-gateway"
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
-      # Subpath prefix for reverse proxy routing
-      APP_PREFIX: /customui

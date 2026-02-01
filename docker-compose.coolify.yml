@@ -103,7 +103,7 @@ services:
       # CRITICAL: Fix the issuer URL in JWT tokens to match the external URL
       # This ensures tokens are issued with the correct 'iss' claim that the Manager expects
       KEYCLOAK_ISSUER_BASE_URI: https://${OR_HOSTNAME}/auth
-
+ 
   manager:
     restart: always
     image: openremote/manager:${MANAGER_VERSION:-latest}

@@ -149,6 +149,7 @@ services:
       - "traefik.http.routers.openremote.entrypoints=http,https"
       - "traefik.http.routers.openremote.tls=true"
       - "traefik.http.services.openremote.loadbalancer.server.port=80"
+      - "traefik.http.services.openremote.loadbalancer.server.scheme=http"
 
   custom-ui:
     build:

@@ -205,12 +205,29 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
             return False, "Could not find login form action"
             
         action_url = match.group(1).replace("&amp;", "&")
-        target_url = action_url
-        if f"https://{OR_HOSTNAME}/auth" in action_url:
-            target_url = action_url.replace(f"https://{OR_HOSTNAME}/auth", KEYCLOAK_URL)
-        elif f"http://{OR_HOSTNAME}/auth" in action_url:
-            target_url = action_url.replace(f"http://{OR_HOSTNAME}/auth", KEYCLOAK_URL)
-            
+        
+        # Robust URL Rewriting:
+        # Keycloak returns the public URL (e.g. https://<domain>/auth/...) or a relative one.
+        # We MUST force this request to go to the internal container (KEYCLOAK_URL) 
+        # so that the cookies in 'session' (which are associated with the internal host) are sent.
+        if "://" in action_url:
+            # Absolute URL: Strip scheme://host and prepend KEYCLOAK_URL
+            # This regex captures everything after the third slash: https://host/path -> path
+            path_match = re.search(r'^https?://[^/]+(/.*)$', action_url)
+            if path_match:
+                target_url = KEYCLOAK_URL.rstrip('/') + path_match.group(1)
+            else:
+                 # Fallback if regex fails (unlikely for valid absolute URLs)
+                target_url = action_url
+        else:
+            # Relative URL: Just prepend KEYCLOAK_URL
+             target_url = KEYCLOAK_URL.rstrip('/') + action_url
+
+        # Ensure we don't double-slash or miss a slash if needed
+        # (The logic above handles standard absolute/relative paths correctly)
+        
+        # print(f"[DEBUG] Login Action Rewrite: {action_url} -> {target_url}")
+
         payload = {"username": username, "password": password, "credentialId": ""}
         post_resp = session.post(target_url, data=payload, headers=headers, allow_redirects=False, verify=False)
         

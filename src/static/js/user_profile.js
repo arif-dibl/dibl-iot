@@ -2,7 +2,7 @@ let userProfile = null;
 
 async function loadProfile() {
     try {
-        const res = await fetch('/api/user/profile');
+        const res = await fetch(`${APP_PREFIX}/api/user/profile`);
         const data = await res.json();
 
         if (data.error) {
@@ -42,7 +42,7 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
     };
 
     try {
-        const res = await fetch('/api/user/profile', {
+        const res = await fetch(`${APP_PREFIX}/api/user/profile`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedProfile)
@@ -84,7 +84,7 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
     }
 
     try {
-        const res = await fetch('/api/user/change-password', {
+        const res = await fetch(`${APP_PREFIX}/api/user/change-password`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ currentPassword: currentPassword, password: newPassword })
@@ -96,7 +96,7 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
             document.getElementById('currentPassword').value = '';
             document.getElementById('newPassword').value = '';
             document.getElementById('confirmPassword').value = '';
-            setTimeout(() => window.location.href = '/logout', 2000);
+            setTimeout(() => window.location.href = `${APP_PREFIX}/logout`, 2000);
         } else {
             toast('Error: ' + (data.error || 'Unknown error'));
         }
@@ -108,7 +108,7 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
 
 async function loadLinkedUsers() {
     try {
-        const res = await fetch('/api/user/asset-partners');
+        const res = await fetch(`${APP_PREFIX}/api/user/asset-partners`);
         const data = await res.json();
 
         if (data) {

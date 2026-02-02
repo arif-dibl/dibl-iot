@@ -215,13 +215,21 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
             # This regex captures everything after the third slash: https://host/path -> path
             path_match = re.search(r'^https?://[^/]+(/.*)$', action_url)
             if path_match:
-                target_url = KEYCLOAK_URL.rstrip('/') + path_match.group(1)
+                path = path_match.group(1)
+                # Fix double /auth/auth issue
+                if KEYCLOAK_URL.endswith('/auth') and path.startswith('/auth/'):
+                    path = path[5:]
+                target_url = KEYCLOAK_URL.rstrip('/') + path
             else:
                  # Fallback if regex fails (unlikely for valid absolute URLs)
                 target_url = action_url
         else:
             # Relative URL: Just prepend KEYCLOAK_URL
-             target_url = KEYCLOAK_URL.rstrip('/') + action_url
+             path = action_url
+             # Fix double /auth/auth issue
+             if KEYCLOAK_URL.endswith('/auth') and path.startswith('/auth/'):
+                 path = path[5:]
+             target_url = KEYCLOAK_URL.rstrip('/') + path
 
         # Ensure we don't double-slash or miss a slash if needed
         # (The logic above handles standard absolute/relative paths correctly)

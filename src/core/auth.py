@@ -124,12 +124,7 @@ def get_user_token(realm, username, password):
         "password": password,
         "grant_type": "password"
     }
-    headers = {
-        "Host": OR_HOSTNAME,
-        "X-Forwarded-For": "127.0.0.1",
-        "X-Forwarded-Proto": "https",
-        "X-Forwarded-Host": OR_HOSTNAME
-    }
+    headers = {"Host": OR_HOSTNAME}
     try:
         res = requests.post(url, data=payload, headers=headers, verify=False)
         if res.status_code == 200:
@@ -201,12 +196,7 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
             "response_type": "code",
             "scope": "openid"
         }
-        headers = {
-            "Host": OR_HOSTNAME,
-            "X-Forwarded-For": "127.0.0.1",
-            "X-Forwarded-Proto": "https",
-            "X-Forwarded-Host": OR_HOSTNAME
-        }
+        headers = {"Host": OR_HOSTNAME}
         resp = session.get(auth_url, params=params, headers=headers, verify=False)
         resp.raise_for_status()
         
@@ -238,21 +228,15 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
         
         # print(f"[DEBUG] Login Action Rewrite: {action_url} -> {target_url}")
 
-        # CRITICAL FIX: Downgrade 'Secure' cookies and strip 'Domain' for internal HTTP transport
-        # 1. 'requests' will drop Secure cookies when sending to http://keycloak:8080.
-        # 2. 'requests' will not send cookies if the Domain doesn't match the target host.
-        # Since we are inside the internal Docker network, we must strip these attributes
-        # to ensure the session cookies are actually sent to Keycloak's internal address.
+        # CRITICAL FIX: Downgrade 'Secure' cookies for internal HTTP transport
+        # 'requests' will drop Secure cookies when sending to http://keycloak:8080.
+        # Since we are inside the internal Docker network, we must strip the Secure flag
+        # to ensure the session cookies are actually sent to Keycloak.
         for cookie in session.cookies:
-            cookie.secure = False
-            cookie.domain = "" # Force send to any host (internal keycloak)
+            if cookie.secure:
+                cookie.secure = False
 
-        payload = {
-            "username": username, 
-            "password": password, 
-            "credentialId": "",
-            "login": "Sign In" # Some themes require the submit button value
-        }
+        payload = {"username": username, "password": password, "credentialId": ""}
         post_resp = session.post(target_url, data=payload, headers=headers, allow_redirects=False, verify=False)
         
         if post_resp.status_code == 302:

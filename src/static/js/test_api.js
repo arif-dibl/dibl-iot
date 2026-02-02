@@ -34,7 +34,8 @@ async function sendRequest() {
     }
 
     try {
-        const res = await fetch('/api/debug/proxy', {
+        const url = (typeof APP_PREFIX !== 'undefined' && APP_PREFIX) ? `${APP_PREFIX}/api/debug/proxy` : '/api/debug/proxy';
+        const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ method, endpoint, body })

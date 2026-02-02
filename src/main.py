@@ -5,8 +5,13 @@ from routes import auth as auth_routes, dashboard as dashboard_routes
 from api import assets as assets_api, rules as rules_api, user as user_api, debug as debug_api
 from core.config import APP_PREFIX
 
-# Create FastAPI app with root_path for correct URL generation behind reverse proxy
-app = FastAPI(title="DIBL IoT Custom UI", root_path=APP_PREFIX)
+# Create FastAPI app
+# NOTE: We do NOT use root_path here because we are manually prefixing the router below.
+# Using both can cause "double prefixing" where URLs become /customui/customui/...
+docs_url = f"{APP_PREFIX}/docs" if APP_PREFIX else "/docs"
+openapi_url = f"{APP_PREFIX}/openapi.json" if APP_PREFIX else "/openapi.json"
+
+app = FastAPI(title="DIBL IoT Custom UI", docs_url=docs_url, openapi_url=openapi_url)
 
 # Session Middleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -49,4 +54,5 @@ async def favicon():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # CRITICAL: Port must match HAProxy target (5000), NOT 8000
+    uvicorn.run(app, host="0.0.0.0", port=5000)

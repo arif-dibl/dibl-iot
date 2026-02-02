@@ -2,7 +2,7 @@ const openGroups = new Set();
 
 async function loadTimers() {
     try {
-        const res = await fetch('/api/user/assets');
+        const res = await fetch(`${APP_PREFIX}/api/user/assets`);
         const data = await res.json();
         const assets = Array.isArray(data) ? data : (data.assets || []);
 
@@ -19,7 +19,7 @@ async function loadTimers() {
 
         let pinnedItems = [];
         try {
-            const prefsRes = await fetch('/api/user/preferences');
+            const prefsRes = await fetch(`${APP_PREFIX}/api/user/preferences`);
             const prefs = await prefsRes.json();
             pinnedItems = prefs.pinned || [];
         } catch (e) { console.error("Prefs error", e); }
@@ -249,7 +249,7 @@ function toggleAssetGroup(id) {
 
 async function toggleNestedAttribute(assetId, attrName, nestedKey, newValue) {
     try {
-        const res = await fetch(`/api/asset/${assetId}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
 
         let currentVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
@@ -273,7 +273,7 @@ async function toggleNestedAttribute(assetId, attrName, nestedKey, newValue) {
 
 async function updateNestedValue(assetId, attrName, nestedKey, newValue) {
     try {
-        const res = await fetch(`/api/asset/${assetId}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
         let currentVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
         if (typeof currentVal === 'string') {
@@ -292,7 +292,7 @@ async function updateNestedValue(assetId, attrName, nestedKey, newValue) {
 
 async function toggleDay(assetId, attrName, nestedKey, day) {
     try {
-        const res = await fetch(`/api/asset/${assetId}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
         let currentVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
         if (typeof currentVal === 'string') {
@@ -322,7 +322,7 @@ async function toggleDay(assetId, attrName, nestedKey, day) {
 
 async function toggleTimerOutput(assetId, attrName, nestedKey, relay) {
     try {
-        const res = await fetch(`/api/asset/${assetId}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
         let currentVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
         if (typeof currentVal === 'string') {
@@ -363,7 +363,7 @@ async function toggleTimerOutput(assetId, attrName, nestedKey, relay) {
 
 
 async function saveAttribute(assetId, attrName, value) {
-    const res = await fetch(`/api/asset/${assetId}/attribute/${attrName}`, {
+    const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/${attrName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: value })

@@ -1,6 +1,6 @@
 async function loadDashboard() {
     try {
-        const res = await fetch(`/api/user/assets?t=${Date.now()}`);
+        const res = await fetch(`${APP_PREFIX}/api/user/assets?t=${Date.now()}`);
         const data = await res.json();
         const assets = Array.isArray(data) ? data : (data.assets || []);
 
@@ -103,7 +103,7 @@ function renderSwitchCard(assetName, assetId, relayData, isIdle = false) {
 async function toggleSwitch(assetId, key, newValue) {
     console.log(`[Dashboard] Toggling switch: ${assetId} / ${key} -> ${newValue}`);
     try {
-        const res = await fetch(`/api/asset/${assetId}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         if (!res.ok) throw new Error(`Failed to fetch asset: ${res.status}`);
 
         const asset = await res.json();
@@ -122,7 +122,7 @@ async function toggleSwitch(assetId, key, newValue) {
 
         console.log('[Dashboard] Sending updated RelayData:', relayData);
 
-        const updateRes = await fetch(`/api/asset/${assetId}/attribute/RelayData`, {
+        const updateRes = await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/RelayData`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ value: relayData })
@@ -153,7 +153,7 @@ async function loadWidgets(assets = []) {
     const rulesContainer = document.getElementById('rulesContainer');
 
     try {
-        const res = await fetch(`/api/user/dashboard/widgets?t=${Date.now()}`);
+        const res = await fetch(`${APP_PREFIX}/api/user/dashboard/widgets?t=${Date.now()}`);
         let widgets = await res.json();
 
         widgets.forEach(w => {
@@ -520,7 +520,7 @@ async function unpinWidget(assetId, attributeName, key) {
             key: key || null
         };
 
-        const res = await fetch('/api/user/preferences/pin', {
+        const res = await fetch(`${APP_PREFIX}/api/user/preferences/pin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -602,7 +602,7 @@ async function keepAlive(assets) {
     for (const asset of assets) {
         if (asset.attributes?.RelayData) {
             try {
-                await fetch(`/api/asset/${asset.id}/attribute/RelayData`, {
+                await fetch(`${APP_PREFIX}/api/asset/${asset.id}/attribute/RelayData`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ value: asset.attributes.RelayData })

@@ -124,7 +124,7 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="{{ url_for('static', path='css/history_logs.css') }}">
+<link rel="stylesheet" href="{{ prefix }}/static/css/history_logs.css">
 {% endblock %}
 
 {% block scripts %}
@@ -132,5 +132,5 @@
 <script>
     window.USER_REALM = "{{ realm }}";
 </script>
-<script src="{{ url_for('static', path='js/datapoint_history.js') }}"></script>
+<script src="{{ prefix }}/static/js/datapoint_history.js"></script>
 {% endblock %}

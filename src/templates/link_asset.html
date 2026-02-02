@@ -5,15 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Link Asset - OpenRemote</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', path='images/favicon.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">
+    <link rel="icon" type="image/png" href="{{ prefix }}/static/images/favicon.png">
+    <link rel="stylesheet" href="{{ prefix }}/static/css/common.css">
+    <link rel="stylesheet" href="{{ prefix }}/static/css/auth.css">
 </head>
 
 <body>
     <nav class="navbar">
         <div class="navbar-brand">
-            <img src="{{ url_for('static', path='images/logo.png') }}" alt="Logo">
+            <img src="{{ prefix }}/static/images/logo.png" alt="Logo">
         </div>
     </nav>
     <div class="container">
@@ -24,7 +24,7 @@
         <div class="alert alert-error">{{ error }}</div>
         {% endif %}
 
-        <form action="/link-asset" method="POST">
+        <form action="{{ prefix }}/link-asset" method="POST">
             <input type="hidden" name="realm" value="{{ realm }}">
             <input type="hidden" name="username" value="{{ username }}">
             <input type="hidden" name="password" value="{{ password }}">

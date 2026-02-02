@@ -106,7 +106,8 @@
         </form>
 
         <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border); text-align:center;">
-            <a href="/logout" style="color:var(--danger); font-weight:600; text-decoration:none; font-size:0.9rem;">
+            <a href="{{ prefix }}/logout"
+                style="color:var(--danger); font-weight:600; text-decoration:none; font-size:0.9rem;">
                 Sign Out
             </a>
         </div>
@@ -131,5 +132,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', path='js/user_profile.js') }}"></script>
+<script src="{{ prefix }}/static/js/user_profile.js"></script>
 {% endblock %}

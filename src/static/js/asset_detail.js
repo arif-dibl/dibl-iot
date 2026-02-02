@@ -3,7 +3,7 @@ const openGroups = new Set();
 
 function shouldShowPin(key, itemKey) {
     if (key === 'RelayData') return false;
-    if (key && key.includes('RelayNode')) return false; 
+    if (key && key.includes('RelayNode')) return false;
     if (itemKey && itemKey.startsWith('r') && key === 'RelayData') return false;
     return true;
 }
@@ -12,13 +12,13 @@ async function loadDetail() {
     try {
         // 1. Fetch Preferences First
         try {
-            const prefsRes = await fetch('/api/user/preferences');
+            const prefsRes = await fetch(`${APP_PREFIX}/api/user/preferences`);
             const prefs = await prefsRes.json();
             pinnedAttributes = prefs.pinned || [];
         } catch (e) { console.error("Prefs error", e); }
 
         // 2. Fetch Asset
-        const res = await fetch(`/api/asset/${ASSET_ID}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await res.json();
 
         if (!asset || !asset.id) {
@@ -72,7 +72,7 @@ async function loadDetail() {
             const customSort = (a, b) => {
                 const getSuffix = (str) => {
                     const match = str.match(/(\d+)$/);
-                    return match ? parseInt(match[0], 10) : -1; 
+                    return match ? parseInt(match[0], 10) : -1;
                 };
 
                 const suffixA = getSuffix(a);
@@ -185,7 +185,7 @@ async function loadDetail() {
                                             <div style="font-size:0.85rem; color:#333; font-weight:600;">${val['Outputs'].replace(/OUT\s0?/g, '')}</div>
                                         </div>` : ''}
 
-                                         <div style="margin-top:0.75rem; text-align:center; font-size:0.8rem; color:var(--primary); cursor:pointer; font-weight:600;" onclick="location.href='/timers'">
+                                         <div style="margin-top:0.75rem; text-align:center; font-size:0.8rem; color:var(--primary); cursor:pointer; font-weight:600;" onclick="location.href='${APP_PREFIX}/timers'">
                                             Edit in Timers Page →
                                         </div>
                                     </div>
@@ -402,7 +402,7 @@ function toggleGroup(groupId) {
 
 async function toggleAttribute(attrName, newValue) {
     try {
-        const res = await fetch(`/api/asset/${ASSET_ID}/attribute/${attrName}`, {
+        const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ value: newValue })
@@ -423,7 +423,7 @@ async function toggleAttribute(attrName, newValue) {
 
 async function toggleNestedAttribute(attrName, nestedKey, newValue) {
     try {
-        const res = await fetch(`/api/asset/${ASSET_ID}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await res.json();
 
         if (asset && asset.attributes && asset.attributes[attrName] !== undefined) {
@@ -448,7 +448,7 @@ async function toggleNestedAttribute(attrName, nestedKey, newValue) {
                     currentVal[nestedKey] = newValue;
                 }
 
-                const updateRes = await fetch(`/api/asset/${ASSET_ID}/attribute/${attrName}`, {
+                const updateRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ value: currentVal })
@@ -477,7 +477,7 @@ async function toggleNestedAttribute(attrName, nestedKey, newValue) {
 async function updateNestedValue(attrName, nestedKey, newValue) {
     // Timer OnHour, OnMinute
     try {
-        const res = await fetch(`/api/asset/${ASSET_ID}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await res.json();
 
         if (asset && asset.attributes && asset.attributes[attrName] !== undefined) {
@@ -496,7 +496,7 @@ async function updateNestedValue(attrName, nestedKey, newValue) {
             if (typeof currentVal === 'object' && currentVal !== null) {
                 currentVal[nestedKey] = String(newValue);
 
-                const updateRes = await fetch(`/api/asset/${ASSET_ID}/attribute/${attrName}`, {
+                const updateRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ value: currentVal })
@@ -523,7 +523,7 @@ async function updateNestedValue(attrName, nestedKey, newValue) {
 
 async function toggleDay(attrName, nestedKey, day) {
     try {
-        const res = await fetch(`/api/asset/${ASSET_ID}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await res.json();
 
         if (asset && asset.attributes && asset.attributes[attrName] !== undefined) {
@@ -559,7 +559,7 @@ async function toggleDay(attrName, nestedKey, day) {
 
             currentObj[nestedKey] = newValue;
 
-            const updateRes = await fetch(`/api/asset/${ASSET_ID}/attribute/${attrName}`, {
+            const updateRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ value: currentObj })
@@ -575,7 +575,7 @@ async function toggleDay(attrName, nestedKey, day) {
 
 async function toggleTimerOutput(attrName, nestedKey, relay) {
     try {
-        const res = await fetch(`/api/asset/${ASSET_ID}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await res.json();
 
         if (asset && asset.attributes && asset.attributes[attrName] !== undefined) {
@@ -624,7 +624,7 @@ async function toggleTimerOutput(attrName, nestedKey, relay) {
             let newValue = mapRToOut(sorted).join(',');
             currentObj[nestedKey] = newValue;
 
-            const updateRes = await fetch(`/api/asset/${ASSET_ID}/attribute/${attrName}`, {
+            const updateRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ value: currentObj })
@@ -670,7 +670,7 @@ async function togglePin(attrName, key) {
             }
         }
 
-        const res = await fetch('/api/user/preferences/pin', {
+        const res = await fetch(`${APP_PREFIX}/api/user/preferences/pin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -716,7 +716,7 @@ function openWheelPicker(e, attrName, nestedKey, currentVal, maxVal) {
     overlay.style.display = 'block';
 
     const itemHeight = 50;
-    const middleOffset = (maxVal + 1) * itemHeight; 
+    const middleOffset = (maxVal + 1) * itemHeight;
     // Centering logic: ScrollTop = (index * height)
     const targetScroll = middleOffset + (currentVal * itemHeight);
     list.scrollTop = targetScroll;
@@ -785,7 +785,7 @@ async function renamePin(attrName, key) {
         const payload = { assetId: ASSET_ID, attributeName: attrName, displayName: newName };
         if (key) payload.key = key;
 
-        const res = await fetch('/api/user/preferences/pin/rename', {
+        const res = await fetch(`${APP_PREFIX}/api/user/preferences/pin/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

@@ -8,7 +8,7 @@ let rulesTimestamp = null;
 
 async function init() {
     try {
-        const res = await fetch('/api/user/assets');
+        const res = await fetch(`${APP_PREFIX}/api/user/assets`);
         const data = await res.json();
         const assets = Array.isArray(data) ? data : (data.assets || []);
 
@@ -39,7 +39,7 @@ async function loadAsset(assetId) {
     document.getElementById('pinRulesBtn').disabled = false;
 
     try {
-        const res = await fetch(`/api/asset/${currentAssetId}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${currentAssetId}`);
         const asset = await res.json();
         allAttributes = asset.attributes || {};
 
@@ -384,7 +384,7 @@ async function updateRuleTargets(sensorPath, targetRelay, targetState, operator,
 
     console.log(`[Rules] Syncing targets...`);
 
-    const asset = await fetch(`/api/asset/${currentAssetId}`).then(r => r.json());
+    const asset = await fetch(`${APP_PREFIX}/api/asset/${currentAssetId}`).then(r => r.json());
     let targets = asset.attributes[attrName] || {};
 
     if (typeof targets === 'string') {
@@ -406,7 +406,7 @@ async function updateRuleTargets(sensorPath, targetRelay, targetState, operator,
 
     console.log(`[Rules] Setting ${attrName}.${uniqueKey} = ${valToStore}`);
 
-    await fetch(`/api/asset/${currentAssetId}/attribute/${attrName}`, {
+    await fetch(`${APP_PREFIX}/api/asset/${currentAssetId}/attribute/${attrName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: targets })
@@ -422,7 +422,7 @@ async function clearRuleTarget(sensorPath, ruleId) {
 
     console.log(`[Rules] Clearing target for ${uniqueKey}...`);
 
-    const asset = await fetch(`/api/asset/${currentAssetId}`).then(r => r.json());
+    const asset = await fetch(`${APP_PREFIX}/api/asset/${currentAssetId}`).then(r => r.json());
     let targets = asset.attributes[attrName] || {};
 
     if (typeof targets === 'string') {
@@ -436,7 +436,7 @@ async function clearRuleTarget(sensorPath, ruleId) {
 
     console.log(`[Rules] Removed ${uniqueKey} from ${attrName}`);
 
-    await fetch(`/api/asset/${currentAssetId}/attribute/${attrName}`, {
+    await fetch(`${APP_PREFIX}/api/asset/${currentAssetId}/attribute/${attrName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: targets })
@@ -446,7 +446,7 @@ async function clearRuleTarget(sensorPath, ruleId) {
 async function checkPinStatus() {
     if (!currentAssetId) return;
     try {
-        const res = await fetch('/api/user/preferences');
+        const res = await fetch(`${APP_PREFIX}/api/user/preferences`);
         const prefs = await res.json();
         const pinned = prefs.pinned || [];
 
@@ -480,7 +480,7 @@ async function pinRulesToDashboard() {
             displayName: 'My Rules'
         };
 
-        const res = await fetch('/api/user/preferences/pin', {
+        const res = await fetch(`${APP_PREFIX}/api/user/preferences/pin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

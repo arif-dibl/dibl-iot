@@ -4,7 +4,7 @@
 {% block header %}IoT Device Details{% endblock %}
 
 {% block content %}
-<button onclick="location.href='/assets'" class="btn-ghost"
+<button onclick="location.href='{{ prefix }}/assets'" class="btn-ghost"
     style="width:auto; margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
     ← Back to List
 </button>
@@ -68,7 +68,7 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="{{ url_for('static', path='css/asset_detail.css') }}">
+<link rel="stylesheet" href="{{ prefix }}/static/css/asset_detail.css">
 
 {% endblock %}
 
@@ -76,5 +76,5 @@
 <script>
     const ASSET_ID = "{{ asset_id }}";
 </script>
-<script src="{{ url_for('static', path='js/asset_detail.js') }}"></script>
+<script src="{{ prefix }}/static/js/asset_detail.js"></script>
 {% endblock %}

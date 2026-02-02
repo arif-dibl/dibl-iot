@@ -14,7 +14,7 @@ async function fetchFriendlyNames() {
             }
         }
 
-        const res = await fetch('/api/friendly-names');
+        const res = await fetch(`${APP_PREFIX}/api/friendly-names`);
         friendlyNames = await res.json();
 
         sessionStorage.setItem(FRIENDLY_NAMES_CACHE_KEY, JSON.stringify({
@@ -127,7 +127,7 @@ async function pinWidget(assetId, attrName, key, defaultName) {
 
         if (key) payload.key = key;
 
-        const res = await fetch('/api/user/preferences/pin', {
+        const res = await fetch(`${APP_PREFIX}/api/user/preferences/pin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

@@ -2,7 +2,7 @@ async function loadAssets() {
     try {
         const grid = document.getElementById('assetsGrid');
 
-        const res = await fetch('/api/user/assets');
+        const res = await fetch(`${APP_PREFIX}/api/user/assets`);
         const data = await res.json();
 
         const assets = Array.isArray(data) ? data : (data.assets || []);
@@ -25,7 +25,7 @@ async function loadAssets() {
 
             return `
 <div class="card asset-card" style="cursor:pointer; position:relative; transition:transform 0.2s; display:flex; flex-direction:column; gap:0.75rem;"
-    onclick="location.href='/asset/${a.id}'">
+    onclick="location.href='${APP_PREFIX}/asset/${a.id}'">
 
     <!-- Row 1: Name and Edit -->
     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -108,7 +108,7 @@ async function updateAssetName() {
     if (!newName) return toast("Name cannot be empty");
 
     try {
-        const res = await fetch(`/api/user/assets/${id}`, {
+        const res = await fetch(`${APP_PREFIX}/api/user/assets/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: newName })
@@ -134,7 +134,7 @@ async function linkAsset() {
     if (!id) return toast('Please enter an ID');
 
     try {
-        const res = await fetch('/api/user/assets', {
+        const res = await fetch(`${APP_PREFIX}/api/user/assets`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ assetId: id })
@@ -158,7 +158,7 @@ async function unlinkAsset(id) {
     if (!confirm('Are you sure you want to unlink this asset? It will accept NO from your account.')) return;
 
     try {
-        const res = await fetch(`/api/user/assets/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${APP_PREFIX}/api/user/assets/${id}`, { method: 'DELETE' });
         const data = await res.json();
 
         if (data.status === 'success') {

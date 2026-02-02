@@ -57,6 +57,11 @@ configs:
           mode tcp
           default_backend mqtt_backend
 
+      frontend mqtt_plain
+          bind *:1883
+          mode tcp
+          default_backend mqtt_backend
+
       backend manager_backend
           server manager manager:8080 resolvers docker_resolver init-addr none
 
@@ -157,6 +162,7 @@ services:
         condition: service_healthy
     ports:
       - "8883:8883"
+      - "1883:1883"
     configs:
       - source: haproxy-config
         target: /data/proxy/haproxy.cfg

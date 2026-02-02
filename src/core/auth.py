@@ -228,6 +228,14 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
         
         # print(f"[DEBUG] Login Action Rewrite: {action_url} -> {target_url}")
 
+        # CRITICAL FIX: Downgrade 'Secure' cookies for internal HTTP transport
+        # 'requests' will drop Secure cookies when sending to http://keycloak:8080.
+        # Since we are inside the internal Docker network, we must strip the Secure flag
+        # to ensure the session cookies are actually sent to Keycloak.
+        for cookie in session.cookies:
+            if cookie.secure:
+                cookie.secure = False
+
         payload = {"username": username, "password": password, "credentialId": ""}
         post_resp = session.post(target_url, data=payload, headers=headers, allow_redirects=False, verify=False)
         

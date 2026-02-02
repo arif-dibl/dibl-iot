@@ -51,6 +51,12 @@ configs:
           # Everything else goes to Manager
           default_backend manager_backend
 
+      # MQTT TCP Frontend and Backend
+      frontend mqtt
+          bind *:8883
+          mode tcp
+          default_backend mqtt_backend
+
       backend manager_backend
           server manager manager:8080 resolvers docker_resolver init-addr none
 
@@ -59,6 +65,10 @@ configs:
 
       backend customui_backend
           server customui custom-ui:5000 resolvers docker_resolver init-addr none
+
+      backend mqtt_backend
+          mode tcp
+          server manager manager:1883 resolvers docker_resolver init-addr none
 
 volumes:
   proxy-data:
@@ -103,7 +113,7 @@ services:
       # CRITICAL: Fix the issuer URL in JWT tokens to match the external URL
       # This ensures tokens are issued with the correct 'iss' claim that the Manager expects
       KEYCLOAK_ISSUER_BASE_URI: https://${OR_HOSTNAME}/auth
- 
+
   manager:
     restart: always
     image: openremote/manager:${MANAGER_VERSION:-latest}

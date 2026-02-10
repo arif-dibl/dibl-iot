@@ -51,9 +51,9 @@ configs:
           # Everything else goes to Manager
           default_backend manager_backend
 
-      # MQTT TCP Frontend and Backend
+      # MQTT TLS Frontend with mTLS (Client Certificate Verification)
       frontend mqtt
-          bind *:8883
+          bind *:8883 ssl crt /certs/mqtt-server-combined.pem ca-file /certs/ca.pem verify required
           mode tcp
           default_backend mqtt_backend
 
@@ -74,6 +74,132 @@ configs:
       backend mqtt_backend
           mode tcp
           server manager manager:1883 resolvers docker_resolver init-addr none
+
+  mqtt-server-cert:
+    content: |
+      -----BEGIN CERTIFICATE-----
+      MIIGGTCCBAGgAwIBAgIUVFEIWT93sSopWnqkOwmOBCjGCBwwDQYJKoZIhvcNAQEL
+      BQAwZTELMAkGA1UEBhMCQkQxDjAMBgNVBAgMBURoYWthMQ4wDAYDVQQHDAVEaGFr
+      YTEXMBUGA1UECgwORHJpcElycmlnYXRpb24xDDAKBgNVBAsMA0lvVDEPMA0GA1UE
+      AwwGUm9vdENBMB4XDTI2MDIxMDA1NDIxMFoXDTI4MDIxMDA1NDIxMFowgY8xCzAJ
+      BgNVBAYTAkJEMQ4wDAYDVQQIDAVEaGFrYTEOMAwGA1UEBwwFRGhha2ExFzAVBgNV
+      BAoMDkRyaXBJcnJpZ2F0aW9uMQwwCgYDVQQLDANJb1QxOTA3BgNVBAMMMG80b2s4
+      Z3NvNDhvNG9jOGswYzA0bzBray4xODUuMTY5LjI1Mi41My5zc2xpcC5pbzCCAiIw
+      DQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAMgHxsF485XrRSYA1LhVxFM+aGmS
+      d40YgGNvNqwJRqaMZDZ1dC460D36VhMwvoLHYGsuoI1+Ayj1BXKAz+98Gs3MaJLe
+      dLI4f4HwQeNgnLGx9ZQ5TFEl4Tgb+UgdpgnpYUZbSTDScj+IoinqGUfSHQ/l0VN4
+      aizSIAkK9dMgZROAe4vmwPmgtswXm5vBQSjKI+J8cL7g2tMw7JgAM9Xnjd7hiD0v
+      IIl6/8XWR0z7cKBNWhDYj/eRR54Erv8AcHksB4dIc712eIDQesytBfyxtodLLOEy
+      Kwc5qt8WDe+cqpEpL/sbpHpTS3pIrfs30TETrnrKr5iVQoU8G2T5fRpaq3iOOfrn
+      51bPvzUyoo1m3paLXQRNkgMbFCuTd/BINSEodJH1/BK/F7KIHwshxtXABR6wQLsz
+      oOhPHocfucAcSQl5oE69kohoDI37Bjy/cqAC6wodxy6Rp5tNhvlGSWeE8Z5gknFt
+      A6Lt6NnzXJPmvxD3Lof/CJnAID7il2tRg2cJD1JKcgwQQkuiW4CIqNHZQWCslhft
+      azRs+KI7f1GKnKRF5YbOfiORrmh1WE4FedtmW3GcsEOiIcELdTV2BjELmhSrQvfn
+      4jmsBmkfPIhNryIKUwXD/NtZA97pfoXWMmM9eA8xyiR6ToLPxcPAUl/R++f3JUhH
+      qdy98Fa206EY0YePAgMBAAGjgZUwgZIwOwYDVR0RBDQwMoIwbzRvazhnc280OG80
+      b2M4azBjMDRvMGtrLjE4NS4xNjkuMjUyLjUzLnNzbGlwLmlvMBMGA1UdJQQMMAoG
+      CCsGAQUFBwMBMB0GA1UdDgQWBBRs6OXVfYy66cfVui3g1k6T03HNVzAfBgNVHSME
+      GDAWgBSsgA5FlpNf1/yR8MCzujhNSVw36TANBgkqhkiG9w0BAQsFAAOCAgEAQ09J
+      7cTAqmgrlQ+gsISAybwVcQlq3jgPXoU8BV/LZ7GW974ol9RftQ35xYe7Y8DLn7+r
+      FQadEn5rbpdH6LJaL+f0BLyIgEAkIud+1yz8WlXliWPMbWUoD2t3piwTAsz5Vyee
+      Y9EsC+evQAMF+SZICXcf61nVGRC+evW3Ds7sEq1DrUVH2NZWCfkPYDnem79gIDRc
+      /m9lySTYuKFIynQTZzEkDaKwZtVrhxWHUBv5Cu8JXe/ldfLKBb5frCcq+Dm/aU0R
+      33RwwFU/JCBym/vuTXzkXBiCOddG0r4E9omdiN70T6BGnV3uFaOvi+fbXqCZC3Wv
+      w+obLFbBtlpy+CFBk0BCdlSupgxUssKMzn+e8YYxwSFOLV50TO7QMvxl4pM5p4uI
+      ilcO++wTNFrx47B02nOiC3+BxHYJrMxGpqXh5hV5MelOe/36YcKe7dlFH3P3t/KT
+      cj1MlpQpVOQRF494dxSLBIgkcQmBgqZLa1plzQzpirOJzwdjD8Z+M/fUafEAoFWk
+      5uBbatxisq1FmBg7WlVOL8BDdBGMNav9bwFxKelKZ1kQepI8v8vrEHYPDlkFRARB
+      t6/sUKWycncF5RLe3qI9SBg/YJLdnBAcH2qbpLCFeHngnBiRxUBAV7NJK/4Tg2tw
+      WpAbIa1DUwvDSGE9CrKPdPHalOH6YvS6JaNzWC4=
+      -----END CERTIFICATE-----
+      -----BEGIN PRIVATE KEY-----
+      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
+      g6jOqtjHEdqqJ3d0BftUeU6fM+qi
+      -----END PRIVATE KEY-----
+
+  mqtt-ca-cert:
+    content: |
+      -----BEGIN CERTIFICATE-----
+      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
+      ozIe0lUZjrSStMRoA8mV
+      -----END CERTIFICATE-----
 
 volumes:
   proxy-data:
@@ -166,6 +292,10 @@ services:
     configs:
       - source: haproxy-config
         target: /data/proxy/haproxy.cfg
+      - source: mqtt-server-cert
+        target: /certs/mqtt-server-combined.pem
+      - source: mqtt-ca-cert
+        target: /certs/ca.pem
     volumes:
       - proxy-data:/deployment
     environment:

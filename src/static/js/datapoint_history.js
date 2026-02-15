@@ -69,7 +69,7 @@ async function loadAssets() {
     select.innerHTML = '<option>Loading...</option>';
 
     try {
-        const res = await fetch('/api/user/assets');
+        const res = await fetch(`${APP_PREFIX}/api/user/assets`);
         const data = await res.json();
 
         if (data.error) {
@@ -115,7 +115,7 @@ async function loadAttributes(assetId) {
     }
 
     try {
-        const res = await fetch(`/api/asset/${assetId}`);
+        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
         const attrs = asset.attributes || {};
 
@@ -438,7 +438,7 @@ async function fetchDatapoints() {
     };
 
     try {
-        const res = await fetch('/api/debug/proxy', {
+        const res = await fetch(`${APP_PREFIX}/api/debug/proxy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -513,7 +513,7 @@ async function exportDatapoints() {
     btn.disabled = true;
 
     try {
-        const res = await fetch('/api/debug/proxy', {
+        const res = await fetch(`${APP_PREFIX}/api/debug/proxy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

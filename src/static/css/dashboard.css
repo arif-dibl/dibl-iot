@@ -755,3 +755,41 @@ input:checked+.slider:before {
     pointer-events: none;
     opacity: 0.6;
 }
+
+/* Mobile Navigation Responsiveness */
+.mobile-nav-item {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    /* Hide the main nav links (but keep the dropdown button) */
+    .nav-links > a.nav-item {
+        display: none;
+    }
+    
+    /* Reduce padding on the top nav to save space */
+    .top-nav {
+        padding: 0 1rem;
+    }
+
+    /* Reduce margin on the brand to save space */
+    .nav-brand {
+        margin-right: 1rem; 
+        font-size: 1rem;
+    }
+
+    .nav-brand img {
+        height: 28px;
+        margin-right: 8px;
+    }
+
+    /* Show the mobile-only links inside the dropdown */
+    .mobile-nav-item {
+        display: block;
+    }
+
+    /* Ensure dropdown is wide enough for the new links */
+    .dropdown-content {
+        min-width: 220px;
+    }
+}

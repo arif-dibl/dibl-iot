@@ -58,6 +58,24 @@
                             class="nav-item {% if page == 'history_logs' %}active{% endif %}">
                             History Logs
                         </a>
+                        <!-- Mobile Only Links -->
+                        <div class="mobile-nav-item">
+                            <div class="dropdown-divider"></div>
+                            <h6 class="dropdown-header">Navigation</h6>
+                            <a href="{{ prefix }}/dashboard"
+                                class="nav-item {% if page == 'dashboard' %}active{% endif %}">
+                                Dashboard
+                            </a>
+                            <a href="{{ prefix }}/assets" class="nav-item {% if page == 'assets' %}active{% endif %}">
+                                My IoT Devices
+                            </a>
+                            <a href="{{ prefix }}/rules" class="nav-item {% if page == 'rules' %}active{% endif %}">
+                                Rules
+                            </a>
+                            <a href="{{ prefix }}/timers" class="nav-item {% if page == 'timers' %}active{% endif %}">
+                                Timers
+                            </a>
+                        </div>
                         <div class="dropdown-divider"></div>
                         <a href="{{ prefix }}/logout" class="nav-item logout" onclick="clearDiblCache()">
                             Logout

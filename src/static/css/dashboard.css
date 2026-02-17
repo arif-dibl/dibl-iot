@@ -761,12 +761,13 @@ input:checked+.slider:before {
     display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 830px) {
+
     /* Hide the main nav links (but keep the dropdown button) */
-    .nav-links > a.nav-item {
+    .nav-links>a.nav-item {
         display: none;
     }
-    
+
     /* Reduce padding on the top nav to save space */
     .top-nav {
         padding: 0 1rem;
@@ -774,7 +775,7 @@ input:checked+.slider:before {
 
     /* Reduce margin on the brand to save space */
     .nav-brand {
-        margin-right: 1rem; 
+        margin-right: 1rem;
         font-size: 1rem;
     }
 

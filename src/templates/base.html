@@ -47,20 +47,8 @@
                         <span class="dots">&bull;&bull;&bull;</span>
                     </button>
                     <div class="dropdown-content" id="navMenuContent">
-
-                        <a href="{{ prefix }}/settings" class="nav-item {% if page == 'settings' %}active{% endif %}">
-                            User Settings
-                        </a>
-                        <a href="{{ prefix }}/test" class="nav-item {% if page == 'test' %}active{% endif %}">
-                            Test API
-                        </a>
-                        <a href="{{ prefix }}/history-logs"
-                            class="nav-item {% if page == 'history_logs' %}active{% endif %}">
-                            History Logs
-                        </a>
                         <!-- Mobile Only Links -->
                         <div class="mobile-nav-item">
-                            <div class="dropdown-divider"></div>
                             <h6 class="dropdown-header">Navigation</h6>
                             <a href="{{ prefix }}/dashboard"
                                 class="nav-item {% if page == 'dashboard' %}active{% endif %}">
@@ -75,7 +63,20 @@
                             <a href="{{ prefix }}/timers" class="nav-item {% if page == 'timers' %}active{% endif %}">
                                 Timers
                             </a>
+                            <div class="dropdown-divider"></div>
                         </div>
+
+                        <a href="{{ prefix }}/settings" class="nav-item {% if page == 'settings' %}active{% endif %}">
+                            User Settings
+                        </a>
+                        <a href="{{ prefix }}/test" class="nav-item {% if page == 'test' %}active{% endif %}">
+                            Test API
+                        </a>
+                        <a href="{{ prefix }}/history-logs"
+                            class="nav-item {% if page == 'history_logs' %}active{% endif %}">
+                            History Logs
+                        </a>
+
                         <div class="dropdown-divider"></div>
                         <a href="{{ prefix }}/logout" class="nav-item logout" onclick="clearDiblCache()">
                             Logout

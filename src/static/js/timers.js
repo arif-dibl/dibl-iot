@@ -50,7 +50,7 @@ async function loadTimers() {
                 }
 
                 const html = `
-                    <div style="display:flex; flex-direction:column; margin-bottom:1.5rem; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                    <div style="margin-bottom:1.5rem; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
                          <div 
                             onclick="toggleAssetGroup('${assetIdClean}')" 
                             style="background:#f8f9fa; padding:1rem 1.5rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;"
@@ -60,8 +60,8 @@ async function loadTimers() {
                             </div>
                             <span id="icon-${assetIdClean}" style="transition:transform 0.2s; transform: ${isOpen ? 'rotate(0deg)' : 'rotate(-90deg)'};">▼</span>
                         </div>
-                        <div id="${assetIdClean}" style="display:${isOpen ? 'block' : 'none'}; padding:1rem; background:white;">
-                             <div style="display:flex; flex-wrap:wrap; gap:1rem;">
+                        <div id="${assetIdClean}" class="timer-content-area" style="display:${isOpen ? 'block' : 'none'}; padding:1rem; background:white;">
+                             <div style="display:flex; flex-wrap:wrap; gap:1rem; min-width:0;">
                                 ${timersHtml}
                              </div>
                         </div>
@@ -157,7 +157,7 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
     `;
 
     return `
-        <div class="timer-card-mobile-fix" style="flex: 1 1 300px; border:1px solid #e0e0e0; border-radius:6px; padding:1rem; background:#fafafa; max-width: 100%;">
+        <div class="timer-card-mobile-fix" style="flex: 1 1 250px; min-width:0; border:1px solid #e0e0e0; border-radius:6px; padding:1rem; background:#fafafa; max-width: 100%;">
             <div style="font-weight:700; margin-bottom:0.75rem; color:#333; font-size:1rem; border-bottom:1px solid #ddd; padding-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
                 <span>${friendlyName}</span>
                 <span onclick="event.stopPropagation(); pinWidget('${assetId}', '${key}', null, '${friendlyName}')" 

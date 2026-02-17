@@ -50,7 +50,7 @@ async function loadTimers() {
                 }
 
                 const html = `
-                    <div style="margin-bottom:1.5rem; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                    <div style="margin-bottom:1.5rem; border:1px solid var(--border); border-radius:8px; overflow:visible;">
                          <div 
                             onclick="toggleAssetGroup('${assetIdClean}')" 
                             style="background:#f8f9fa; padding:1rem 1.5rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;"

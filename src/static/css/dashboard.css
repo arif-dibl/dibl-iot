@@ -543,6 +543,7 @@ body {
     max-width: 1600px;
     /* Optional constraint for ultra-wide */
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .page-header {
@@ -571,6 +572,7 @@ body {
     border-radius: 8px;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
 }
 
 .stat-label {
@@ -812,13 +814,14 @@ input:checked+.slider:before {
 }
 
 /* Mobile Padding Fixes for Timers and Cards */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
     .main-content {
-        padding: 0.5rem !important;
+        padding: 0.75rem !important;
     }
 
     .card {
         padding: 0.5rem !important;
+        box-sizing: border-box;
     }
 
     .timer-card-mobile-fix {

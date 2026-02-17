@@ -61,7 +61,7 @@ async function loadTimers() {
                             <span id="icon-${assetIdClean}" style="transition:transform 0.2s; transform: ${isOpen ? 'rotate(0deg)' : 'rotate(-90deg)'};">▼</span>
                         </div>
                         <div id="${assetIdClean}" style="display:${isOpen ? 'block' : 'none'}; padding:1rem; background:white;">
-                             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1rem;">
+                             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1rem;">
                                 ${timersHtml}
                              </div>
                         </div>

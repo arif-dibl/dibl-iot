@@ -106,7 +106,7 @@ async function loadDetail() {
                             <span id="icon-${groupId}" style="transition:transform 0.2s; transform: ${isOpen ? 'rotate(0deg)' : 'rotate(-90deg)'};">▼</span>
                         </div>
                         <div id="${groupId}" style="display:${isOpen ? 'block' : 'none'};">
-                            <div style="padding:1rem; display:grid; grid-template-columns: 1fr 2fr; gap:1rem;">
+                            <div class="attributes-grid">
                 `;
 
                 for (const key of sortedAttrKeys) {

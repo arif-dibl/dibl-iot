@@ -794,3 +794,19 @@ input:checked+.slider:before {
         min-width: 220px;
     }
 }
+
+/* Responsive Grid for Asset Details */
+.attributes-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+@media (max-width: 768px) {
+    .attributes-grid {
+        grid-template-columns: 1fr;
+        /* Stack label and value vertically on mobile */
+        gap: 0.5rem;
+    }
+}

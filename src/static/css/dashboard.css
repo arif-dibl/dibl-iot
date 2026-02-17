@@ -808,7 +808,7 @@ input:checked+.slider:before {
     /* Stack label and value vertically on mobile */
     gap: 0.5rem;
 }
-}
+
 
 /* Mobile Padding Fixes for Timers and Cards */
 @media (max-width: 480px) {

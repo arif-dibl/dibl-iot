@@ -61,7 +61,7 @@ async function loadTimers() {
                             <span id="icon-${assetIdClean}" style="transition:transform 0.2s; transform: ${isOpen ? 'rotate(0deg)' : 'rotate(-90deg)'};">▼</span>
                         </div>
                         <div id="${assetIdClean}" style="display:${isOpen ? 'block' : 'none'}; padding:1rem; background:white;">
-                             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1rem;">
+                             <div style="display:flex; flex-wrap:wrap; gap:1rem;">
                                 ${timersHtml}
                              </div>
                         </div>
@@ -157,7 +157,7 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
     `;
 
     return `
-        <div style="border:1px solid #e0e0e0; border-radius:6px; padding:1rem; background:#fafafa;">
+        <div class="timer-card-mobile-fix" style="flex: 1 1 300px; border:1px solid #e0e0e0; border-radius:6px; padding:1rem; background:#fafafa; max-width: 100%;">
             <div style="font-weight:700; margin-bottom:0.75rem; color:#333; font-size:1rem; border-bottom:1px solid #ddd; padding-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
                 <span>${friendlyName}</span>
                 <span onclick="event.stopPropagation(); pinWidget('${assetId}', '${key}', null, '${friendlyName}')" 

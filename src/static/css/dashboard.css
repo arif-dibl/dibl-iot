@@ -803,10 +803,25 @@ input:checked+.slider:before {
     padding: 1rem;
 }
 
-@media (max-width: 768px) {
-    .attributes-grid {
-        grid-template-columns: 1fr;
-        /* Stack label and value vertically on mobile */
-        gap: 0.5rem;
+.attributes-grid {
+    grid-template-columns: 1fr;
+    /* Stack label and value vertically on mobile */
+    gap: 0.5rem;
+}
+}
+
+/* Mobile Padding Fixes for Timers and Cards */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 0.5rem !important;
+    }
+
+    .card {
+        padding: 0.75rem !important;
+    }
+
+    /* Ensure timer cards don't have excessive internal padding on mobile */
+    .timer-card-mobile-fix {
+        padding: 0.75rem !important;
     }
 }

@@ -145,28 +145,37 @@ async function pinWidget(assetId, attrName, key, defaultName) {
     }
 }
 
+
 // Mobile Scroll Hide/Show Logic
-let lastScroll = 0;
-window.addEventListener('scroll', () => {
-    if (window.innerWidth > 830) {
-        const nav = document.querySelector('.top-nav');
-        if (nav) nav.classList.remove('nav-hidden');
-        return;
-    }
-
+document.addEventListener('DOMContentLoaded', () => {
+    const mainContent = document.querySelector('.main-content');
     const nav = document.querySelector('.top-nav');
-    if (!nav) return;
 
-    const currentScroll = window.scrollY || document.documentElement.scrollTop;
+    if (!mainContent || !nav) return;
 
-    if (currentScroll < lastScroll && currentScroll > 50) {
-        // Scrolled UP -> Hide
-        nav.classList.add('nav-hidden');
-    } else if (currentScroll > lastScroll) {
-        // Scrolled DOWN -> Show
-        nav.classList.remove('nav-hidden');
-    }
+    let lastScroll = 0;
 
-    lastScroll = Math.max(0, currentScroll);
+    mainContent.addEventListener('scroll', () => {
+        // Only run on mobile
+        if (window.innerWidth > 830) {
+            nav.classList.remove('nav-hidden');
+            return;
+        }
+
+        const currentScroll = mainContent.scrollTop;
+        if (currentScroll < 0) return; // Ignore bouncing
+
+        // Logic as requested: 
+        // Hide when scrolled UP (scrollTop decreasing)
+        // Show when scrolled DOWN (scrollTop increasing)
+
+        if (currentScroll < lastScroll && currentScroll > 50) {
+            nav.classList.add('nav-hidden');
+        } else if (currentScroll > lastScroll) {
+            nav.classList.remove('nav-hidden');
+        }
+
+        lastScroll = currentScroll;
+    });
 });
 

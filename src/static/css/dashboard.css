@@ -839,13 +839,14 @@ input:checked+.slider:before {
 /* Mobile Scroll Hide/Show Logic */
 @media (max-width: 830px) {
     .top-nav {
-        transition: transform 0.3s ease-in-out;
+        transition: margin-top 0.3s ease-in-out;
         position: sticky;
         top: 0;
         z-index: 1000;
     }
 
     .top-nav.nav-hidden {
-        transform: translateY(-100%);
+        margin-top: -65px;
+        /* Pulls the header up and content follows */
     }
 }

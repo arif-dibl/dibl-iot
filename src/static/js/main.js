@@ -159,11 +159,11 @@ async function pinWidget(assetId, attrName, key, defaultName) {
 
         const currentScrollY = window.scrollY;
 
-        if (currentScrollY < lastScrollY) {
-            // Scrolling UP → hide navbar (slide it above viewport)
+        if (currentScrollY > lastScrollY && currentScrollY > 50) {
+            // Scrolling DOWN → hide navbar (slide it above viewport)
             navbar.classList.add('nav-hidden');
         } else {
-            // Scrolling DOWN → show navbar immediately
+            // Scrolling UP → show navbar immediately
             navbar.classList.remove('nav-hidden');
         }
 

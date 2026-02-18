@@ -835,3 +835,17 @@ input:checked+.slider:before {
         padding: 0.5rem !important;
     }
 }
+
+/* Mobile Scroll Hide/Show Logic */
+@media (max-width: 830px) {
+    .top-nav {
+        transition: transform 0.3s ease-in-out;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .top-nav.nav-hidden {
+        transform: translateY(-100%);
+    }
+}

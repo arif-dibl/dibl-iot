@@ -144,3 +144,29 @@ async function pinWidget(assetId, attrName, key, defaultName) {
         toast('Action failed');
     }
 }
+
+// Mobile Scroll Hide/Show Logic
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+    if (window.innerWidth > 830) {
+        const nav = document.querySelector('.top-nav');
+        if (nav) nav.classList.remove('nav-hidden');
+        return;
+    }
+
+    const nav = document.querySelector('.top-nav');
+    if (!nav) return;
+
+    const currentScroll = window.scrollY || document.documentElement.scrollTop;
+
+    if (currentScroll < lastScroll && currentScroll > 50) {
+        // Scrolled UP -> Hide
+        nav.classList.add('nav-hidden');
+    } else if (currentScroll > lastScroll) {
+        // Scrolled DOWN -> Show
+        nav.classList.remove('nav-hidden');
+    }
+
+    lastScroll = Math.max(0, currentScroll);
+});
+

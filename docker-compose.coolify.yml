@@ -44,9 +44,6 @@ configs:
           acl is_resources path_beg /resources
           use_backend keycloak_backend if is_resources
 
-          # Route custom-ui paths (FastAPI handles /customui prefix via APP_PREFIX env var)
-          acl is_customui path_beg /customui
-          use_backend customui_backend if is_customui
 
           # Everything else goes to Manager
           default_backend manager_backend
@@ -63,8 +60,6 @@ configs:
       backend keycloak_backend
           server keycloak keycloak:8080 resolvers docker_resolver init-addr none
 
-      backend customui_backend
-          server customui custom-ui:5000 resolvers docker_resolver init-addr none
 
       backend mqtt_backend
           mode tcp
@@ -322,5 +317,9 @@ services:
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
-      # Subpath prefix for reverse proxy routing
-      APP_PREFIX: /customui
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.customui.rule=Host(`${OR_CUSTOMUI_HOSTNAME}`)"
+      - "traefik.http.routers.customui.entrypoints=http,https"
+      - "traefik.http.routers.customui.tls=true"
+      - "traefik.http.services.customui.loadbalancer.server.port=5000"

@@ -145,37 +145,28 @@ async function pinWidget(assetId, attrName, key, defaultName) {
     }
 }
 
+// ── Smart Navbar: hide on scroll-up, show on scroll-down (mobile only) ──
+(function () {
+    const MOBILE_QUERY = '(max-width: 1024px)';
+    let lastScrollY = window.scrollY;
 
-// Mobile Scroll Hide/Show Logic
-document.addEventListener('DOMContentLoaded', () => {
-    const mainContent = document.querySelector('.main-content');
-    const nav = document.querySelector('.top-nav');
+    window.addEventListener('scroll', function () {
+        // Re-check on every scroll so orientation changes are handled correctly
+        if (!window.matchMedia(MOBILE_QUERY).matches) return;
 
-    if (!mainContent || !nav) return;
+        const navbar = document.querySelector('.top-nav');
+        if (!navbar) return;
 
-    let lastScroll = 0;
+        const currentScrollY = window.scrollY;
 
-    mainContent.addEventListener('scroll', () => {
-        // Only run on mobile
-        if (window.innerWidth > 830) {
-            nav.classList.remove('nav-hidden');
-            return;
+        if (currentScrollY < lastScrollY) {
+            // Scrolling UP → hide navbar (slide it above viewport)
+            navbar.classList.add('nav-hidden');
+        } else {
+            // Scrolling DOWN → show navbar immediately
+            navbar.classList.remove('nav-hidden');
         }
 
-        const currentScroll = mainContent.scrollTop;
-        if (currentScroll < 0) return; // Ignore bouncing
-
-        // Logic as requested: 
-        // Hide when scrolled UP (scrollTop decreasing)
-        // Show when scrolled DOWN (scrollTop increasing)
-
-        if (currentScroll < lastScroll && currentScroll > 50) {
-            nav.classList.add('nav-hidden');
-        } else if (currentScroll > lastScroll) {
-            nav.classList.remove('nav-hidden');
-        }
-
-        lastScroll = currentScroll;
-    });
-});
-
+        lastScrollY = currentScrollY;
+    }, { passive: true });
+})();

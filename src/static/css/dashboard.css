@@ -836,17 +836,28 @@ input:checked+.slider:before {
     }
 }
 
-/* Mobile Scroll Hide/Show Logic */
-@media (max-width: 830px) {
+/* ── Smart Navbar: Mobile Only (portrait + landscape, NOT desktop) ── */
+@media (max-width: 1024px) {
+
+    /* Fix the navbar to the top so transform slide works */
     .top-nav {
-        transition: margin-top 0.3s ease-in-out;
-        position: sticky;
+        position: fixed;
         top: 0;
-        z-index: 1000;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 500;
+        transition: transform 0.3s ease;
+        will-change: transform;
     }
 
-    .top-nav.nav-hidden {
-        margin-top: -65px;
-        /* Pulls the header up and content follows */
+    /* Push main content down so it isn't hidden behind the fixed navbar */
+    .main-content {
+        padding-top: calc(var(--header-height) + 0.75rem) !important;
     }
-} 
+
+    /* Hidden state: slides the navbar fully above the viewport */
+    .top-nav.nav-hidden {
+        transform: translateY(-100%);
+    }
+}

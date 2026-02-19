@@ -25,7 +25,7 @@ async function loadAssets() {
 
             return `
 <div class="card asset-card" style="cursor:pointer; position:relative; transition:transform 0.2s; display:flex; flex-direction:column; gap:0.75rem;"
-    onclick="location.href='${APP_PREFIX}/asset/${a.id}'">
+    onclick="location.href='${APP_PREFIX}/asset/${encodeURIComponent(a.name)}'">
 
     <!-- Row 1: Name and Edit -->
     <div style="display:flex; justify-content:space-between; align-items:center;">

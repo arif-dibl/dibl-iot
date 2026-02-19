@@ -23,11 +23,50 @@ async def assets_page(request: Request, username: str):
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("assets.html", {"request": request, "realm": realm, "page": "assets", "prefix": APP_PREFIX, "username": username})
 
-@router.get("/asset/{asset_id}", response_class=HTMLResponse)
-async def asset_detail_page(request: Request, username: str, asset_id: str):
+@router.get("/asset/{asset_name}", response_class=HTMLResponse)
+async def asset_detail_page(request: Request, username: str, asset_name: str):
     if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
-    return templates.TemplateResponse("asset_detail.html", {"request": request, "realm": realm, "asset_id": asset_id, "page": "assets", "prefix": APP_PREFIX, "username": username})
+    
+    # Resolve Name to ID
+    import requests
+    import urllib.parse
+    from core.config import OR_MANAGER_URL
+    
+    access_token = get_valid_token(request)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    decoded_name = urllib.parse.unquote(asset_name)
+    
+    asset_id = None
+    try:
+        url = f"{OR_MANAGER_URL}/api/{realm}/asset/user/current"
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            assets = res.json()
+            for a in assets:
+                if a.get("name") == decoded_name:
+                    asset_id = a["id"]
+                    break
+            
+            # If not found by name, check if asset_name is actually an ID
+            if not asset_id:
+                for a in assets:
+                    if a.get("id") == asset_name:
+                        asset_id = a["id"]
+                        decoded_name = a.get("name", "Unnamed")
+                        break
+    except Exception as e:
+        print(f"[Dashboard] Error resolving asset name: {e}")
+
+    return templates.TemplateResponse("asset_detail.html", {
+        "request": request, 
+        "realm": realm, 
+        "asset_id": asset_id, 
+        "asset_name": decoded_name,
+        "page": "assets", 
+        "prefix": APP_PREFIX, 
+        "username": username
+    })
 
 @router.get("/rules", response_class=HTMLResponse)
 async def rules_page(request: Request, username: str):

@@ -14,8 +14,9 @@ def get_prefixed_path(path: str) -> str:
 
 @router.get("/", response_class=HTMLResponse)
 async def index_page(request: Request):
-    if request.session.get("access_token") and request.session.get("username"):
-        return RedirectResponse(get_prefixed_path("/dashboard"))
+    username = request.session.get("username")
+    if request.session.get("access_token") and username:
+        return RedirectResponse(get_prefixed_path(f"/{username}/dashboard"))
     return templates.TemplateResponse("login.html", {"request": request, "prefix": APP_PREFIX})
 
 @router.get("/login", response_class=HTMLResponse)
@@ -26,7 +27,7 @@ async def login_get(request: Request):
 async def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
     success, result = perform_auto_login_logic(request, DEFAULT_REALM, username, password)
     if success:
-        return RedirectResponse(get_prefixed_path("/dashboard"), status_code=303)
+        return RedirectResponse(get_prefixed_path(f"/{username}/dashboard"), status_code=303)
     return templates.TemplateResponse("login.html", {"request": request, "error": result, "prefix": APP_PREFIX})
 
 @router.get("/signup", response_class=HTMLResponse)

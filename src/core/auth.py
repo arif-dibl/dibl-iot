@@ -3,8 +3,28 @@ import json
 import base64
 import re
 import time
-from fastapi import Request
+from fastapi import Request, HTTPException, status
 from fastapi.responses import RedirectResponse
+import time
+
+async def verify_username_match(username: str, request: Request):
+    """
+    Gatekeeper: Ensures the username in the URL matches the session username.
+    Used as a FastAPI dependency for protected routes.
+    """
+    logged_in_user = request.session.get("username")
+    
+    # If not logged in at all, or trying to access someone else's space
+    if not logged_in_user or username != logged_in_user:
+        # Check if they are actually logged in, just on the wrong URL
+        if logged_in_user:
+            return RedirectResponse(f"/{logged_in_user}/dashboard")
+            
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorized: Please login to access this area."
+        )
+    return username
 from core.config import (
     KEYCLOAK_URL, OR_HOSTNAME, OR_ADMIN_PASSWORD, OR_MANAGER_URL,
     DEFAULT_REALM, ASSIGN_ROLE_READ_ALARMS, ASSIGN_ROLE_READ_ASSETS,

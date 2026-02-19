@@ -6,7 +6,7 @@ from core.auth import get_valid_token
 router = APIRouter(prefix="/api/user", tags=["user"])
 
 @router.get("/profile")
-async def get_user_profile(request: Request):
+async def get_user_profile(username: str, request: Request):
     realm = request.session.get("realm", DEFAULT_REALM)
     access_token = get_valid_token(request)
     if not access_token:
@@ -24,7 +24,7 @@ async def get_user_profile(request: Request):
         return {"error": str(e)}
 
 @router.put("/profile")
-async def update_user_profile(request: Request):
+async def update_user_profile(username: str, request: Request):
     realm = request.session.get("realm", DEFAULT_REALM)
     access_token = get_valid_token(request)
     if not access_token:
@@ -46,7 +46,7 @@ async def update_user_profile(request: Request):
         return {"error": str(e)}
 
 @router.put("/change-password")
-async def change_user_password(request: Request):
+async def change_user_password(username: str, request: Request):
     realm = request.session.get("realm", DEFAULT_REALM)
     username = request.session.get("username")
     access_token = get_valid_token(request)
@@ -86,7 +86,7 @@ async def change_user_password(request: Request):
         return {"error": str(e)}
 
 @router.get("/asset-partners")
-async def get_asset_partners(request: Request):
+async def get_asset_partners(username: str, request: Request):
     from core.auth import get_admin_token
     from core.config import IGNORED_USERS_FILE
     import json

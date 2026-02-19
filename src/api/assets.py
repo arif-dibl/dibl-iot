@@ -9,14 +9,14 @@ from core.utils import load_preferences, save_preferences
 router = APIRouter(prefix="/api", tags=["assets"])
 
 @router.get("/user/preferences")
-async def get_preferences(request: Request):
+async def get_preferences(username: str, request: Request):
     user_id = request.session.get("user_id")
     if not user_id: return {}
     prefs = load_preferences()
     return prefs.get(user_id, {})
 
 @router.get("/friendly-names")
-async def get_friendly_names_api():
+async def get_friendly_names_api(username: str):
     try:
         from core.config import FRIENDLY_NAMES_FILE
         import os
@@ -28,7 +28,7 @@ async def get_friendly_names_api():
     return {"attributes": {}, "keys": {}}
 
 @router.post("/user/preferences/pin")
-async def pin_attribute(request: Request, payload: dict):
+async def pin_attribute(username: str, request: Request, payload: dict):
     user_id = request.session.get("user_id")
     if not user_id: return {"status": "error", "message": "Not logged in"}
     
@@ -61,7 +61,7 @@ async def pin_attribute(request: Request, payload: dict):
     return {"status": "success", "pinned": not exists}
 
 @router.post("/user/preferences/pin/rename")
-async def rename_pin(request: Request, payload: dict):
+async def rename_pin(username: str, request: Request, payload: dict):
     user_id = request.session.get("user_id")
     if not user_id: return {"status": "error", "message": "Not logged in"}
     
@@ -87,7 +87,7 @@ async def rename_pin(request: Request, payload: dict):
     return {"status": "error", "message": "Pin not found"}
 
 @router.get("/user/dashboard/widgets")
-async def get_dashboard_widgets(request: Request):
+async def get_dashboard_widgets(username: str, request: Request):
     realm = request.session.get("realm", DEFAULT_REALM)
     user_id = request.session.get("user_id")
     access_token = get_valid_token(request)
@@ -152,7 +152,7 @@ async def get_dashboard_widgets(request: Request):
     return widgets
 
 @router.get("/user/assets")
-async def get_user_assets(request: Request):
+async def get_user_assets(username: str, request: Request):
     realm = request.session.get("realm", DEFAULT_REALM)
     access_token = get_valid_token(request)
     if not access_token: return []
@@ -225,7 +225,7 @@ async def get_user_assets(request: Request):
         return {"assets": [], "error": str(e)}
 
 @router.get("/asset/{id}")
-async def get_single_asset(request: Request, id: str):
+async def get_single_asset(username: str, request: Request, id: str):
     realm = request.session.get("realm", DEFAULT_REALM)
     access_token = get_valid_token(request)
     if not access_token: return {}
@@ -273,7 +273,7 @@ async def get_single_asset(request: Request, id: str):
     return {}
 
 @router.post("/asset/{asset_id}/attribute/{attr_name}")
-async def update_asset_attribute_api(request: Request, asset_id: str, attr_name: str, payload: dict):
+async def update_asset_attribute_api(username: str, request: Request, asset_id: str, attr_name: str, payload: dict):
     realm = request.session.get("realm", DEFAULT_REALM)
     access_token = get_valid_token(request)
     if not access_token: return {"status": "error", "message": "Not authenticated"}
@@ -288,7 +288,7 @@ async def update_asset_attribute_api(request: Request, asset_id: str, attr_name:
         return {"status": "error", "message": str(e)}
 
 @router.post("/user/assets")
-async def link_user_asset_api(request: Request, payload: dict):
+async def link_user_asset_api(username: str, request: Request, payload: dict):
     realm = request.session.get("realm", DEFAULT_REALM)
     user_id = request.session.get("user_id")
     asset_id = payload.get("assetId")
@@ -305,7 +305,7 @@ async def link_user_asset_api(request: Request, payload: dict):
         return {"status": "error", "message": str(e)}
 
 @router.put("/user/assets/{asset_id}")
-async def update_user_asset_api(request: Request, asset_id: str, payload: dict):
+async def update_user_asset_api(username: str, request: Request, asset_id: str, payload: dict):
     realm = request.session.get("realm", DEFAULT_REALM)
     access_token = get_valid_token(request)
     if not access_token: return {"status": "error", "message": "Unauthorized"}
@@ -321,7 +321,7 @@ async def update_user_asset_api(request: Request, asset_id: str, payload: dict):
         return {"status": "error", "message": str(e)}
 
 @router.delete("/user/assets/{asset_id}")
-async def unlink_user_asset_api(request: Request, asset_id: str):
+async def unlink_user_asset_api(username: str, request: Request, asset_id: str):
     realm = request.session.get("realm", DEFAULT_REALM)
     user_id = request.session.get("user_id")
     if not user_id or not asset_id: return {"status": "error"}

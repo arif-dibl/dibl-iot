@@ -14,7 +14,7 @@
     </style>
     <!-- Global prefix variable for JavaScript -->
     <script>
-        const APP_PREFIX = "{{ prefix }}";
+        const APP_PREFIX = "{{ prefix }}/{{ request.session.username or '' }}";
     </script>
 </head>
 
@@ -27,16 +27,20 @@
                 <span>DIBL IoT</span>
             </div>
             <nav class="nav-links">
-                <a href="{{ prefix }}/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}">
+                <a href="{{ prefix }}/{{ request.session.username }}/dashboard"
+                    class="nav-item {% if page == 'dashboard' %}active{% endif %}">
                     Dashboard
                 </a>
-                <a href="{{ prefix }}/assets" class="nav-item {% if page == 'assets' %}active{% endif %}">
+                <a href="{{ prefix }}/{{ request.session.username }}/assets"
+                    class="nav-item {% if page == 'assets' %}active{% endif %}">
                     My IoT Devices
                 </a>
-                <a href="{{ prefix }}/rules" class="nav-item {% if page == 'rules' %}active{% endif %}">
+                <a href="{{ prefix }}/{{ request.session.username }}/rules"
+                    class="nav-item {% if page == 'rules' %}active{% endif %}">
                     Rules
                 </a>
-                <a href="{{ prefix }}/timers" class="nav-item {% if page == 'timers' %}active{% endif %}">
+                <a href="{{ prefix }}/{{ request.session.username }}/timers"
+                    class="nav-item {% if page == 'timers' %}active{% endif %}">
                     Timers
                 </a>
                 <div style="flex:1"></div> <!-- Spacer -->
@@ -50,29 +54,34 @@
                         <!-- Mobile Only Links -->
                         <div class="mobile-nav-item">
                             <h6 class="dropdown-header">Navigation</h6>
-                            <a href="{{ prefix }}/dashboard"
+                            <a href="{{ prefix }}/{{ request.session.username }}/dashboard"
                                 class="nav-item {% if page == 'dashboard' %}active{% endif %}">
                                 Dashboard
                             </a>
-                            <a href="{{ prefix }}/assets" class="nav-item {% if page == 'assets' %}active{% endif %}">
+                            <a href="{{ prefix }}/{{ request.session.username }}/assets"
+                                class="nav-item {% if page == 'assets' %}active{% endif %}">
                                 My IoT Devices
                             </a>
-                            <a href="{{ prefix }}/rules" class="nav-item {% if page == 'rules' %}active{% endif %}">
+                            <a href="{{ prefix }}/{{ request.session.username }}/rules"
+                                class="nav-item {% if page == 'rules' %}active{% endif %}">
                                 Rules
                             </a>
-                            <a href="{{ prefix }}/timers" class="nav-item {% if page == 'timers' %}active{% endif %}">
+                            <a href="{{ prefix }}/{{ request.session.username }}/timers"
+                                class="nav-item {% if page == 'timers' %}active{% endif %}">
                                 Timers
                             </a>
                             <div class="dropdown-divider"></div>
                         </div>
 
-                        <a href="{{ prefix }}/settings" class="nav-item {% if page == 'settings' %}active{% endif %}">
+                        <a href="{{ prefix }}/{{ request.session.username }}/settings"
+                            class="nav-item {% if page == 'settings' %}active{% endif %}">
                             User Settings
                         </a>
-                        <a href="{{ prefix }}/test" class="nav-item {% if page == 'test' %}active{% endif %}">
+                        <a href="{{ prefix }}/{{ request.session.username }}/test"
+                            class="nav-item {% if page == 'test' %}active{% endif %}">
                             Test API
                         </a>
-                        <a href="{{ prefix }}/history-logs"
+                        <a href="{{ prefix }}/{{ request.session.username }}/history-logs"
                             class="nav-item {% if page == 'history_logs' %}active{% endif %}">
                             History Logs
                         </a>

@@ -6,7 +6,7 @@ from core.auth import get_valid_token, get_admin_token
 router = APIRouter(prefix="/api/user/rules", tags=["rules"])
 
 @router.get("")
-async def get_user_rules(request: Request):
+async def get_user_rules(username: str, request: Request):
     realm = request.session.get("realm", DEFAULT_REALM)
     user_id = request.session.get("user_id")
     if not user_id: return []
@@ -35,7 +35,7 @@ async def get_user_rules(request: Request):
     return []
 
 @router.post("")
-async def create_rule(request: Request, rule: dict):
+async def create_rule(username: str, request: Request, rule: dict):
     realm = request.session.get("realm", DEFAULT_REALM)
     user_id = request.session.get("user_id")
     if not user_id: return {"error": "Not logged in"}
@@ -74,7 +74,7 @@ end
     return {"status": "error"}
 
 @router.delete("/{id}")
-async def delete_rule(request: Request, id: str):
+async def delete_rule(username: str, request: Request, id: str):
     realm = request.session.get("realm", DEFAULT_REALM)
     admin_token = get_admin_token(realm)
     if not admin_token: return {"status": "error", "message": "Admin token failed"}

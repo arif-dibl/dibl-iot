@@ -23,10 +23,9 @@ async function loadAssets() {
             const statusColor = status.color;
             const statusDot = status.dot;
 
-            const assetNameSlug = ASSET_FILLER ? a.name.split(' ').join(ASSET_FILLER) : a.name;
             return `
 <div class="card asset-card" style="cursor:pointer; position:relative; transition:transform 0.2s; display:flex; flex-direction:column; gap:0.75rem;"
-    onclick="location.href='${APP_PREFIX}/asset/${encodeURIComponent(assetNameSlug)}'">
+    onclick="location.href='${APP_PREFIX}/asset/${encodeURIComponent(a.name.replace(/\s+/g, '-'))}'">
 
     <!-- Row 1: Name and Edit -->
     <div style="display:flex; justify-content:space-between; align-items:center;">

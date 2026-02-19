@@ -45,8 +45,3 @@ ASSIGN_ROLE_WRITE_LOGS = True
 ASSIGN_ROLE_WRITE_RULES = True
 ASSIGN_ROLE_WRITE_SERVICES = True
 ASSIGN_ROLE_WRITE_USER = True
-
-# -------------------------
-# URL CONFIGURATION
-# -------------------------
-ASSET_NAME_FILLER = "%"

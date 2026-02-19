@@ -255,7 +255,7 @@ async function loadDetail() {
                                     daysOrder.forEach(d => {
                                         const active = isEveryday || currentDays.includes(d);
                                         daysHtml += `
-                                        <div onclick="event.stopPropagation(); toggleDay('${key}', '${item.k}', '${d}')"
+                                        <div onclick="event.stopPropagation(); toggleDay(event, '${key}', '${item.k}', '${d}')"
                                             title="${d}"
                                             style="width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                                             background:${active ? 'var(--primary)' : '#f0f0f0'}; 
@@ -277,7 +277,7 @@ async function loadDetail() {
                                         const active = currentOutputs.includes(r);
                                         const label = r.replace('r', ''); // Just "1", "2" etc.
                                         outputsHtml += `
-                                        <div onclick="event.stopPropagation(); toggleTimerOutput('${key}', '${item.k}', '${r}')"
+                                        <div onclick="event.stopPropagation(); toggleTimerOutput(event, '${key}', '${item.k}', '${r}')"
                                             title="Switch ${label}"
                                             style="width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                                             background:${active ? 'var(--primary)' : '#f0f0f0'}; 
@@ -410,7 +410,7 @@ async function toggleAttribute(attrName, newValue) {
         const data = await res.json();
         if (data.status === 'success') {
             toast(`${attrName} turned ${newValue ? 'ON' : 'OFF'}`);
-            loadDetail();
+            // loadDetail(); // Prevent flash
         } else {
             toast(`Failed to update ${attrName}: ${data.message}`);
             loadDetail();
@@ -456,7 +456,7 @@ async function toggleNestedAttribute(attrName, nestedKey, newValue) {
                 const updateData = await updateRes.json();
                 if (updateData.status === 'success') {
                     toast(`${nestedKey} turned ${newValue ? 'ON' : 'OFF'}`);
-                    loadDetail();
+                    // loadDetail();
                 } else {
                     toast(`Failed to update ${nestedKey}: ${updateData.message || 'Unknown error'}`);
                     loadDetail();
@@ -496,6 +496,12 @@ async function updateNestedValue(attrName, nestedKey, newValue) {
             if (typeof currentVal === 'object' && currentVal !== null) {
                 currentVal[nestedKey] = String(newValue);
 
+                // Update UI Trigger text in Asset Detail
+                const trigger = document.querySelector(`[onclick*="openWheelPicker(event, '${attrName}', '${nestedKey}'"]`);
+                if (trigger) {
+                    trigger.textContent = String(newValue).padStart(2, '0');
+                }
+
                 const updateRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -521,7 +527,15 @@ async function updateNestedValue(attrName, nestedKey, newValue) {
     }
 }
 
-async function toggleDay(attrName, nestedKey, day) {
+async function toggleDay(event, attrName, nestedKey, day) {
+    const el = event.currentTarget;
+    const isActive = el.style.background === 'var(--primary)';
+
+    // Optimistic UI update
+    el.style.background = isActive ? '#f0f0f0' : 'var(--primary)';
+    el.style.color = isActive ? '#999' : 'white';
+    el.style.border = `1px solid ${isActive ? '#ddd' : 'var(--primary)'}`;
+
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await res.json();
@@ -567,13 +581,21 @@ async function toggleDay(attrName, nestedKey, day) {
 
             if ((await updateRes.json()).status === 'success') {
                 toast(`Schedule updated: ${newValue}`);
-                loadDetail();
+                // loadDetail();
             }
         }
     } catch (e) { console.error(e); }
 }
 
-async function toggleTimerOutput(attrName, nestedKey, relay) {
+async function toggleTimerOutput(event, attrName, nestedKey, relay) {
+    const el = event.currentTarget;
+    const isActive = el.style.background === 'var(--primary)';
+
+    // Optimistic UI update
+    el.style.background = isActive ? '#f0f0f0' : 'var(--primary)';
+    el.style.color = isActive ? '#999' : 'white';
+    el.style.border = `1px solid ${isActive ? '#ddd' : 'var(--primary)'}`;
+
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await res.json();
@@ -632,7 +654,7 @@ async function toggleTimerOutput(attrName, nestedKey, relay) {
 
             if ((await updateRes.json()).status === 'success') {
                 toast(`Outputs updated: ${newValue || 'NONE'}`);
-                loadDetail();
+                // loadDetail();
             }
         }
     } catch (e) {

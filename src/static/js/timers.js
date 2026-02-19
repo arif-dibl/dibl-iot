@@ -106,10 +106,10 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
             <div style="font-weight:600; color:#555;">Status</div>
             <div style="display:flex; align-items:center; gap:8px;">
                  <label class="toggle-switch" style="transform:scale(0.8);">
-                    <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleNestedAttribute('${assetId}', '${key}', 'Status', this.checked)">
+                    <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleNestedAttribute(event, '${assetId}', '${key}', 'Status', this.checked)">
                     <span class="slider"></span>
                 </label>
-                <span style="font-weight:700; color:${activeColor}; font-size:0.9rem; min-width:30px;">${isActive ? 'ON' : 'OFF'}</span>
+                <span id="status-label-${assetId}-${key}" style="font-weight:700; color:${activeColor}; font-size:0.9rem; min-width:30px;">${isActive ? 'ON' : 'OFF'}</span>
             </div>
         </div>
     `;
@@ -191,7 +191,7 @@ function renderDaysSelector(assetId, attrName, nestedKey, val) {
     daysOrder.forEach(d => {
         const active = isEveryday || currentDays.includes(d);
         html += `
-            <div onclick="toggleDay('${assetId}', '${attrName}', '${nestedKey}', '${d}')"
+            <div onclick="toggleDay(event, '${assetId}', '${attrName}', '${nestedKey}', '${d}')"
                 title="${d}"
                 style="width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                 background:${active ? 'var(--primary)' : '#e0e0e0'}; 
@@ -220,7 +220,7 @@ function renderOutputsSelector(assetId, attrName, nestedKey, val) {
         const active = isActive(r);
         const label = r.replace('r', '');
         html += `
-            <div onclick="toggleTimerOutput('${assetId}', '${attrName}', '${nestedKey}', '${r}')"
+            <div onclick="toggleTimerOutput(event, '${assetId}', '${attrName}', '${nestedKey}', '${r}')"
                 title="Switch ${label}"
                 style="width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                 background:${active ? 'var(--primary)' : '#e0e0e0'}; 
@@ -247,7 +247,13 @@ function toggleAssetGroup(id) {
     }
 }
 
-async function toggleNestedAttribute(assetId, attrName, nestedKey, newValue) {
+async function toggleNestedAttribute(event, assetId, attrName, nestedKey, newValue) {
+    // Checkbox already updated its state in DOM
+    const label = document.getElementById(`status-label-${assetId}-${attrName}`);
+    if (label) {
+        label.textContent = newValue ? 'ON' : 'OFF';
+        label.style.color = newValue ? 'var(--primary)' : 'var(--text-muted)';
+    }
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
@@ -283,6 +289,12 @@ async function updateNestedValue(assetId, attrName, nestedKey, newValue) {
         if (typeof currentVal === 'object') {
             currentVal[nestedKey] = String(newValue);
             await saveAttribute(assetId, attrName, currentVal);
+
+            // Update UI Trigger text
+            const trigger = document.querySelector(`[onclick*="openWheelPicker(event, '${assetId}', '${attrName}', '${nestedKey}'"]`);
+            if (trigger) {
+                trigger.textContent = String(newValue).padStart(2, '0');
+            }
         }
     } catch (e) {
         console.error(e);
@@ -290,7 +302,14 @@ async function updateNestedValue(assetId, attrName, nestedKey, newValue) {
 }
 
 
-async function toggleDay(assetId, attrName, nestedKey, day) {
+async function toggleDay(event, assetId, attrName, nestedKey, day) {
+    const el = event.currentTarget;
+    const isActive = el.style.background === 'var(--primary)';
+
+    // Optimistic UI update
+    el.style.background = isActive ? '#e0e0e0' : 'var(--primary)';
+    el.style.color = isActive ? '#777' : 'white';
+
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
@@ -320,7 +339,14 @@ async function toggleDay(assetId, attrName, nestedKey, day) {
     } catch (e) { console.error(e); }
 }
 
-async function toggleTimerOutput(assetId, attrName, nestedKey, relay) {
+async function toggleTimerOutput(event, assetId, attrName, nestedKey, relay) {
+    const el = event.currentTarget;
+    const isActive = el.style.background === 'var(--primary)';
+
+    // Optimistic UI update
+    el.style.background = isActive ? '#e0e0e0' : 'var(--primary)';
+    el.style.color = isActive ? '#777' : 'white';
+
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
@@ -337,7 +363,7 @@ async function toggleTimerOutput(assetId, attrName, nestedKey, relay) {
                 return parts.map(p => {
                     if (p.startsWith('OUT')) {
                         const num = parseInt(p.replace('OUT', '').trim());
-                        return `r\${num}`;
+                        return `r${num}`;
                     }
                     return p.toLowerCase();
                 }).filter(p => p.startsWith('r'));
@@ -351,7 +377,7 @@ async function toggleTimerOutput(assetId, attrName, nestedKey, relay) {
             const mapRToOut = (rFormatList) => {
                 return rFormatList.map(r => {
                     const num = parseInt(r.replace('r', ''));
-                    return `OUT \${String(num).padStart(2, '0')}`;
+                    return `OUT ${String(num).padStart(2, '0')}`;
                 });
             };
 
@@ -371,7 +397,7 @@ async function saveAttribute(assetId, attrName, value) {
     const data = await res.json();
     if (data.status === 'success') {
         toast('Updated');
-        loadTimers();
+        // loadTimers(); // Remove full reload to prevent jarring UX
     } else {
         toast('Failed to update');
     }
@@ -393,7 +419,7 @@ function openWheelPicker(e, assetId, attrName, nestedKey, currentVal, maxVal) {
     let html = '';
     const addRange = () => {
         for (let i = 0; i <= maxVal; i++) {
-            html += `<div class="wheel-item" data-value="\${i}">\${String(i).padStart(2, '0')}</div>`;
+            html += `<div class="wheel-item" data-value="${i}">${String(i).padStart(2, '0')}</div>`;
         }
     };
     addRange(); addRange(); addRange();

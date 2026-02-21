@@ -25,11 +25,29 @@
     <div class="modal-content">
         <h3 style="margin-bottom:1.5rem;">Link an IoT Device</h3>
         <p style="margin-bottom:1rem; color:var(--text-muted); font-size:0.9rem;">
-            Enter the ID of an existing device in the system to link it to your account.
+            Scan a QR code or enter the device ID
         </p>
+
+        <div id="qr-reader"
+            style="width: 100%; display: none; margin-bottom: 1rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">
+        </div>
+
         <div class="form-group">
             <label>IoT Device ID</label>
-            <input type="text" id="linkAssetId" placeholder="e.g. 5r3353...">
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+                <input type="text" id="linkAssetId" placeholder="e.g. 5r3353..." style="flex:1;">
+                <button type="button" class="btn-ghost" onclick="toggleQRScanner()"
+                    style="padding:0.7rem; display:flex; align-items:center; justify-content:center; border: 1px solid var(--border);"
+                    title="Scan QR Code">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
+            </div>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2rem;">
             <button class="btn-ghost btn-sm" onclick="closeLinkModal()">Cancel</button>
@@ -73,5 +91,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script src="{{ prefix }}/static/js/assets.js"></script>
 {% endblock %}

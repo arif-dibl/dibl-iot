@@ -69,9 +69,53 @@ async function loadAssets() {
 
 // Link Asset Modal
 function openLinkModal() { document.getElementById('linkAssetModal').classList.add('show'); }
+
 function closeLinkModal() {
+    if (typeof stopQRScanner === 'function') stopQRScanner();
     document.getElementById('linkAssetModal').classList.remove('show');
     document.getElementById('linkAssetId').value = '';
+}
+
+// QR Scanner Logic
+let html5QrcodeScanner = null;
+
+function toggleQRScanner() {
+    const reader = document.getElementById('qr-reader');
+    if (reader.style.display === 'none' || reader.style.display === '') {
+        startQRScanner();
+    } else {
+        stopQRScanner();
+    }
+}
+
+function startQRScanner() {
+    const reader = document.getElementById('qr-reader');
+    reader.style.display = 'block';
+
+    if (!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader",
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            false
+        );
+    }
+
+    html5QrcodeScanner.render((decodedText) => {
+        document.getElementById('linkAssetId').value = decodedText;
+        stopQRScanner();
+        toast("QR Code Scanned!");
+    }, () => {
+        // Ignore single frame parsing errors
+    });
+}
+
+function stopQRScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(err => console.error("Scanner clear failed", err));
+        html5QrcodeScanner = null;
+    }
+    const reader = document.getElementById('qr-reader');
+    if (reader) reader.style.display = 'none';
 }
 
 // Edit Asset Modal

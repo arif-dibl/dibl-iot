@@ -56,7 +56,7 @@ async function loadTimers() {
                             style="background:#f8f9fa; padding:1rem 1.5rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;"
                         >
                             <div style="font-weight:600; font-size:1.1rem; color:#333;">
-                                ${asset.name} <span style="color:var(--text-muted; font-weight:400; font-size:0.9rem;) (${Object.keys(timerAttributes).length} Timers)</span>
+                                ${asset.name} <span style="color:var(--text-muted); font-weight:400; font-size:0.9rem;">(${Object.keys(timerAttributes).length} Timers)</span>
                             </div>
                             <span id="icon-${assetIdClean}" style="transition:transform 0.2s; transform: ${isOpen ? 'rotate(0deg)' : 'rotate(-90deg)'};">▼</span>
                         </div>
@@ -248,6 +248,7 @@ function toggleAssetGroup(id) {
 }
 
 async function toggleNestedAttribute(event, assetId, attrName, nestedKey, newValue) {
+    if (event) event.stopPropagation();
     // Checkbox already updated its state in DOM
     const label = document.getElementById(`status-label-${assetId}-${attrName}`);
     if (label) {
@@ -303,6 +304,7 @@ async function updateNestedValue(assetId, attrName, nestedKey, newValue) {
 
 
 async function toggleDay(event, assetId, attrName, nestedKey, day) {
+    if (event) event.stopPropagation();
     const el = event.currentTarget;
     const isActive = el.style.background === 'var(--primary)';
 
@@ -340,6 +342,7 @@ async function toggleDay(event, assetId, attrName, nestedKey, day) {
 }
 
 async function toggleTimerOutput(event, assetId, attrName, nestedKey, relay) {
+    if (event) event.stopPropagation();
     const el = event.currentTarget;
     const isActive = el.style.background === 'var(--primary)';
 

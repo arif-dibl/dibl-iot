@@ -401,6 +401,8 @@ function toggleGroup(groupId) {
 }
 
 async function toggleAttribute(attrName, newValue) {
+    // Note: No event passed here usually, but if called from an event handler, 
+    // it's better to ensure we handle it if we ever add it.
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
             method: 'POST',
@@ -422,6 +424,7 @@ async function toggleAttribute(attrName, newValue) {
 }
 
 async function toggleNestedAttribute(attrName, nestedKey, newValue) {
+    // Note: No event passed here usually.
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await res.json();
@@ -528,6 +531,7 @@ async function updateNestedValue(attrName, nestedKey, newValue) {
 }
 
 async function toggleDay(event, attrName, nestedKey, day) {
+    if (event) event.stopPropagation();
     const el = event.currentTarget;
     const isActive = el.style.background === 'var(--primary)';
 
@@ -588,6 +592,7 @@ async function toggleDay(event, attrName, nestedKey, day) {
 }
 
 async function toggleTimerOutput(event, attrName, nestedKey, relay) {
+    if (event) event.stopPropagation();
     const el = event.currentTarget;
     const isActive = el.style.background === 'var(--primary)';
 

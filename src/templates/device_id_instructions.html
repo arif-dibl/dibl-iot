@@ -1,0 +1,68 @@
+<div class="modal-overlay" id="deviceIdInstructionsModal">
+    <div class="modal-content" style="max-width: 500px; position: relative; padding: 2rem;">
+        <span onclick="closeDeviceIdInstructions()"
+            style="position:absolute; top:10px; right:15px; font-size:1.5rem; cursor:pointer; color:#999; font-weight:bold;">&times;</span>
+
+        <div id="instructions-en">
+            <h3 style="margin-bottom:1.5rem;">Getting IoT Device ID</h3>
+            <ol style="padding-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.6; color: var(--text-dark);">
+                <li>Look on the back of your device to find the device ID in text and in QR code.</li>
+                <li>Or press the "Menu/Back" button and enter "Menu".</li>
+                <li>Turn the "Scroll/Ok" knob and go to "About".</li>
+                <li>Press the "Scroll/Ok" knob to enter the "About" menu.</li>
+                <li>In the "About" menu, turn the knob to get the device ID in text or in QR code.</li>
+            </ol>
+        </div>
+
+        <div id="instructions-bn" style="display: none;">
+            <h3 style="margin-bottom:1.5rem;">আইওটি ডিভাইস আইডি সংগ্রহ</h3>
+            <ol style="padding-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.6; color: var(--text-dark);">
+                <li>আপনার ডিভাইসের পিছনে টেক্সট বা QR কোডে ডিভাইস আইডি খুঁজুন।</li>
+                <li>অথবা "Menu/Back" বোতাম চাপুন এবং "Menu" এ প্রবেশ করুন।</li>
+                <li>"Scroll/Ok" নবটি ঘুরিয়ে "About" এ যান।</li>
+                <li>"About" মেনুতে প্রবেশ করতে "Scroll/Ok" নবটি চাপুন।</li>
+                <li>"About" মেনুতে, টেক্সট বা QR কোডে ডিভাইস আইডি পেতে নবটি ঘোরান।</li>
+            </ol>
+        </div>
+
+        <div
+            style="display: flex; justify-content: center; gap: 1rem; border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+            <button type="button" class="btn-sm" id="btn-lang-en" onclick="switchInstructionLanguage('en')"
+                style="width: 100px;">English</button>
+            <button type="button" class="btn-sm btn-ghost" id="btn-lang-bn" onclick="switchInstructionLanguage('bn')"
+                style="width: 100px;">বাংলা</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openDeviceIdInstructions() {
+        document.getElementById('deviceIdInstructionsModal').classList.add('show');
+    }
+
+    function closeDeviceIdInstructions() {
+        document.getElementById('deviceIdInstructionsModal').classList.remove('show');
+    }
+
+    function switchInstructionLanguage(lang) {
+        if (lang === 'bn') {
+            document.getElementById('instructions-en').style.display = 'none';
+            document.getElementById('instructions-bn').style.display = 'block';
+            document.getElementById('btn-lang-bn').classList.remove('btn-ghost');
+            document.getElementById('btn-lang-en').classList.add('btn-ghost');
+        } else {
+            document.getElementById('instructions-bn').style.display = 'none';
+            document.getElementById('instructions-en').style.display = 'block';
+            document.getElementById('btn-lang-en').classList.remove('btn-ghost');
+            document.getElementById('btn-lang-bn').classList.add('btn-ghost');
+        }
+    }
+
+    // Close on outside click
+    document.addEventListener('click', function (event) {
+        var modal = document.getElementById('deviceIdInstructionsModal');
+        if (event.target === modal) {
+            closeDeviceIdInstructions();
+        }
+    });
+</script>

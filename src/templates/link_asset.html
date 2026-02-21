@@ -18,7 +18,11 @@
     </nav>
     <div class="container">
         <h2>Link Asset</h2>
-        <p>Enter the ID of an asset to link it to your account.</p>
+        <p style="margin-bottom: 1.5rem;">Enter the ID of an asset to link it to your account. <br>
+            <span onclick="openDeviceIdInstructions()"
+                style="color: var(--primary); cursor: pointer; text-decoration: underline; display: inline-block; margin-top: 5px;">How
+                to get device ID?</span>
+        </p>
 
         {% if error %}
         <div class="alert alert-error">{{ error }}</div>
@@ -60,6 +64,8 @@
             </div>
         </form>
     </div>
+
+    {% include 'device_id_instructions.html' %}
 
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script>

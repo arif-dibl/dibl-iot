@@ -25,7 +25,11 @@
     <div class="modal-content">
         <h3 style="margin-bottom:1.5rem;">Link an IoT Device</h3>
         <p style="margin-bottom:1rem; color:var(--text-muted); font-size:0.9rem;">
-            Scan a QR code or enter the device ID
+            Scan a QR code or enter the device ID manually.
+            <br>
+            <span onclick="openDeviceIdInstructions()"
+                style="color: var(--primary); cursor: pointer; text-decoration: underline; display: inline-block; margin-top: 5px;">How
+                to get device ID?</span>
         </p>
 
         <div id="qr-reader"
@@ -88,6 +92,8 @@
         </div>
     </div>
 </div>
+
+{% include 'device_id_instructions.html' %}
 {% endblock %}
 
 {% block scripts %}

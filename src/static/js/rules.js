@@ -44,11 +44,7 @@ async function loadAsset(assetId) {
         allAttributes = asset.attributes || {};
 
         let rTargets = asset.attributes['RuleTargets'];
-        if (rTargets && rTargets._timestamp) {
-            rulesTimestamp = rTargets._timestamp;
-        } else {
-            rulesTimestamp = null;
-        }
+        rulesTimestamp = null;
 
         const stored = localStorage.getItem(`rules_${assetId}`);
         if (stored) {
@@ -67,6 +63,7 @@ async function loadAsset(assetId) {
 
                 Object.entries(rTargets).forEach(([key, valStr]) => {
                     try {
+                        if (key.startsWith('_')) return; // skip metadata keys
                         let ruleId = `rule_${ruleIdCounter++}`;
                         const keyParts = key.split('_rule_');
                         let sensorKey = keyParts[0];

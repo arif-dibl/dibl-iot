@@ -184,8 +184,8 @@ async def get_user_assets(username: str, request: Request):
                         val = v["value"]
                         ts = v.get("timestamp")
                         
-                        # Inject timestamp for Rules and Timers
-                        if k == "RuleTargets" or k.startswith("Timer"):
+                        # Inject timestamp for Timers only
+                        if k.startswith("Timer"):
                             if isinstance(val, str):
                                 try:
                                     parsed = json.loads(val)
@@ -242,8 +242,8 @@ async def get_single_asset(username: str, request: Request, id: str):
                     val = v["value"]
                     ts = v.get("timestamp")
 
-                    # Inject timestamp for Rules and Timers
-                    if k == "RuleTargets" or k.startswith("Timer"):
+                    # Inject timestamp for Timers only
+                    if k.startswith("Timer"):
                         if isinstance(val, str):
                             try:
                                 parsed = json.loads(val)

@@ -20,3 +20,15 @@
     color: var(--primary);
     word-break: break-all;
 }
+
+.test-api-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+}
+
+@media (max-width: 992px) {
+    .test-api-grid {
+        grid-template-columns: 1fr;
+    }
+}

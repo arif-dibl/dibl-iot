@@ -1,4 +1,4 @@
-# OpenRemote v4
+# DIBL_IOT with OpenRemote v4
 
 configs:
   haproxy-config:
@@ -20,35 +20,27 @@ configs:
 
       frontend http
           bind *:80
-
-          # CRITICAL: Forward original protocol and host info from Traefik
           http-request set-header X-Forwarded-Proto https
           http-request set-header X-Forwarded-Port 443
           http-request set-header X-Forwarded-Host %[req.hdr(host)]
           http-request set-header X-Real-IP %[src]
 
-          # Health endpoint for docker healthcheck
+          # Health endpoint for Docker healthcheck
           acl url_docker_health path /docker-health
           http-request set-log-level silent if url_docker_health
           http-request return status 200 if url_docker_health
 
-          # Route auth paths to Keycloak
+          # Keycloak Routing
           acl is_auth path_beg /auth
           use_backend keycloak_backend if is_auth
-
-          # Route realms paths to Keycloak
           acl is_realms path_beg /realms
           use_backend keycloak_backend if is_realms
-
-          # Route resources paths to Keycloak
           acl is_resources path_beg /resources
           use_backend keycloak_backend if is_resources
 
-
-          # Everything else goes to Manager
           default_backend manager_backend
 
-      # MQTT TLS Frontend with mTLS (Client Certificate Verification)
+      # MQTT TLS Frontend with mTLS
       frontend mqtt
           bind *:8883 ssl crt /certs/mqtt-server-combined.pem ca-file /certs/ca.pem verify required
           mode tcp
@@ -59,7 +51,6 @@ configs:
 
       backend keycloak_backend
           server keycloak keycloak:8080 resolvers docker_resolver init-addr none
-
 
       backend mqtt_backend
           mode tcp
@@ -198,8 +189,8 @@ volumes:
 
 services:
   postgresql:
-    restart: always
     image: openremote/postgresql:${POSTGRESQL_VERSION:-latest}
+    restart: always
     shm_size: 128mb
     volumes:
       - postgresql-data:/var/lib/postgresql/data
@@ -211,63 +202,44 @@ services:
       retries: 5
 
   keycloak:
-    restart: always
     image: openremote/keycloak:${KEYCLOAK_VERSION:-latest}
+    restart: always
     depends_on:
       postgresql:
         condition: service_healthy
     volumes:
       - ./deploy:/deployment
-    # CRITICAL: Allow internal resolution of public hostname for token validation
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
     environment:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
-      # CRITICAL: Trust X-Forwarded headers from Traefik/HAProxy
       KC_PROXY_HEADERS: xforwarded
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
-      # CRITICAL: Fix the issuer URL in JWT tokens to match the external URL
-      # This ensures tokens are issued with the correct 'iss' claim that the Manager expects
       KEYCLOAK_ISSUER_BASE_URI: https://${OR_HOSTNAME}/auth
 
   manager:
-    restart: always
     image: openremote/manager:${MANAGER_VERSION:-latest}
+    restart: always
     depends_on:
       keycloak:
         condition: service_healthy
-    # CRITICAL: Allow internal resolution of public hostname for JWT validation
-    # This fixes the hairpin NAT issue where Manager can't reach Keycloak's JWKS endpoint
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
+    volumes:
+      - manager-data:/storage
+      - ./deploy/manager:/deployment
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       OR_SSL_PORT: ${OR_SSL_PORT:--1}
       OR_DEV_MODE: ${OR_DEV_MODE:-false}
       OR_METRICS_ENABLED: ${OR_METRICS_ENABLED:-true}
-      # CRITICAL: Tell Manager to use internal Keycloak hostname for token validation
       OR_KEYCLOAK_HOST: keycloak
       OR_KEYCLOAK_PORT: 8080
-      OR_SETUP_TYPE:
-      OR_SETUP_RUN_ON_RESTART:
-      OR_EMAIL_HOST:
-      OR_EMAIL_USER:
-      OR_EMAIL_PASSWORD:
-      OR_EMAIL_X_HEADERS:
-      OR_EMAIL_FROM:
-      OR_EMAIL_ADMIN:
-      OR_ADDITIONAL_HOSTNAMES:
-      OR_FORECAST_SOLAR_API_KEY:
-      OR_OPEN_WEATHER_API_APP_ID:
-      OR_SETUP_IMPORT_DEMO_AGENT_KNX:
-      OR_SETUP_IMPORT_DEMO_AGENT_VELBUS:
-    volumes:
-      - manager-data:/storage
 
   proxy:
     image: openremote/proxy:${PROXY_VERSION:-latest}
@@ -289,7 +261,6 @@ services:
     environment:
       HAPROXY_CONFIG: '/data/proxy/haproxy.cfg'
       DOMAINNAME: ${OR_HOSTNAME:?Hostname required}
-      DOMAINNAMES: ${OR_ADDITIONAL_HOSTNAMES:-}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.openremote.rule=Host(`${OR_HOSTNAME}`)"
@@ -299,7 +270,6 @@ services:
       - "traefik.http.services.openremote.loadbalancer.server.scheme=http"
       - "traefik.http.services.openremote.loadbalancer.healthcheck.path=/docker-health"
       - "traefik.http.routers.openremote.priority=1"
-      # WebSocket and header passthrough support
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.routers.openremote.middlewares=sslheader"
 
@@ -311,9 +281,11 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-    # Allow internal hostname resolution
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}

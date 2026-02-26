@@ -496,9 +496,4 @@ function toast(msg) {
     setTimeout(() => div.remove(), 3000);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    if (window.friendlyNamesPromise) {
-        await window.friendlyNamesPromise;
-    }
-    loadTimers();
-});
+document.addEventListener('DOMContentLoaded', loadTimers);

@@ -497,9 +497,6 @@ async function pinRulesToDashboard() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    if (window.friendlyNamesPromise) {
-        await window.friendlyNamesPromise;
-    }
+document.addEventListener('DOMContentLoaded', () => {
     init();
 });

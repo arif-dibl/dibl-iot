@@ -831,9 +831,7 @@ async function renamePin(attrName, key) {
 
 // Init
 document.addEventListener('DOMContentLoaded', async () => {
-    if (window.friendlyNamesPromise) {
-        await window.friendlyNamesPromise;
-    }
+    await ensureFriendlyNames();
     loadDetail();
     // Poll every 3 seconds
     setInterval(loadDetail, 3000);

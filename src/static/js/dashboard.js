@@ -554,22 +554,7 @@ async function renameWidget(widgetId, currentName) {
     }
 }
 
-function getFriendlyLabel(key) {
-    const names = window.friendlyNames || {};
-    if (names.keys && names.keys[key]) {
-        return names.keys[key];
-    }
-    if (names.attributes && names.attributes[key]) {
-        return names.attributes[key];
-    }
-
-    if (/^t(\d+)?$/i.test(key)) return key.replace(/t/i, 'Temperature');
-    if (/^h(\d+)?$/i.test(key)) return key.replace(/h/i, 'Humidity');
-    if (/^m(\d+)?$/i.test(key)) return key.replace(/m/i, 'Moisture');
-    if (/^r(\d+)?$/i.test(key)) return key.replace(/r/i, 'Switch');
-
-    return key.replace(/([A-Z])/g, ' $1').trim();
-}
+// getFriendlyLabel is provided by main.js
 
 function toBool(val) {
     if (typeof val === 'boolean') return val;
@@ -594,9 +579,7 @@ function toast(msg) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    if (window.friendlyNamesPromise) {
-        await window.friendlyNamesPromise;
-    }
+    await ensureFriendlyNames();
     loadDashboard();
     setInterval(loadDashboard, 1000);
 });

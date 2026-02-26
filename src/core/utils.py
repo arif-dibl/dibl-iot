@@ -1,6 +1,6 @@
 import os
 import json
-from core.config import PREFS_FILE
+from core.config import PREFS_FILE, FRIENDLY_NAMES_FILE
 
 def load_preferences():
     if os.path.exists(PREFS_FILE):
@@ -20,8 +20,8 @@ def save_preferences(data):
 
 def get_friendly_names():
     try:
-        if os.path.exists("friendly_names.json"):
-            with open("friendly_names.json", "r") as f:
+        if os.path.exists(FRIENDLY_NAMES_FILE):
+            with open(FRIENDLY_NAMES_FILE, "r") as f:
                 return json.load(f)
     except Exception as e:
         print(f"[API] Error loading friendly names: {e}")

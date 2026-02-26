@@ -22,7 +22,9 @@ async function fetchFriendlyNames() {
             }
         }
 
-        const res = await fetch(`${APP_PREFIX}/api/friendly-names`);
+        // Use BASE_PREFIX (public endpoint, no auth required)
+        const prefix = typeof BASE_PREFIX !== 'undefined' ? BASE_PREFIX : APP_PREFIX;
+        const res = await fetch(`${prefix}/api/friendly-names`);
         if (!res.ok) {
             console.error('[FriendlyNames] API returned', res.status);
             return;

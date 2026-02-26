@@ -37,7 +37,14 @@
         "Timer02": "Timer 2",
         "Timer03": "Timer 3",
         "Timer04": "Timer 4",
-        "Timer05": "Timer 5"
+        "Timer05": "Timer 5",
+        "Timer06": "Timer 6",
+        "Timer07": "Timer 7",
+        "Timer08": "Timer 8",
+        "Timer09": "Timer 9",
+        "Timer10": "Timer 10",
+        "Timer11": "Timer 11",
+        "Timer12": "Timer 12"
     },
     "keys": {
         "t0": "Board Temperature",

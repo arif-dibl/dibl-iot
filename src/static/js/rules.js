@@ -222,22 +222,36 @@ function getKeysFromAttribute(attrName) {
 function getSensorOptions() {
     const sensors = [];
 
-    getKeysFromAttribute('EnvData').forEach(k =>
-        sensors.push({ value: `EnvData.${k}`, label: `EnvData.${k}` }));
+    const groupNames = {
+        'EnvData': typeof getFriendlyLabel === 'function' ? getFriendlyLabel('EnvData', true) : 'Environment Data',
+        'MoistureData': typeof getFriendlyLabel === 'function' ? getFriendlyLabel('MoistureData', true) : 'Moisture Data',
+        'NPKData': typeof getFriendlyLabel === 'function' ? getFriendlyLabel('NPKData', true) : 'NPK Data'
+    };
 
-    getKeysFromAttribute('MoistureData').forEach(k =>
-        sensors.push({ value: `MoistureData.${k}`, label: `MoistureData.${k}` }));
+    getKeysFromAttribute('EnvData').forEach(k => {
+        const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
+        sensors.push({ value: `EnvData.${k}`, label: `${groupNames['EnvData']} → ${keyLabel}` });
+    });
 
-    getKeysFromAttribute('NPKData').forEach(k =>
-        sensors.push({ value: `NPKData.${k}`, label: `NPKData.${k}` }));
+    getKeysFromAttribute('MoistureData').forEach(k => {
+        const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
+        sensors.push({ value: `MoistureData.${k}`, label: `${groupNames['MoistureData']} → ${keyLabel}` });
+    });
+
+    getKeysFromAttribute('NPKData').forEach(k => {
+        const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
+        sensors.push({ value: `NPKData.${k}`, label: `${groupNames['NPKData']} → ${keyLabel}` });
+    });
 
     return sensors.sort((a, b) => a.label.localeCompare(b.label));
 }
 
 function getRelayOptions() {
     const relays = [];
-    getKeysFromAttribute('RelayData').forEach(k =>
-        relays.push({ value: `RelayData.${k}`, label: `RelayData.${k}` }));
+    getKeysFromAttribute('RelayData').forEach(k => {
+        const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
+        relays.push({ value: `RelayData.${k}`, label: keyLabel });
+    });
     return relays;
 }
 
@@ -497,6 +511,7 @@ async function pinRulesToDashboard() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof ensureFriendlyNames === 'function') await ensureFriendlyNames();
     init();
 });

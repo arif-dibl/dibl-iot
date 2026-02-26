@@ -82,8 +82,7 @@ async function loadTimers() {
 }
 
 function renderEditableTimer(assetId, key, val, pinnedItems = []) {
-    let friendlyName = key;
-    friendlyName = key.replace(/(\d+)/, ' $1');
+    let friendlyName = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(key, true) : key.replace(/(\d+)/, ' $1');
 
     if (typeof val !== 'object' || val === null) {
         return `<div style="padding:1rem; border:1px solid #eee;">${key}: ${val}</div>`;
@@ -496,4 +495,7 @@ function toast(msg) {
     setTimeout(() => div.remove(), 3000);
 }
 
-document.addEventListener('DOMContentLoaded', loadTimers);
+document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof ensureFriendlyNames === 'function') await ensureFriendlyNames();
+    loadTimers();
+});

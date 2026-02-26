@@ -21,6 +21,12 @@ app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 # Include authentication routes directly at the root (or APP_PREFIX)
 app.include_router(auth_routes.router, prefix=APP_PREFIX)
 
+# Public API: friendly-names (no auth needed — static config, no sensitive data)
+from core.utils import get_friendly_names
+@app.get(f"{APP_PREFIX}/api/friendly-names" if APP_PREFIX else "/api/friendly-names", tags=["public"])
+async def public_friendly_names():
+    return get_friendly_names()
+
 # Static Files - mount at prefixed path
 static_mount_path = f"{APP_PREFIX}/static" if APP_PREFIX else "/static"
 app.mount(static_mount_path, StaticFiles(directory="static"), name="static")

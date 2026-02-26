@@ -593,7 +593,10 @@ function toast(msg) {
     setTimeout(() => div.remove(), 3000);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    if (window.friendlyNamesPromise) {
+        await window.friendlyNamesPromise;
+    }
     loadDashboard();
     setInterval(loadDashboard, 1000);
 });

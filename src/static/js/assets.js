@@ -229,6 +229,9 @@ async function unlinkAsset(id) {
 }
 
 // Init
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    if (window.friendlyNamesPromise) {
+        await window.friendlyNamesPromise;
+    }
     loadAssets();
 });

@@ -101,7 +101,7 @@ function toast(msg) {
     }, 3000);
 }
 
-fetchFriendlyNames().catch(() => { });
+window.friendlyNamesPromise = fetchFriendlyNames().catch(() => { });
 
 function clearDiblCache() {
     sessionStorage.removeItem(FRIENDLY_NAMES_CACHE_KEY);

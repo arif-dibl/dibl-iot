@@ -6,6 +6,9 @@ let realm = 'master';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    if (window.friendlyNamesPromise) {
+        await window.friendlyNamesPromise;
+    }
     // Priority: window.USER_REALM passed from template
     realm = window.USER_REALM || 'master';
 

@@ -9,18 +9,37 @@ async function fetchFriendlyNames() {
         if (cached) {
             const { data, timestamp } = JSON.parse(cached);
             if (Date.now() - timestamp < FRIENDLY_NAMES_CACHE_TTL) {
-                friendlyNames = data;
-                return;
+                // Only use cache if it actually has keys
+                if (data && data.keys && Object.keys(data.keys).length > 0) {
+                    friendlyNames = data;
+                    console.log('[FriendlyNames] Loaded from cache, keys:', Object.keys(data.keys).length);
+                    return;
+                } else {
+                    // Stale/empty cache - discard and re-fetch
+                    sessionStorage.removeItem(FRIENDLY_NAMES_CACHE_KEY);
+                    console.log('[FriendlyNames] Cache was empty/invalid, re-fetching');
+                }
             }
         }
 
         const res = await fetch(`${APP_PREFIX}/api/friendly-names`);
-        friendlyNames = await res.json();
+        if (!res.ok) {
+            console.error('[FriendlyNames] API returned', res.status);
+            return;
+        }
+        const data = await res.json();
+        console.log('[FriendlyNames] API response:', data);
 
-        sessionStorage.setItem(FRIENDLY_NAMES_CACHE_KEY, JSON.stringify({
-            data: friendlyNames,
-            timestamp: Date.now()
-        }));
+        if (data && data.keys && Object.keys(data.keys).length > 0) {
+            friendlyNames = data;
+            sessionStorage.setItem(FRIENDLY_NAMES_CACHE_KEY, JSON.stringify({
+                data: friendlyNames,
+                timestamp: Date.now()
+            }));
+            console.log('[FriendlyNames] Loaded from API, keys:', Object.keys(data.keys).length);
+        } else {
+            console.warn('[FriendlyNames] API returned empty data:', data);
+        }
     } catch (e) {
         console.error('Failed to load friendly names:', e);
     }
@@ -28,7 +47,9 @@ async function fetchFriendlyNames() {
 
 function getFriendlyLabel(key, isAttribute = false) {
     if (!key) return '';
-    const map = isAttribute ? friendlyNames.attributes : friendlyNames.keys;
+    const map = isAttribute
+        ? (friendlyNames && friendlyNames.attributes ? friendlyNames.attributes : {})
+        : (friendlyNames && friendlyNames.keys ? friendlyNames.keys : {});
 
     if (map[key]) return map[key];
 

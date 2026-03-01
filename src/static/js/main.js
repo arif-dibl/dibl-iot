@@ -96,7 +96,7 @@ function timeAgo(dateOrTimestamp) {
 }
 
 
-const OFFLINE_TIMEOUT_MS = 5000;
+const OFFLINE_TIMEOUT_MS = 10000;
 
 function getAssetStatus(lastActivityTimestamp) {
     if (!lastActivityTimestamp) {

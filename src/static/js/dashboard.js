@@ -1,3 +1,5 @@
+const recentToggles = {};
+
 async function loadDashboard() {
     try {
         const res = await fetch(`${APP_PREFIX}/api/user/assets?t=${Date.now()}`);
@@ -36,7 +38,6 @@ async function loadDashboard() {
 
         loadSwitches(assets);
         loadWidgets(assets);
-        keepAlive(assets);
 
     } catch (e) {
         console.error('Failed to load dashboard:', e);
@@ -69,7 +70,9 @@ function renderSwitchCard(assetName, assetId, relayData, isIdle = false) {
     let switchesHtml = '<div class="switch-grid">';
 
     keys.forEach(k => {
-        const boolVal = toBool(relayData[k]);
+        const toggleKey = `${assetId}_${k}`;
+        const isRecent = recentToggles[toggleKey] && (Date.now() - recentToggles[toggleKey] < 5000);
+        const boolVal = isRecent ? recentToggles[`${toggleKey}_val`] : toBool(relayData[k]);
         const storedName = localStorage.getItem(`switch_name_${assetId}_${k}`) || getFriendlyLabel(k);
         const safeAssetId = assetId.replace(/'/g, "\\'");
         const safeKey = k.replace(/'/g, "\\'");
@@ -119,6 +122,12 @@ async function toggleSwitch(assetId, key, newValue) {
         }
 
         relayData[key] = newValue;
+
+        // Optimistic UI cooldown: prevent poll from reverting this toggle for 5s
+        const toggleKey = `${assetId}_${key}`;
+        recentToggles[toggleKey] = Date.now();
+        recentToggles[`${toggleKey}_val`] = newValue;
+        setTimeout(() => { delete recentToggles[toggleKey]; delete recentToggles[`${toggleKey}_val`]; }, 5000);
 
         console.log('[Dashboard] Sending updated RelayData:', relayData);
 
@@ -581,21 +590,7 @@ function toast(msg) {
 document.addEventListener('DOMContentLoaded', async () => {
     await ensureFriendlyNames();
     loadDashboard();
-    setInterval(loadDashboard, 1000);
+    setInterval(loadDashboard, 3000);
 });
 
-async function keepAlive(assets) {
-    for (const asset of assets) {
-        if (asset.attributes?.RelayData) {
-            try {
-                await fetch(`${APP_PREFIX}/api/asset/${asset.id}/attribute/RelayData`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ value: asset.attributes.RelayData })
-                });
-            } catch (e) {
-                console.error('[Dashboard] Keep-alive failed for', asset.id, e);
-            }
-        }
-    }
-}
+// keepAlive() removed — it was re-writing stale relay state every poll cycle, causing bounce

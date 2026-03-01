@@ -1,5 +1,6 @@
 let pinnedAttributes = [];
 const openGroups = new Set();
+const recentToggles = {};
 
 function shouldShowPin(key, itemKey) {
     if (key === 'RelayData') return false;
@@ -223,7 +224,9 @@ async function loadDetail() {
 
                                 let valueHtml;
                                 if (isBooleanLike(item.v)) {
-                                    const boolVal = toBool(item.v);
+                                    const nestedToggleKey = `${ASSET_ID}_${key}_${item.k}`;
+                                    const isRecent = recentToggles[nestedToggleKey] && (Date.now() - recentToggles[nestedToggleKey] < 5000);
+                                    const boolVal = isRecent ? recentToggles[`${nestedToggleKey}_val`] : toBool(item.v);
                                     valueHtml = `
                                     <div style="display:flex; align-items:center; gap:8px;">
                                         <label class="toggle-switch" style="transform:scale(0.8);">
@@ -313,7 +316,9 @@ async function loadDetail() {
 
                                     let valueHtml;
                                     if (isBooleanLike(item.v)) {
-                                        const boolVal = toBool(item.v);
+                                        const nestedToggleKey = `${ASSET_ID}_${key}_${item.k}`;
+                                        const isRecent = recentToggles[nestedToggleKey] && (Date.now() - recentToggles[nestedToggleKey] < 5000);
+                                        const boolVal = isRecent ? recentToggles[`${nestedToggleKey}_val`] : toBool(item.v);
                                         valueHtml = `
                                             <div style="display:flex; align-items:center; gap:6px;">
                                                 <label class="toggle-switch" style="transform:scale(0.7);">
@@ -450,6 +455,12 @@ async function toggleNestedAttribute(attrName, nestedKey, newValue) {
                 } else {
                     currentVal[nestedKey] = newValue;
                 }
+
+                // Optimistic UI cooldown: prevent poll from reverting this toggle for 5s
+                const toggleKey = `${ASSET_ID}_${attrName}_${nestedKey}`;
+                recentToggles[toggleKey] = Date.now();
+                recentToggles[`${toggleKey}_val`] = newValue;
+                setTimeout(() => { delete recentToggles[toggleKey]; delete recentToggles[`${toggleKey}_val`]; }, 5000);
 
                 const updateRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
                     method: 'POST',

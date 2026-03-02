@@ -32,6 +32,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (termsLink) {
         termsLink.addEventListener('click', openTermsModal);
     }
+
+    // Toggle for Login Password
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#password');
+    if (togglePassword && password) {
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.textContent = type === 'password' ? 'Show' : 'Hide';
+        });
+    }
+
+    // Toggle for Signup Password
+    const toggleSignupPassword = document.querySelector('#toggleSignupPassword');
+    const signupPassword = document.querySelector('#signup-password');
+    if (toggleSignupPassword && signupPassword) {
+        toggleSignupPassword.addEventListener('click', function () {
+            const type = signupPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            signupPassword.setAttribute('type', type);
+            this.textContent = type === 'password' ? 'Show' : 'Hide';
+        });
+    }
 });
 
 window.onclick = function (event) {

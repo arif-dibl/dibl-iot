@@ -69,6 +69,41 @@ input:focus {
     box-shadow: 0 0 0 3px rgba(0, 175, 80, 0.1);
 }
 
+/* Password wrapper to relative position the toggle */
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* Ensure input has padding on the right to avoid text overlapping the button */
+.password-wrapper input {
+    padding-right: 60px;
+    /* Space for the "Show" button */
+}
+
+/* Style for the toggle button */
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    background: none !important;
+    border: none !important;
+    color: var(--primary) !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
+    box-shadow: none !important;
+}
+
+.toggle-password:hover {
+    background: none !important;
+    text-decoration: underline !important;
+}
+
 button {
     width: 100%;
     padding: 0.75rem;

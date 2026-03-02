@@ -64,8 +64,11 @@
                         </div>
                         <div class="form-group">
                             <label for="password">Password</label>
-                            <input type="password" id="password" name="password" required
-                                placeholder="Enter your password">
+                            <div class="password-wrapper">
+                                <input type="password" id="password" name="password" required
+                                    placeholder="Enter your password">
+                                <button type="button" id="togglePassword" class="toggle-password">Show</button>
+                            </div>
                         </div>
                         <button type="submit">Sign In</button>
                     </form>

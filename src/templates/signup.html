@@ -69,8 +69,11 @@
                         </div>
                         <div class="form-group">
                             <label for="signup-password">Password</label>
-                            <input type="password" id="signup-password" name="password" required
-                                placeholder="Create a strong password">
+                            <div class="password-wrapper">
+                                <input type="password" id="signup-password" name="password" required
+                                    placeholder="Create a strong password">
+                                <button type="button" id="toggleSignupPassword" class="toggle-password">Show</button>
+                            </div>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="terms-checkbox" name="terms" required

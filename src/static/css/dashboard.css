@@ -210,77 +210,6 @@
     background-color: var(--primary);
 }
 
-/* --- FROSTED LOADING OVERLAY --- */
-.loading-layer {
-    display: none;
-    position: absolute;
-    inset: 0;
-    border-radius: 8px;
-    /* Match widget-card border-radius */
-    pointer-events: none;
-    z-index: 100;
-    /* frosted glass */
-    background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
-
-/* pulse dot */
-.loading-layer::after {
-    content: '';
-    width: 12px;
-    height: 12px;
-    background: var(--primary);
-    border-radius: 50%;
-    box-shadow: 0 0 12px var(--primary), 0 0 20px rgba(99, 102, 241, 0.3);
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    animation: dot-pulse 0.7s ease-in-out infinite alternate;
-}
-
-.widget-card.locked .loading-layer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: frosted-in-out 1s ease forwards;
-}
-
-.widget-card.locked {
-    pointer-events: none;
-}
-
-@keyframes frosted-in-out {
-    0% {
-        opacity: 0;
-    }
-
-    15% {
-        opacity: 1;
-    }
-
-    85% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0;
-    }
-}
-
-@keyframes dot-pulse {
-    from {
-        transform: translate(-50%, -50%) scale(0.7);
-        opacity: 0.4;
-    }
-
-    to {
-        transform: translate(-50%, -50%) scale(1.3);
-        opacity: 1;
-    }
-}
-
 /* Sensor Grid */
 .sensor-grid {
     display: grid;
@@ -930,5 +859,91 @@ input:checked+.slider:before {
     /* Hidden state: slides the navbar fully above the viewport */
     .top-nav.nav-hidden {
         transform: translateY(-100%);
+    }
+}
+
+/* ─── FROSTED LOADING OVERLAY (Switch Cards) ─── */
+
+/* Wrapper needs relative positioning for the absolute overlay */
+.switch-card-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+/* The frosted overlay — hidden by default */
+.switch-loading-layer {
+    display: none;
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 10;
+    /* Frosted glass — light theme */
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+/* Show + animate when the card is locked */
+.switch-card-wrapper.locked .switch-loading-layer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    /* block clicks through the overlay */
+    animation: frosted-in-out 1s ease forwards;
+}
+
+/* Pulsing accent dot in the center of the overlay */
+.switch-loading-layer::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: var(--primary, #4f46e5);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--primary, #4f46e5),
+        0 0 28px rgba(79, 70, 229, 0.25);
+    animation: dot-pulse 0.7s ease-in-out infinite alternate;
+}
+
+/* Disable toggle interaction while locked */
+.switch-card-wrapper.locked .toggle-switch input {
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.switch-card-wrapper.locked .switch-rename-btn {
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+@keyframes frosted-in-out {
+    0% {
+        opacity: 0;
+    }
+
+    12% {
+        opacity: 1;
+    }
+
+    82% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes dot-pulse {
+    from {
+        transform: scale(0.7);
+        opacity: 0.4;
+    }
+
+    to {
+        transform: scale(1.3);
+        opacity: 1;
     }
 }

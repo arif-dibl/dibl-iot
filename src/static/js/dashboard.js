@@ -96,16 +96,39 @@ function renderSwitchCard(assetName, assetId, relayData, isIdle = false) {
     switchesHtml += '</div>';
 
     return `
-        <div class="widget-card" style="width:100%;">
-             <div class="loading-layer"></div>
-             <div class="widget-card-header" style="font-size:1rem; border-bottom:1px solid #f0f0f0; margin-bottom:1rem; padding-bottom:0.5rem;">${assetName}</div>
-            ${switchesHtml}
+        <div class="switch-card-wrapper" data-asset-id="${assetId}">
+            <div class="switch-loading-layer"></div>
+            <div class="widget-card" style="width:100%;">
+                 <div class="widget-card-header" style="font-size:1rem; border-bottom:1px solid #f0f0f0; margin-bottom:1rem; padding-bottom:0.5rem;">${assetName}</div>
+                ${switchesHtml}
+            </div>
         </div>
     `;
 }
 
 async function toggleSwitch(assetId, key, newValue) {
     console.log(`[Dashboard] Toggling switch: ${assetId} / ${key} -> ${newValue}`);
+
+    // ── Frosted-overlay lock: prevent spamming ──
+    const wrapper = document.querySelector(`.switch-card-wrapper[data-asset-id="${assetId}"]`);
+    if (wrapper) {
+        if (wrapper.classList.contains('locked')) {
+            // Card is still locked — revert the checkbox and bail out
+            const cb = wrapper.querySelector(`input[onchange*="'${key}'"]`);
+            if (cb) cb.checked = !newValue;
+            return;
+        }
+        // Lock the card and (re)start the overlay animation
+        wrapper.classList.add('locked');
+        const layer = wrapper.querySelector('.switch-loading-layer');
+        if (layer) {
+            layer.style.animation = 'none';
+            void layer.offsetWidth;          // force reflow
+            layer.style.animation = '';
+        }
+        setTimeout(() => { wrapper.classList.remove('locked'); }, 1000);
+    }
+
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         if (!res.ok) throw new Error(`Failed to fetch asset: ${res.status}`);
@@ -139,13 +162,6 @@ async function toggleSwitch(assetId, key, newValue) {
         });
 
         if (!updateRes.ok) throw new Error(`Failed to update attribute: ${updateRes.status}`);
-
-        // Lock UI for 1s to prevent spamming and show animation
-        const cardEl = document.querySelector(`[onclick*="toggleSwitch('${assetId}'")`)?.closest('.widget-card');
-        if (cardEl) {
-            cardEl.classList.add('locked');
-            setTimeout(() => cardEl.classList.remove('locked'), 1000);
-        }
 
         toast(`${key} turned ${newValue ? 'ON' : 'OFF'}`);
     } catch (e) {

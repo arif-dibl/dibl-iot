@@ -88,9 +88,6 @@ async def change_user_password(username: str, request: Request):
 @router.get("/asset-partners")
 async def get_asset_partners(username: str, request: Request):
     from core.auth import get_admin_token
-    from core.config import IGNORED_USERS_FILE
-    import json
-    import os
     realm = request.session.get("realm", DEFAULT_REALM)
     user_id = request.session.get("user_id")
     access_token = get_valid_token(request)
@@ -154,36 +151,12 @@ async def get_asset_partners(username: str, request: Request):
                     user_name_cache[pid] = "Unknown"
 
         # 5. Build Response
-        # Load ignored patterns
-        ignored_prefixes = []
-        ignored_usernames = []
-        if os.path.exists(IGNORED_USERS_FILE):
-            try:
-                with open(IGNORED_USERS_FILE, 'r') as f:
-                    data = json.load(f)
-                    ignored_prefixes = data.get("ignored_prefixes", [])
-                    ignored_usernames = data.get("ignored_usernames", [])
-            except: pass
-
         result = []
         for aid, user_ids in partners_map.items():
             valid_names = []
             for uid in user_ids:
                 name = user_name_cache.get(uid, "Unknown")
-                
-                # Check Ignore Filters
-                is_ignored = False
                 if name != "Unknown":
-                    # Check exact username match
-                    if name in ignored_usernames: is_ignored = True
-                    
-                    # Check prefixes
-                    for prefix in ignored_prefixes:
-                        if name.startswith(prefix):
-                            is_ignored = True
-                            break
-                            
-                if not is_ignored:
                     valid_names.append(name)
             
             if valid_names:

@@ -116,12 +116,17 @@ async function loadLinkedUsers() {
             document.getElementById('linked-users-loading').style.display = 'none';
             const list = document.getElementById('linked-users-list');
 
-            if (data.length === 0) {
+            const filteredData = data.map(item => ({
+                ...item,
+                users: item.users.filter(u => !u.startsWith('service-account-ps-'))
+            })).filter(item => item.users.length > 0);
+
+            if (filteredData.length === 0) {
                 list.innerHTML = '<div style="color:var(--text-muted); font-style:italic;">No linked users found.</div>';
                 return;
             }
 
-            list.innerHTML = data.map(item => `
+            list.innerHTML = filteredData.map(item => `
                 <div style="background:#f8f9fa; border:1px solid #eee; border-radius:8px; padding:1rem;">
                     <div style="font-weight:700; color:var(--primary); margin-bottom:0.8rem; font-size:0.95rem; border-bottom:1px dashed #ddd; padding-bottom:0.5rem;">
                         ${item.assetName}

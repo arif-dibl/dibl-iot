@@ -126,7 +126,7 @@ async function toggleSwitch(assetId, key, newValue) {
             void layer.offsetWidth;          // force reflow
             layer.style.animation = '';
         }
-        setTimeout(() => { wrapper.classList.remove('locked'); }, 1000);
+        setTimeout(() => { wrapper.classList.remove('locked'); }, 1500);
     }
 
     try {

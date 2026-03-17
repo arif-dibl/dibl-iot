@@ -512,7 +512,13 @@ function renderTimerCard(w) {
     }
 
     content += '</div>';
-    return wrapWidgetCard(w, w.displayName || 'Timer', content);
+
+    let title = w.displayName;
+    if (!title) {
+        title = w.assetName ? `${w.assetName} - ${w.attributeName}` : w.attributeName;
+    }
+
+    return wrapWidgetCard(w, title, content);
 }
 
 function renderGenericCard(w) {
@@ -530,11 +536,13 @@ function wrapWidgetCard(w, title, contentHtml) {
     const isFixed = !w.id;
     const isRuleParams = w.attributeName && w.attributeName === 'RuleTargets';
 
+    const safeTitle = (title || '').replace(/"/g, '&quot;');
+
     return `
         <div class="widget-card">
-            <div class="widget-card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>${title}</span>
-                <div style="display:flex; gap:8px;">
+            <div class="widget-card-header" style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+                <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${safeTitle}">${title}</span>
+                <div style="display:flex; gap:8px; flex-shrink:0;">
                     ${!isRuleParams && !w.attributeName.toLowerCase().startsWith('timer') ? `<span onclick="renameWidget('${w.id}', '${title.replace(/'/g, "\\'")}')" style="cursor:pointer; color:#777; font-size:0.8rem; font-weight:600;">RENAME</span>` : ''}
                     <span onclick="unpinWidget('${w.assetId}', '${w.attributeName}', '${w.key || ''}')" style="cursor:pointer; color:#999; font-weight:bold;">✕</span>
                 </div>

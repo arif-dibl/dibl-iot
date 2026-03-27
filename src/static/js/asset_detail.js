@@ -293,7 +293,7 @@ async function loadDetail() {
                                     outputsHtml += '</div>';
                                     valueHtml = outputsHtml;
                                 } else {
-                                    valueHtml = `<div style="color:#333; word-break:break-word;">${item.v}</div>`;
+                                    valueHtml = `<div style="color:#333; word-break:break-word;">${formatSensorValue(item.v, item.k, key)}</div>`;
                                 }
 
                                 displayVal += `
@@ -329,7 +329,7 @@ async function loadDetail() {
                                             </div>
                                         `;
                                     } else {
-                                        valueHtml = `<div style="font-weight:600; color:#222; font-size:0.95rem;">${item.v}</div>`;
+                                        valueHtml = `<div style="font-weight:600; color:#222; font-size:0.95rem;">${formatSensorValue(item.v, item.k, key)}</div>`;
                                     }
 
                                     // Render Item

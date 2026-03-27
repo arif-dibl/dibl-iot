@@ -307,13 +307,14 @@ function renderTable(data) {
                 Object.keys(val).sort().forEach(k => {
                     let v = val[k];
                     if (typeof v === 'object' && v !== null) v = JSON.stringify(v);
-                    displayVal += `<div><span class="val-key">${k}:</span> ${v}</div>`;
+                    displayVal += `<div><span class="val-key">${k}:</span> ${formatSensorValue(v, k, currentAttribute)}</div>`;
                 });
                 displayVal += '</div>';
             } else if (typeof val === 'boolean') {
                 displayVal = val ? '<span style="color:#27ae60;">✓ Yes</span>' : '<span style="color:#e74c3c;">✗ No</span>';
             } else {
-                displayVal = String(val);
+                const unit = currentSubAttribute ? getSensorUnit(currentSubAttribute, currentAttribute) : '';
+                displayVal = unit && !isNaN(Number(val)) ? `${val} ${unit}` : String(val);
             }
         } catch (e) {
             displayVal = String(pt.y);
@@ -403,7 +404,8 @@ function renderGraph(data) {
                             return context[0].label;
                         },
                         label: function (context) {
-                            return `Value: ${context.parsed.y}`;
+                            const unit = currentSubAttribute ? getSensorUnit(currentSubAttribute, currentAttribute) : '';
+                            return unit ? `Value: ${context.parsed.y} ${unit}` : `Value: ${context.parsed.y}`;
                         }
                     }
                 }

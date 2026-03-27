@@ -66,6 +66,62 @@ function getFriendlyLabel(key, isAttribute = false) {
     return key;
 }
 
+/**
+ * Returns the measurement unit for a sensor key based on its parent attribute.
+ * @param {string} key - The sensor key (e.g. 't1', 'h', 'm2', 'n1', 'ec1', 'ph1')
+ * @param {string} attributeName - Parent attribute name (EnvData, MoistureData, NPKData)
+ * @returns {string} The unit string, or '' if unknown
+ */
+function getSensorUnit(key, attributeName) {
+    if (!key) return '';
+    const k = key.replace(/[0-9]/g, '').toLowerCase();
+    const attr = (attributeName || '').toLowerCase();
+
+    if (attr === 'envdata') {
+        if (k === 't') return '°C';
+        if (k === 'h') return '%';
+        if (k === 'l') return '%';
+    } else if (attr === 'moisturedata') {
+        if (k === 'm') return '%';
+    } else if (attr === 'npkdata') {
+        if (k === 'm') return '%';
+        if (k === 't') return '°C';
+        if (k === 'ec') return 'µS/cm';
+        if (k === 'ph') return '';
+        if (k === 'n' || k === 'p' || k === 'k') return 'mg/kg';
+    }
+
+    // Fallback: try to guess from key alone
+    if (k === 't') return '°C';
+    if (k === 'h') return '%';
+    if (k === 'l') return '%';
+    if (k === 'm') return '%';
+    if (k === 'ec') return 'µS/cm';
+    if (k === 'n' || k === 'p' || k === 'k') return 'mg/kg';
+
+    return '';
+}
+
+/**
+ * Formats a sensor value with its unit.
+ * Returns '--' for empty/placeholder values, appends unit for numeric values.
+ * @param {*} value - The raw sensor value
+ * @param {string} key - The sensor key
+ * @param {string} attributeName - Parent attribute name
+ * @returns {string} Formatted value string
+ */
+function formatSensorValue(value, key, attributeName) {
+    if (value === '' || value === '--' || value === null || value === undefined) return '--';
+    const unit = getSensorUnit(key, attributeName);
+    if (!unit) return String(value);
+    // Only append unit if the value looks numeric
+    const num = Number(value);
+    if (!isNaN(num) && String(value).trim() !== '') {
+        return `${value} ${unit}`;
+    }
+    return String(value);
+}
+
 function isBooleanLike(val) {
     if (typeof val === 'boolean') return true;
     if (typeof val === 'string') {

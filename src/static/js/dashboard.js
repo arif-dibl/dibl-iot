@@ -303,7 +303,7 @@ function renderNPKCard(w) {
 
             content += `<div class="npk-metric">
                 <div class="metric-label">${label}</div>
-                <div class="metric-value">${item.v === '' ? '-' : item.v}</div>
+                <div class="metric-value">${formatSensorValue(item.v, item.k, 'NPKData')}</div>
             </div>`;
         });
 
@@ -406,7 +406,7 @@ function renderRuleCard(w, assetAttributes = null) {
                             <span style="color:#2980b9; font-weight:700;">${sensorName}</span> 
                             <span style="color:#555;">is</span> 
                             <span style="color:${opColor}; font-weight:800;">${parsed.op}</span> 
-                            <span style="color:#c0392b; font-weight:700;">${parsed.threshold}</span>,
+                            <span style="color:#c0392b; font-weight:700;">${parsed.threshold}${(() => { const u = getSensorUnit(ruleKey.split('_')[0], ''); return u ? ' ' + u : ''; })()}</span>,
                             <br>
                             <span style="font-weight:bold; color:#555;">Set</span> 
                             <span style="color:${switchColor}; font-weight:700;">${parsed.targetName}</span> 
@@ -436,7 +436,7 @@ function renderEnvCard(w) {
     keys.forEach(k => {
         content += `<div class="sensor-item">
             <span class="sensor-label">${getFriendlyLabel(k)}</span>
-            <span class="sensor-value">${w.value[k] === '' ? '-' : w.value[k]}</span>
+            <span class="sensor-value">${formatSensorValue(w.value[k], k, 'EnvData')}</span>
         </div>`;
     });
 
@@ -453,7 +453,7 @@ function renderMoistureCard(w) {
     keys.forEach(k => {
         content += `<div class="sensor-item">
             <span class="sensor-label">${getFriendlyLabel(k)}</span>
-            <span class="sensor-value">${w.value[k] === '' ? '-' : w.value[k]}</span>
+            <span class="sensor-value">${formatSensorValue(w.value[k], k, 'MoistureData')}</span>
         </div>`;
     });
 

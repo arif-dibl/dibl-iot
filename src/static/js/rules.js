@@ -344,7 +344,6 @@ function renderRules() {
                         </select>
                         <input type="number" class="form-control" style="flex: 1; min-width: 80px;" value="${rule.value}" step="0.1" 
                                onchange="updateRule('${rule.id}', 'value', parseFloat(this.value))">
-                        <span style="font-weight:600; color:var(--text-muted); font-size:0.85rem; white-space:nowrap;">${(() => { if (!rule.sensor) return ''; const parts = rule.sensor.split('.'); if (parts.length === 2) { const attr = parts[0]; const k = parts[1]; return getSensorUnit(k, attr); } return ''; })()}</span>
                     </div>
                 </div>
                 

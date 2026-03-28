@@ -78,26 +78,26 @@ function getSensorUnit(key, attributeName) {
     const attr = (attributeName || '').toLowerCase();
 
     if (attr === 'envdata') {
-        if (k === 't') return '°C';
-        if (k === 'h') return '%';
-        if (k === 'l') return '%';
+        if (k === 't' || k === 'temp' || k === 'temperature') return '°C';
+        if (k === 'h' || k === 'hum' || k === 'humidity') return '%';
+        if (k === 'l' || k === 'light') return '%';
     } else if (attr === 'moisturedata') {
-        if (k === 'm') return '%';
+        if (k === 'm' || k === 'moisture') return '%';
     } else if (attr === 'npkdata') {
-        if (k === 'm') return '%';
-        if (k === 't') return '°C';
+        if (k === 'm' || k === 'moisture') return '%';
+        if (k === 't' || k === 'temp' || k === 'temperature') return '°C';
         if (k === 'ec') return 'µS/cm';
         if (k === 'ph') return '';
-        if (k === 'n' || k === 'p' || k === 'k') return 'mg/kg';
+        if (k === 'n' || k === 'nitrogen' || k === 'p' || k === 'phosphorus' || k === 'k' || k === 'potassium') return 'mg/kg';
     }
 
     // Fallback: try to guess from key alone
-    if (k === 't') return '°C';
-    if (k === 'h') return '%';
-    if (k === 'l') return '%';
-    if (k === 'm') return '%';
+    if (k === 't' || k === 'temp' || k === 'temperature') return '°C';
+    if (k === 'h' || k === 'hum' || k === 'humidity') return '%';
+    if (k === 'l' || k === 'light') return '%';
+    if (k === 'm' || k === 'moisture') return '%';
     if (k === 'ec') return 'µS/cm';
-    if (k === 'n' || k === 'p' || k === 'k') return 'mg/kg';
+    if (k === 'n' || k === 'nitrogen' || k === 'p' || k === 'phosphorus' || k === 'k' || k === 'potassium') return 'mg/kg';
 
     return '';
 }

@@ -3,13 +3,32 @@ import json
 import base64
 import re
 import time
-from fastapi import Request, HTTPException, status
+from fastapi import Request, HTTPException, status, Depends
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
 from fastapi.responses import RedirectResponse
 import time
 
 class NotAuthenticatedException(Exception):
     def __init__(self, redirect_url: str):
         self.redirect_url = redirect_url
+
+security = HTTPBasic()
+
+def auth_test_api(credentials: HTTPBasicCredentials = Depends(security)):
+    """
+    Basic Auth dependency strictly for the Test API page.
+    Validates against hardcoded specific user/password (arif / 12345).
+    """
+    correct_username = secrets.compare_digest(credentials.username.encode("utf8"), b"arif")
+    correct_password = secrets.compare_digest(credentials.password.encode("utf8"), b"12345")
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 async def verify_username_match(username: str, request: Request):
     """

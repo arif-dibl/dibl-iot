@@ -78,10 +78,12 @@
                             class="nav-item {% if page == 'settings' %}active{% endif %}">
                             User Settings
                         </a>
+                        {% if request.session.username == 'arif' %}
                         <a href="{{ prefix }}/{{ request.session.username }}/test"
                             class="nav-item {% if page == 'test' %}active{% endif %}">
                             Test API
                         </a>
+                        {% endif %}
                         <a href="{{ prefix }}/{{ request.session.username }}/history-logs"
                             class="nav-item {% if page == 'history_logs' %}active{% endif %}">
                             History Logs

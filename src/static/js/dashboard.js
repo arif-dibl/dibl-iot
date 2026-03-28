@@ -109,11 +109,11 @@ function renderSwitchCard(assetName, assetId, relayData, isIdle = false) {
 async function toggleSwitch(assetId, key, newValue) {
     console.log(`[Dashboard] Toggling switch: ${assetId} / ${key} -> ${newValue}`);
 
-    // ── Frosted-overlay lock: prevent spamming ──
+    // Frosted-overlay lock: prevent spamming
     const wrapper = document.querySelector(`.switch-card-wrapper[data-asset-id="${assetId}"]`);
     if (wrapper) {
         if (wrapper.classList.contains('locked')) {
-            // Card is still locked — revert the checkbox and bail out
+            // Card is still locked, revert the checkbox and bail out
             const cb = wrapper.querySelector(`input[onchange*="'${key}'"]`);
             if (cb) cb.checked = !newValue;
             return;
@@ -147,7 +147,7 @@ async function toggleSwitch(assetId, key, newValue) {
 
         relayData[key] = newValue;
 
-        // Optimistic UI cooldown: prevent poll from reverting this toggle for 5s
+        // UI cooldown: prevent poll from reverting this toggle for 5s
         const toggleKey = `${assetId}_${key}`;
         recentToggles[toggleKey] = Date.now();
         recentToggles[`${toggleKey}_val`] = newValue;
@@ -311,7 +311,7 @@ function renderNPKCard(w) {
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, 'NPK Sensor Data', content);
+    return wrapWidgetCard(w, w.displayName || 'NPK Sensor Data', content);
 }
 
 function renderRuleCard(w, assetAttributes = null) {
@@ -423,7 +423,7 @@ function renderRuleCard(w, assetAttributes = null) {
         content += `</div>`;
     }
 
-    return wrapWidgetCard(w, w.assetName || 'Rule Targets', content);
+    return wrapWidgetCard(w, w.displayName || w.assetName || 'Rule Targets', content);
 }
 
 
@@ -441,7 +441,7 @@ function renderEnvCard(w) {
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, 'Environment', content);
+    return wrapWidgetCard(w, w.displayName || 'Environment', content);
 }
 
 function renderMoistureCard(w) {
@@ -458,7 +458,7 @@ function renderMoistureCard(w) {
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, 'Moisture Levels', content);
+    return wrapWidgetCard(w, w.displayName || 'Moisture Levels', content);
 }
 
 function renderTimerCard(w, assetName) {
@@ -626,4 +626,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(loadDashboard, 3000);
 });
 
-// keepAlive() removed — it was re-writing stale relay state every poll cycle, causing bounce

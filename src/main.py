@@ -4,7 +4,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from routes import auth as auth_routes, dashboard as dashboard_routes
 from api import assets as assets_api, rules as rules_api, user as user_api, debug as debug_api
 from core.config import APP_PREFIX
-from core.auth import verify_username_match
+from core.auth import verify_username_match, NotAuthenticatedException
+from fastapi.responses import RedirectResponse
 
 # Create FastAPI app
 docs_url = f"{APP_PREFIX}/docs" if APP_PREFIX else "/docs"
@@ -20,6 +21,15 @@ app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 # 1. PUBLIC ROUTES (No prefix, no gatekeeper)
 # Include authentication routes directly at the root (or APP_PREFIX)
 app.include_router(auth_routes.router, prefix=APP_PREFIX)
+
+def get_prefixed_path(path: str) -> str:
+    """Get path with APP_PREFIX prepended"""
+    return f"{APP_PREFIX}{path}" if APP_PREFIX else path
+
+@app.exception_handler(NotAuthenticatedException)
+async def auth_exception_handler(request: Request, exc: NotAuthenticatedException):
+    target_url = get_prefixed_path(exc.redirect_url if hasattr(exc, 'redirect_url') else "/")
+    return RedirectResponse(url=target_url, status_code=303)
 
 # Public API: friendly-names (no auth needed — static config, no sensitive data)
 from core.utils import get_friendly_names

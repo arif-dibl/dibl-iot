@@ -13,19 +13,16 @@ def get_prefixed_path(path: str) -> str:
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request, username: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("dashboard.html", {"request": request, "realm": realm, "page": "dashboard", "prefix": APP_PREFIX, "username": username})
 
 @router.get("/assets", response_class=HTMLResponse)
 async def assets_page(request: Request, username: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("assets.html", {"request": request, "realm": realm, "page": "assets", "prefix": APP_PREFIX, "username": username})
 
 @router.get("/asset/{asset_name}", response_class=HTMLResponse)
 async def asset_detail_page(request: Request, username: str, asset_name: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     
     # Resolve Name to ID
@@ -73,36 +70,30 @@ async def asset_detail_page(request: Request, username: str, asset_name: str):
 
 @router.get("/rules", response_class=HTMLResponse)
 async def rules_page(request: Request, username: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("rules.html", {"request": request, "realm": realm, "page": "rules", "prefix": APP_PREFIX, "username": username})
 
 @router.get("/timers", response_class=HTMLResponse)
 async def timers_page(request: Request, username: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("timers.html", {"request": request, "realm": realm, "page": "timers", "prefix": APP_PREFIX, "username": username})
 
 @router.get("/settings", response_class=HTMLResponse)
 async def user_page(request: Request, username: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("user.html", {"request": request, "realm": realm, "page": "settings", "prefix": APP_PREFIX, "username": username})
 
 @router.get("/link", response_class=HTMLResponse)
 async def link_asset_page(request: Request, username: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("link_asset.html", {"request": request, "realm": realm, "page": "assets", "prefix": APP_PREFIX, "username": username})
 
 @router.get("/test", response_class=HTMLResponse)
 async def test_page(request: Request, username: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("test_api.html", {"request": request, "realm": realm, "host": OR_HOSTNAME, "page": "test", "prefix": APP_PREFIX, "username": username})
 
 @router.get("/history-logs", response_class=HTMLResponse)
 async def history_logs_page(request: Request, username: str):
-    if not get_valid_token(request): return RedirectResponse(get_prefixed_path("/"), status_code=303)
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("datapoint_history.html", {"request": request, "realm": realm, "page": "history_logs", "prefix": APP_PREFIX, "username": username})

@@ -1,5 +1,10 @@
 const openGroups = new Set();
 
+// Local buffer: pendingTimerData[assetId][attrName] = { ...timerFields }
+const pendingTimerData = {};
+// Track which cards have unsaved edits
+const dirtyTimers = new Set(); // keys like "assetId__attrName"
+
 async function loadTimers() {
     try {
         const res = await fetch(`${APP_PREFIX}/api/user/assets`);
@@ -41,18 +46,30 @@ async function loadTimers() {
                 const assetIdClean = asset.id.replace(/[^a-zA-Z0-9]/g, '');
                 const isOpen = openGroups.has(assetIdClean);
 
+                // Seed the pending buffer with current server values
+                if (!pendingTimerData[asset.id]) pendingTimerData[asset.id] = {};
+                for (const [key, val] of Object.entries(timerAttributes)) {
+                    // Only seed if not already dirty (user hasn't edited yet)
+                    const dirtyKey = `${asset.id}__${key}`;
+                    if (!dirtyTimers.has(dirtyKey)) {
+                        pendingTimerData[asset.id][key] = typeof val === 'object' && val !== null
+                            ? JSON.parse(JSON.stringify(val))
+                            : val;
+                    }
+                }
+
                 const sortedKeys = Object.keys(timerAttributes).sort();
 
                 let timersHtml = '';
                 for (const key of sortedKeys) {
-                    const val = timerAttributes[key];
-                    timersHtml += renderEditableTimer(asset.id, key, val, pinnedItems);
+                    const displayVal = pendingTimerData[asset.id][key] || timerAttributes[key];
+                    timersHtml += renderEditableTimer(asset.id, key, displayVal, pinnedItems);
                 }
 
                 const html = `
                     <div style="margin-bottom:1.5rem; border:1px solid var(--border); border-radius:8px; overflow:visible;">
                          <div 
-                            onclick="toggleAssetGroup('${assetIdClean}')" 
+                            onclick="toggleAssetGroup('${assetIdClean}', '${asset.id}')" 
                             style="background:#f8f9fa; padding:1rem 1.5rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;"
                         >
                             <div style="font-weight:600; font-size:1.1rem; color:#333;">
@@ -94,10 +111,6 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
     const isActive = String(status).toUpperCase() === 'ON' || String(status).toUpperCase() === 'ACTIVE';
     const activeColor = isActive ? 'var(--primary)' : 'var(--text-muted)';
 
-    const sortedInnerKeys = Object.keys(items).sort((a, b) => {
-        return a.localeCompare(b);
-    });
-
     let innerHtml = '';
 
     innerHtml += `
@@ -105,7 +118,7 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
             <div style="font-weight:600; color:#555;">Status</div>
             <div style="display:flex; align-items:center; gap:8px;">
                  <label class="toggle-switch" style="transform:scale(0.8);">
-                    <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleNestedAttribute(event, '${assetId}', '${key}', 'Status', this.checked)">
+                    <input type="checkbox" ${isActive ? 'checked' : ''} onchange="bufferNestedChange(event, '${assetId}', '${key}', 'Status', this.checked)">
                     <span class="slider"></span>
                 </label>
                 <span id="status-label-${assetId}-${key}" style="font-weight:700; color:${activeColor}; font-size:0.9rem; min-width:30px;">${isActive ? 'ON' : 'OFF'}</span>
@@ -155,8 +168,11 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
         </div>
     `;
 
+    const dirtyKey = `${assetId}__${key}`;
+    const isDirty = dirtyTimers.has(dirtyKey);
+
     return `
-        <div class="timer-card-mobile-fix" style="flex: 1 1 250px; min-width:0; border:1px solid #e0e0e0; border-radius:6px; padding:1rem; background:#fafafa; max-width: 100%;">
+        <div class="timer-card-mobile-fix" id="timer-card-${assetId}-${key}" style="flex: 1 1 250px; min-width:0; border:1px solid #e0e0e0; border-radius:6px; padding:1rem; background:#fafafa; max-width: 100%;">
             <div style="font-weight:700; margin-bottom:0.75rem; color:#333; font-size:1rem; border-bottom:1px solid #ddd; padding-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
                 <span>${friendlyName}</span>
                 <span onclick="event.stopPropagation(); pinWidget('${assetId}', '${key}', null, '${friendlyName}')" 
@@ -167,6 +183,11 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
             </div>
             ${items._timestamp ? `<div style="font-size:0.75rem; color:#999; margin-bottom:1rem; text-align:right;">Last modified: ${new Date(items._timestamp).toLocaleString()}</div>` : ''}
             ${innerHtml}
+            <button id="save-btn-${assetId}-${key}"
+                onclick="saveTimerCard('${assetId}', '${key}')"
+                style="display:${isDirty ? 'block' : 'none'}; width:100%; margin-top:0.75rem; padding:10px; background:var(--primary); color:white; border:none; border-radius:6px; font-weight:700; font-size:0.9rem; cursor:pointer; transition:opacity 0.2s;">
+                SAVE
+            </button>
         </div>
     `;
 }
@@ -190,7 +211,7 @@ function renderDaysSelector(assetId, attrName, nestedKey, val) {
     daysOrder.forEach(d => {
         const active = isEveryday || currentDays.includes(d);
         html += `
-            <div onclick="toggleDay(event, '${assetId}', '${attrName}', '${nestedKey}', '${d}')"
+            <div onclick="bufferDayToggle(event, '${assetId}', '${attrName}', '${nestedKey}', '${d}')"
                 title="${d}"
                 style="width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                 background:${active ? 'var(--primary)' : '#e0e0e0'}; 
@@ -219,7 +240,7 @@ function renderOutputsSelector(assetId, attrName, nestedKey, val) {
         const active = isActive(r);
         const label = r.replace('r', '');
         html += `
-            <div onclick="toggleTimerOutput(event, '${assetId}', '${attrName}', '${nestedKey}', '${r}')"
+            <div onclick="bufferOutputToggle(event, '${assetId}', '${attrName}', '${nestedKey}', '${r}')"
                 title="Switch ${label}"
                 style="width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                 background:${active ? 'var(--primary)' : '#e0e0e0'}; 
@@ -232,13 +253,18 @@ function renderOutputsSelector(assetId, attrName, nestedKey, val) {
     return html;
 }
 
-function toggleAssetGroup(id) {
+function toggleAssetGroup(id, realAssetId) {
     const el = document.getElementById(id);
     const icon = document.getElementById('icon-' + id);
     if (el.style.display === 'none') {
         el.style.display = 'block';
         icon.style.transform = 'rotate(0deg)';
         openGroups.add(id);
+
+        // Publish all timers for this device once on open
+        if (realAssetId) {
+            publishAllTimers(realAssetId);
+        }
     } else {
         el.style.display = 'none';
         icon.style.transform = 'rotate(-90deg)';
@@ -246,63 +272,92 @@ function toggleAssetGroup(id) {
     }
 }
 
-async function toggleNestedAttribute(event, assetId, attrName, nestedKey, newValue) {
+// Publish all timer attributes for the given asset to the server
+async function publishAllTimers(assetId) {
+    try {
+        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
+        if (!res.ok) return;
+        const asset = await res.json();
+        const attrs = asset.attributes || {};
+
+        let count = 0;
+        for (const [key, val] of Object.entries(attrs)) {
+            if (!key.toLowerCase().startsWith('timer')) continue;
+
+            let timerVal = val;
+            if (val && typeof val === 'object' && 'value' in val) {
+                timerVal = val.value;
+            }
+            if (typeof timerVal === 'string') {
+                try { timerVal = JSON.parse(timerVal); } catch (e) { }
+            }
+            if (typeof timerVal !== 'object' || timerVal === null) continue;
+
+            // Remove internal metadata before publishing
+            const cleaned = { ...timerVal };
+            delete cleaned._timestamp;
+
+            await saveAttribute(assetId, key, cleaned, true);
+            count++;
+        }
+        if (count > 0) toast(`Published ${count} timer(s) to server`);
+    } catch (e) {
+        console.error('[Timers] Publish all error:', e);
+        toast('Failed to publish timers');
+    }
+}
+
+// Mark a timer card as dirty (has unsaved changes) and show the Save button
+function markDirty(assetId, attrName) {
+    const dirtyKey = `${assetId}__${attrName}`;
+    dirtyTimers.add(dirtyKey);
+    const btn = document.getElementById(`save-btn-${assetId}-${attrName}`);
+    if (btn) btn.style.display = 'block';
+}
+
+// Buffer a nested change locally without saving to server
+function bufferNestedChange(event, assetId, attrName, nestedKey, newValue) {
     if (event) event.stopPropagation();
-    // Checkbox already updated its state in DOM
-    const label = document.getElementById(`status-label-${assetId}-${attrName}`);
-    if (label) {
-        label.textContent = newValue ? 'ON' : 'OFF';
-        label.style.color = newValue ? 'var(--primary)' : 'var(--text-muted)';
-    }
-    try {
-        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
-        const asset = await res.json();
 
-        let currentVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
-        if (typeof currentVal === 'string') {
-            try { currentVal = JSON.parse(currentVal); } catch (e) { }
+    // Update status label in UI
+    if (nestedKey === 'Status') {
+        const label = document.getElementById(`status-label-${assetId}-${attrName}`);
+        if (label) {
+            label.textContent = newValue ? 'ON' : 'OFF';
+            label.style.color = newValue ? 'var(--primary)' : 'var(--text-muted)';
         }
-
-        if (typeof currentVal === 'object') {
-            if (nestedKey === 'Status') {
-                currentVal[nestedKey] = newValue ? 'ON' : 'OFF';
-            } else {
-                currentVal[nestedKey] = newValue;
-            }
-            await saveAttribute(assetId, attrName, currentVal);
-        }
-    } catch (e) {
-        console.error(e);
-        toast('Error updating');
     }
+
+    // Update buffer
+    if (!pendingTimerData[assetId]) pendingTimerData[assetId] = {};
+    if (!pendingTimerData[assetId][attrName]) pendingTimerData[assetId][attrName] = {};
+
+    if (nestedKey === 'Status') {
+        pendingTimerData[assetId][attrName][nestedKey] = newValue ? 'ON' : 'OFF';
+    } else {
+        pendingTimerData[assetId][attrName][nestedKey] = newValue;
+    }
+
+    markDirty(assetId, attrName);
 }
 
-async function updateNestedValue(assetId, attrName, nestedKey, newValue) {
-    try {
-        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
-        const asset = await res.json();
-        let currentVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
-        if (typeof currentVal === 'string') {
-            try { currentVal = JSON.parse(currentVal); } catch (e) { }
-        }
+// Buffer a wheel picker value change locally
+function bufferNestedValue(assetId, attrName, nestedKey, newValue) {
+    if (!pendingTimerData[assetId]) pendingTimerData[assetId] = {};
+    if (!pendingTimerData[assetId][attrName]) pendingTimerData[assetId][attrName] = {};
 
-        if (typeof currentVal === 'object') {
-            currentVal[nestedKey] = String(newValue);
-            await saveAttribute(assetId, attrName, currentVal);
+    pendingTimerData[assetId][attrName][nestedKey] = String(newValue);
 
-            // Update UI Trigger text
-            const trigger = document.querySelector(`[onclick*="openWheelPicker(event, '${assetId}', '${attrName}', '${nestedKey}'"]`);
-            if (trigger) {
-                trigger.textContent = String(newValue).padStart(2, '0');
-            }
-        }
-    } catch (e) {
-        console.error(e);
+    // Update the trigger display text
+    const trigger = document.querySelector(`[onclick*="openWheelPicker(event, '${assetId}', '${attrName}', '${nestedKey}'"]`);
+    if (trigger) {
+        trigger.textContent = String(newValue).padStart(2, '0');
     }
+
+    markDirty(assetId, attrName);
 }
 
-
-async function toggleDay(event, assetId, attrName, nestedKey, day) {
+function bufferDayToggle(event, assetId, attrName, nestedKey, day) {
     if (event) event.stopPropagation();
     const el = event.currentTarget;
     const isActive = el.style.background === 'var(--primary)';
@@ -311,36 +366,29 @@ async function toggleDay(event, assetId, attrName, nestedKey, day) {
     el.style.background = isActive ? '#e0e0e0' : 'var(--primary)';
     el.style.color = isActive ? '#777' : 'white';
 
-    try {
-        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
-        const asset = await res.json();
-        let currentVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
-        if (typeof currentVal === 'string') {
-            try { currentVal = JSON.parse(currentVal); } catch (e) { }
-        }
+    // Update buffer
+    if (!pendingTimerData[assetId]) pendingTimerData[assetId] = {};
+    if (!pendingTimerData[assetId][attrName]) pendingTimerData[assetId][attrName] = {};
 
-        if (typeof currentVal === 'object') {
-            let currentDaysStr = (currentVal[nestedKey] || '').toUpperCase();
-            const daysOrder = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-            let activeDays = [];
-            if (currentDaysStr === 'EVERYDAY') activeDays = [...daysOrder];
-            else activeDays = currentDaysStr.split(',').map(d => d.trim()).filter(d => daysOrder.includes(d));
+    let currentDaysStr = (pendingTimerData[assetId][attrName][nestedKey] || '').toUpperCase();
+    const daysOrder = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    let activeDays = [];
+    if (currentDaysStr === 'EVERYDAY') activeDays = [...daysOrder];
+    else activeDays = currentDaysStr.split(',').map(d => d.trim()).filter(d => daysOrder.includes(d));
 
-            if (activeDays.includes(day)) activeDays = activeDays.filter(d => d !== day);
-            else activeDays.push(day);
+    if (activeDays.includes(day)) activeDays = activeDays.filter(d => d !== day);
+    else activeDays.push(day);
 
-            activeDays.sort((a, b) => daysOrder.indexOf(a) - daysOrder.indexOf(b));
-            let newValue = activeDays.join(',');
-            if (activeDays.length === 7) newValue = 'EVERYDAY';
-            if (activeDays.length === 0) newValue = 'NONE';
+    activeDays.sort((a, b) => daysOrder.indexOf(a) - daysOrder.indexOf(b));
+    let newValue = activeDays.join(',');
+    if (activeDays.length === 7) newValue = 'EVERYDAY';
+    if (activeDays.length === 0) newValue = 'NONE';
 
-            currentVal[nestedKey] = newValue;
-            await saveAttribute(assetId, attrName, currentVal);
-        }
-    } catch (e) { console.error(e); }
+    pendingTimerData[assetId][attrName][nestedKey] = newValue;
+    markDirty(assetId, attrName);
 }
 
-async function toggleTimerOutput(event, assetId, attrName, nestedKey, relay) {
+function bufferOutputToggle(event, assetId, attrName, nestedKey, relay) {
     if (event) event.stopPropagation();
     const el = event.currentTarget;
     const isActive = el.style.background === 'var(--primary)';
@@ -349,48 +397,94 @@ async function toggleTimerOutput(event, assetId, attrName, nestedKey, relay) {
     el.style.background = isActive ? '#e0e0e0' : 'var(--primary)';
     el.style.color = isActive ? '#777' : 'white';
 
+    // Update buffer
+    if (!pendingTimerData[assetId]) pendingTimerData[assetId] = {};
+    if (!pendingTimerData[assetId][attrName]) pendingTimerData[assetId][attrName] = {};
+
+    let currentOutputsStr = (pendingTimerData[assetId][attrName][nestedKey] || '').toUpperCase();
+
+    const mapOutToR = (str) => {
+        const parts = str.split(',').map(s => s.trim());
+        return parts.map(p => {
+            if (p.startsWith('OUT')) {
+                const num = parseInt(p.replace('OUT', '').trim());
+                return `r${num}`;
+            }
+            return p.toLowerCase();
+        }).filter(p => p.startsWith('r'));
+    };
+
+    let activeOutputs = mapOutToR(currentOutputsStr);
+    if (activeOutputs.includes(relay)) activeOutputs = activeOutputs.filter(r => r !== relay);
+    else activeOutputs.push(relay);
+
+    const sorted = activeOutputs.sort();
+    const mapRToOut = (rFormatList) => {
+        return rFormatList.map(r => {
+            const num = parseInt(r.replace('r', ''));
+            return `OUT ${String(num).padStart(2, '0')}`;
+        });
+    };
+
+    pendingTimerData[assetId][attrName][nestedKey] = mapRToOut(sorted).join(',');
+    markDirty(assetId, attrName);
+}
+
+// Save a single timer card's buffered data to the server
+async function saveTimerCard(assetId, attrName) {
+    const btn = document.getElementById(`save-btn-${assetId}-${attrName}`);
+    if (btn) {
+        btn.textContent = 'SAVING...';
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+    }
+
     try {
+        // Fetch current server state first
         const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
-        let currentVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
-        if (typeof currentVal === 'string') {
-            try { currentVal = JSON.parse(currentVal); } catch (e) { }
+        let serverVal = asset.attributes[attrName]?.value || asset.attributes[attrName];
+        if (typeof serverVal === 'string') {
+            try { serverVal = JSON.parse(serverVal); } catch (e) { }
         }
 
-        if (typeof currentVal === 'object') {
-            let currentOutputsStr = (currentVal[nestedKey] || '').toUpperCase();
+        // Merge pending changes on top of server state
+        const pending = (pendingTimerData[assetId] && pendingTimerData[assetId][attrName]) || {};
+        const merged = { ...(typeof serverVal === 'object' ? serverVal : {}), ...pending };
 
-            const mapOutToR = (str) => {
-                const parts = str.split(',').map(s => s.trim());
-                return parts.map(p => {
-                    if (p.startsWith('OUT')) {
-                        const num = parseInt(p.replace('OUT', '').trim());
-                        return `r${num}`;
-                    }
-                    return p.toLowerCase();
-                }).filter(p => p.startsWith('r'));
-            };
+        // Remove internal metadata
+        delete merged._timestamp;
 
-            let activeOutputs = mapOutToR(currentOutputsStr);
-            if (activeOutputs.includes(relay)) activeOutputs = activeOutputs.filter(r => r !== relay);
-            else activeOutputs.push(relay);
+        await saveAttribute(assetId, attrName, merged);
 
-            const sorted = activeOutputs.sort();
-            const mapRToOut = (rFormatList) => {
-                return rFormatList.map(r => {
-                    const num = parseInt(r.replace('r', ''));
-                    return `OUT ${String(num).padStart(2, '0')}`;
-                });
-            };
+        // Clear dirty state
+        const dirtyKey = `${assetId}__${attrName}`;
+        dirtyTimers.delete(dirtyKey);
 
-            currentVal[nestedKey] = mapRToOut(sorted).join(',');
-            await saveAttribute(assetId, attrName, currentVal);
+        if (btn) {
+            btn.textContent = 'SAVED ✓';
+            btn.style.background = '#27ae60';
+            setTimeout(() => {
+                btn.style.display = 'none';
+                btn.textContent = 'SAVE';
+                btn.style.background = 'var(--primary)';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }, 1500);
         }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error(e);
+        toast('Failed to save timer');
+        if (btn) {
+            btn.textContent = 'SAVE';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }
+    }
 }
 
 
-async function saveAttribute(assetId, attrName, value) {
+async function saveAttribute(assetId, attrName, value, silent = false) {
     const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/${attrName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -398,8 +492,7 @@ async function saveAttribute(assetId, attrName, value) {
     });
     const data = await res.json();
     if (data.status === 'success') {
-        toast('Updated');
-        // loadTimers(); // Remove full reload to prevent jarring UX
+        if (!silent) toast('Updated');
     } else {
         toast('Failed to update');
     }
@@ -474,7 +567,8 @@ function closeWheelPicker() {
 }
 function confirmWheelSelection() {
     if (currentPickerTarget) {
-        updateNestedValue(currentPickerTarget.assetId, currentPickerTarget.attrName, currentPickerTarget.nestedKey, currentPickerValue);
+        // Buffer locally instead of saving immediately
+        bufferNestedValue(currentPickerTarget.assetId, currentPickerTarget.attrName, currentPickerTarget.nestedKey, currentPickerValue);
     }
     closeWheelPicker();
 }

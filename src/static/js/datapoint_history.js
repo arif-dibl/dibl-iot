@@ -122,7 +122,10 @@ async function loadAttributes(assetId) {
         select.innerHTML = '<option value="">Select group...</option>';
 
         // Only use actual attribute keys, do not expand JSON
-        Object.keys(attrs).sort().forEach(key => {
+        // Exclude timers and RuleTargets (not useful for history queries)
+        Object.keys(attrs).sort()
+            .filter(key => key !== 'RuleTargets' && !key.toLowerCase().startsWith('timer'))
+            .forEach(key => {
             const el = document.createElement('option');
             el.value = key;
             el.textContent = key;

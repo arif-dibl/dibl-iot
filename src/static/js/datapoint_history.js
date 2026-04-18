@@ -32,7 +32,7 @@ function initDateTimePickers() {
     const endTimeInput = document.getElementById('endTime');
 
     const now = new Date();
-    const minDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)); // 30 days ago
+    const minDate = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000)); // 180 days ago
     const defaultStart = new Date(now.getTime() - (24 * 60 * 60 * 1000)); // 24 hours ago
 
     // Format helpers

@@ -238,6 +238,7 @@ services:
       OR_SSL_PORT: ${OR_SSL_PORT:--1}
       OR_DEV_MODE: ${OR_DEV_MODE:-false}
       OR_METRICS_ENABLED: ${OR_METRICS_ENABLED:-true}
+      OR_DATA_POINTS_MAX_AGE_DAYS: 180
       OR_KEYCLOAK_HOST: keycloak
       OR_KEYCLOAK_PORT: 8080
 

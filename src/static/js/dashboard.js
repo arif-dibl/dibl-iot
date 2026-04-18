@@ -257,7 +257,6 @@ function renderSensorCard(w) {
         const content = `
             <div class="sensor-grid" style="grid-template-columns: 1fr; padding: 0.5rem 1rem 1rem 1rem;">
                 <div class="sensor-item" style="border-bottom:none; flex-direction:column; align-items:flex-start; gap:4px;">
-                    <span class="sensor-label" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">${label}</span>
                     <span class="sensor-value" style="font-size:1.75rem; font-weight:800; color:var(--primary); line-height:1.2;">${valueDisplay}</span>
                 </div>
             </div>

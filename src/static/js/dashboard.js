@@ -249,6 +249,22 @@ async function loadWidgets(assets = []) {
 }
 
 function renderSensorCard(w) {
+    // If a specific key is pinned, render it with a high-visibility layout
+    if (w.key) {
+        const valueDisplay = formatSensorValue(w.value, w.key, w.attributeName);
+        const label = w.displayName || getFriendlyLabel(w.key);
+        
+        const content = `
+            <div class="sensor-grid" style="grid-template-columns: 1fr; padding: 0.5rem 1rem 1rem 1rem;">
+                <div class="sensor-item" style="border-bottom:none; flex-direction:column; align-items:flex-start; gap:4px;">
+                    <span class="sensor-label" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Current Value</span>
+                    <span class="sensor-value" style="font-size:1.75rem; font-weight:800; color:var(--primary); line-height:1.2;">${valueDisplay}</span>
+                </div>
+            </div>
+        `;
+        return wrapWidgetCard(w, label, content);
+    }
+
     const attr = w.attributeName.toLowerCase();
     if (attr === 'npkdata') return renderNPKCard(w);
     if (attr === 'envdata') return renderEnvCard(w);
@@ -525,11 +541,12 @@ function renderTimerCard(w, assetName) {
 }
 
 function renderGenericCard(w) {
-    let content = '<div class="generic-content">';
+    let content = '<div class="generic-content" style="padding: 1rem;">';
     if (typeof w.value === 'object' && w.value !== null) {
-        content += '<pre>' + JSON.stringify(w.value, null, 2) + '</pre>';
+        content += '<pre style="background:#f4f4f4; padding:0.5rem; border-radius:4px; font-size:0.8rem; overflow-x:auto;">' + JSON.stringify(w.value, null, 2) + '</pre>';
     } else {
-        content += `<div>${w.value}</div>`;
+        const formatted = formatSensorValue(w.value, w.key || '', w.attributeName || '');
+        content += `<div style="font-size:1.5rem; font-weight:700; color:var(--primary);">${formatted}</div>`;
     }
     content += '</div>';
     return wrapWidgetCard(w, w.displayName || w.attributeName, content);

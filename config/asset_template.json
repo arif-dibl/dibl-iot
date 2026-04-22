@@ -1,5 +1,5 @@
 {
-    "version": 3,
+    "version": 4,
     "name": "Dibl-iot %UNIQUE_ID%",
     "accessPublicRead": false,
     "realm": "dibl-iot",
@@ -118,7 +118,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer01": {
@@ -139,7 +139,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer02": {
@@ -160,7 +160,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer03": {
@@ -181,7 +181,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer04": {
@@ -202,7 +202,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer05": {
@@ -223,7 +223,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer06": {
@@ -244,7 +244,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer07": {
@@ -265,7 +265,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer08": {
@@ -286,7 +286,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer09": {
@@ -307,7 +307,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer10": {
@@ -328,7 +328,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer11": {
@@ -349,7 +349,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         },
         "Timer12": {
@@ -370,7 +370,7 @@
                 "ruleState": true,
                 "accessRestrictedRead": true,
                 "accessRestrictedWrite": true,
-                "storeDataPoints": true
+                "storeDataPoints": false
             }
         }
     }

@@ -199,8 +199,8 @@ async def get_user_assets(username: str, request: Request):
 
                         flat_attrs[k] = val
                         
-                        # MoistureData for Activity Detection
-                        if ts and k == "MoistureData":
+                        # EnvData for Activity Detection
+                        if ts and k == "EnvData":
                             if last_activity_ts is None or ts > last_activity_ts:
                                 last_activity_ts = ts
                     else:
@@ -257,8 +257,8 @@ async def get_single_asset(username: str, request: Request, id: str):
 
                     flat_attrs[k] = val
 
-                    # MoistureData for Activity Detection per user request
-                    if ts and k == "MoistureData":
+                    # EnvData for Activity Detection per user request
+                    if ts and k == "EnvData":
                         if last_activity_ts is None or ts > last_activity_ts:
                             last_activity_ts = ts
                 else:

@@ -24,8 +24,10 @@
         <!-- Top Navigation -->
         <header class="top-nav">
             <div class="nav-brand">
-                <img src="{{ prefix }}/static/images/logo.png" alt="DIBL IoT">
-                <span>DIBL IoT</span>
+                <a href="{{ prefix }}/{{ request.session.username }}/dashboard" style="display:flex; align-items:center; text-decoration:none; color:inherit;">
+                    <img src="{{ prefix }}/static/images/logo.png" alt="DIBL IoT">
+                    <span>DIBL IoT</span>
+                </a>
             </div>
             <nav class="nav-links">
                 <a href="{{ prefix }}/{{ request.session.username }}/dashboard"

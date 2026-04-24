@@ -48,6 +48,12 @@
 }
 
 /* Stat Card (Overview) */
+.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
 .stat-card {
     background: white;
     padding: 1.5rem;
@@ -55,6 +61,14 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--border);
     text-align: center;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.stat-card-link:hover .stat-card,
+.stat-card-link:active .stat-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
 }
 
 .stat-number {

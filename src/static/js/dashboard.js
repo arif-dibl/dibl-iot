@@ -27,11 +27,10 @@ async function loadDashboard() {
 
         let totalRules = 0;
         assets.forEach(a => {
-            const storedRules = localStorage.getItem(`rules_${a.id}`);
-            if (storedRules) {
-                try {
-                    totalRules += JSON.parse(storedRules).length;
-                } catch (e) { }
+            const ruleTargets = a.attributes?.RuleTargets;
+            if (ruleTargets && typeof ruleTargets === 'object') {
+                // Count only real rule keys, skip metadata keys starting with '_'
+                totalRules += Object.keys(ruleTargets).filter(k => !k.startsWith('_')).length;
             }
         });
         document.getElementById('activeRules').textContent = totalRules;

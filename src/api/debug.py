@@ -1,12 +1,12 @@
 import requests
 from fastapi import APIRouter, Request, Depends
 from core.config import OR_MANAGER_URL, DEFAULT_REALM, OR_HOSTNAME
-from core.auth import get_valid_token, auth_test_api
+from core.auth import get_valid_token
 
 router = APIRouter(prefix="/api/debug", tags=["debug"])
 
 @router.post("/proxy")
-async def debug_proxy(username: str, request: Request, payload: dict, _=Depends(auth_test_api)):
+async def debug_proxy(username: str, request: Request, payload: dict):
     realm = request.session.get("realm", DEFAULT_REALM)
     access_token = get_valid_token(request)
     

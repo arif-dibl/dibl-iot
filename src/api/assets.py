@@ -201,8 +201,14 @@ async def get_user_assets(username: str, request: Request):
                         
                         # EnvData for Activity Detection
                         if ts and k == "EnvData":
-                            if last_activity_ts is None or ts > last_activity_ts:
-                                last_activity_ts = ts
+                            is_placeholder = False
+                            if isinstance(val, dict):
+                                # Ignore updates that only contain placeholders (e.g. from UI clearing)
+                                is_placeholder = all(v in [None, '--', 'null', ''] for v in val.values())
+                            
+                            if not is_placeholder:
+                                if last_activity_ts is None or ts > last_activity_ts:
+                                    last_activity_ts = ts
                     else:
                         flat_attrs[k] = v
             
@@ -259,8 +265,13 @@ async def get_single_asset(username: str, request: Request, id: str):
 
                     # EnvData for Activity Detection per user request
                     if ts and k == "EnvData":
-                        if last_activity_ts is None or ts > last_activity_ts:
-                            last_activity_ts = ts
+                        is_placeholder = False
+                        if isinstance(val, dict):
+                            is_placeholder = all(v in [None, '--', 'null', ''] for v in val.values())
+                        
+                        if not is_placeholder:
+                            if last_activity_ts is None or ts > last_activity_ts:
+                                last_activity_ts = ts
                 else:
                     flat_attrs[k] = v
         return {

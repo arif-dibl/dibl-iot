@@ -776,6 +776,23 @@ input:checked+.slider:before {
     opacity: 0.6;
 }
 
+/* Idle State for Widget Cards */
+.widget-card.idle {
+    background-color: #fee2e2;
+    border-color: #ef4444;
+    opacity: 0.9;
+}
+
+.widget-card.idle .widget-card-header span {
+    color: #7f1d1d !important;
+}
+
+.widget-card.idle .sensor-value,
+.widget-card.idle .metric-value,
+.widget-card.idle .moisture-value {
+    color: #b91c1c !important;
+}
+
 /* Mobile Navigation Responsiveness */
 .mobile-nav-item {
     display: none;

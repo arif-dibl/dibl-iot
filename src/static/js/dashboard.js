@@ -1,4 +1,5 @@
 const recentToggles = {};
+const clearedAssets = new Set();
 
 async function loadDashboard() {
     try {
@@ -37,9 +38,61 @@ async function loadDashboard() {
 
         loadSwitches(assets);
         loadWidgets(assets);
+        handleOfflineClearing(assets);
 
     } catch (e) {
         console.error('Failed to load dashboard:', e);
+    }
+}
+
+async function handleOfflineClearing(assets) {
+    for (const asset of assets) {
+        const status = getAssetStatus(asset.lastActivityTimestamp);
+        if (status.isOffline) {
+            if (!clearedAssets.has(asset.id)) {
+                await autoClearSensors(asset);
+                clearedAssets.add(asset.id);
+            }
+        } else {
+            // Back online, allow clearing again next time it goes offline
+            clearedAssets.delete(asset.id);
+        }
+    }
+}
+
+async function autoClearSensors(asset) {
+    const sensorAttrs = ['EnvData', 'MoistureData', 'NPKData'];
+    for (const attrName of sensorAttrs) {
+        let val = asset.attributes?.[attrName];
+        if (!val) continue;
+
+        if (typeof val === 'string') {
+            try { val = JSON.parse(val); } catch (e) { continue; }
+        }
+
+        if (typeof val === 'object' && val !== null) {
+            const cleared = {};
+            let hasData = false;
+            for (const k in val) {
+                if (val[k] !== null && val[k] !== '--' && val[k] !== '') {
+                    hasData = true;
+                }
+                cleared[k] = '--';
+            }
+
+            if (hasData) {
+                console.log(`[Dashboard] Auto-clearing ${attrName} for offline asset ${asset.id}`);
+                try {
+                    await fetch(`${APP_PREFIX}/api/asset/${asset.id}/attribute/${attrName}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ value: cleared })
+                    });
+                } catch (e) {
+                    console.error(`[Dashboard] Failed to auto-clear ${attrName}:`, e);
+                }
+            }
+        }
     }
 }
 
@@ -215,7 +268,11 @@ async function loadWidgets(assets = []) {
         if (sensors.length === 0) {
             sensorsContainer.innerHTML = '<div class="empty-placeholder">No sensors pinned. Go to Device Details to pin some!</div>';
         } else {
-            sensorsContainer.innerHTML = sensors.map(w => renderSensorCard(w)).join('');
+            sensorsContainer.innerHTML = sensors.map(w => {
+                const asset = assets.find(a => a.id === w.assetId);
+                const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
+                return renderSensorCard(w, isOffline);
+            }).join('');
         }
 
         if (timers.length === 0) {
@@ -224,7 +281,8 @@ async function loadWidgets(assets = []) {
             timersContainer.innerHTML = timers.map(w => {
                 const asset = assets.find(a => a.id === w.assetId);
                 const assetName = asset ? asset.name : (w.assetName || '');
-                return renderTimerCard(w, assetName);
+                const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
+                return renderTimerCard(w, assetName, isOffline);
             }).join('');
         }
 
@@ -234,7 +292,8 @@ async function loadWidgets(assets = []) {
             } else {
                 rulesContainer.innerHTML = rules.map(w => {
                     const asset = assets.find(a => a.id === w.assetId);
-                    return renderRuleCard(w, asset ? asset.attributes : null);
+                    const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
+                    return renderRuleCard(w, asset ? asset.attributes : null, isOffline);
                 }).join('');
             }
         }
@@ -247,10 +306,11 @@ async function loadWidgets(assets = []) {
     }
 }
 
-function renderSensorCard(w) {
+function renderSensorCard(w, isOffline = false) {
     // If a specific key is pinned, render it with a high-visibility layout
     if (w.key) {
-        const valueDisplay = formatSensorValue(w.value, w.key, w.attributeName);
+        const val = isOffline ? '--' : w.value;
+        const valueDisplay = formatSensorValue(val, w.key, w.attributeName);
         const label = w.displayName || getFriendlyLabel(w.key);
 
         const content = `
@@ -260,19 +320,19 @@ function renderSensorCard(w) {
                 </div>
             </div>
         `;
-        return wrapWidgetCard(w, label, content);
+        return wrapWidgetCard(w, label, content, isOffline);
     }
 
     const attr = w.attributeName.toLowerCase();
-    if (attr === 'npkdata') return renderNPKCard(w);
-    if (attr === 'envdata') return renderEnvCard(w);
-    if (attr === 'moisturedata') return renderMoistureCard(w);
-    if (attr === 'ruletargets') return renderRuleCard(w);
-    return renderGenericCard(w);
+    if (attr === 'npkdata') return renderNPKCard(w, isOffline);
+    if (attr === 'envdata') return renderEnvCard(w, isOffline);
+    if (attr === 'moisturedata') return renderMoistureCard(w, isOffline);
+    if (attr === 'ruletargets') return renderRuleCard(w, null, isOffline);
+    return renderGenericCard(w, isOffline);
 }
 
-function renderNPKCard(w) {
-    if (!w.value || typeof w.value !== 'object') return renderGenericCard(w);
+function renderNPKCard(w, isOffline = false) {
+    if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
     const keys = Object.keys(w.value);
     const zones = {};
@@ -282,10 +342,10 @@ function renderNPKCard(w) {
         if (match) {
             const idx = match[2];
             if (!zones[idx]) zones[idx] = [];
-            zones[idx].push({ k, v: w.value[k] });
+            zones[idx].push({ k, v: isOffline ? '--' : w.value[k] });
         } else {
             if (!zones['Other']) zones['Other'] = [];
-            zones['Other'].push({ k, v: w.value[k] });
+            zones['Other'].push({ k, v: isOffline ? '--' : w.value[k] });
         }
     });
 
@@ -325,17 +385,19 @@ function renderNPKCard(w) {
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, w.displayName || 'NPK Sensor Data', content);
+    return wrapWidgetCard(w, w.displayName || 'NPK Sensor Data', content, isOffline);
 }
 
-function renderRuleCard(w, assetAttributes = null) {
+function renderRuleCard(w, assetAttributes = null, isOffline = false) {
     let rulesList = [];
     if (w.value && typeof w.value === 'object') {
         rulesList = Object.entries(w.value).filter(([key]) => !key.startsWith('_'));
     }
 
     let content;
-    if (rulesList.length === 0) {
+    if (isOffline) {
+        content = '<div style="color:#b91c1c; font-style:italic; padding:1rem; font-weight:600;">Device Offline - Controls Disabled</div>';
+    } else if (rulesList.length === 0) {
         content = '<div style="color:#999; font-style:italic; padding:1rem;">No active rule targets</div>';
     } else {
         content = `<div style="padding:1rem; display:flex; flex-direction:column; gap:0.5rem;">`;
@@ -437,48 +499,50 @@ function renderRuleCard(w, assetAttributes = null) {
         content += `</div>`;
     }
 
-    return wrapWidgetCard(w, w.displayName || w.assetName || 'Rule Targets', content);
+    return wrapWidgetCard(w, w.displayName || w.assetName || 'Rule Targets', content, isOffline);
 }
 
 
-function renderEnvCard(w) {
-    if (!w.value || typeof w.value !== 'object') return renderGenericCard(w);
+function renderEnvCard(w, isOffline = false) {
+    if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
     const keys = Object.keys(w.value).sort();
     let content = '<div class="sensor-grid">';
 
     keys.forEach(k => {
+        const val = isOffline ? '--' : w.value[k];
         content += `<div class="sensor-item">
             <span class="sensor-label">${getFriendlyLabel(k)}</span>
-            <span class="sensor-value">${formatSensorValue(w.value[k], k, 'EnvData')}</span>
+            <span class="sensor-value">${formatSensorValue(val, k, 'EnvData')}</span>
         </div>`;
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, w.displayName || 'Environment', content);
+    return wrapWidgetCard(w, w.displayName || 'Environment', content, isOffline);
 }
 
-function renderMoistureCard(w) {
-    if (!w.value || typeof w.value !== 'object') return renderGenericCard(w);
+function renderMoistureCard(w, isOffline = false) {
+    if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
     const keys = Object.keys(w.value).sort();
     let content = '<div class="sensor-grid">';
 
     keys.forEach(k => {
+        const val = isOffline ? '--' : w.value[k];
         content += `<div class="sensor-item">
             <span class="sensor-label">${getFriendlyLabel(k)}</span>
-            <span class="sensor-value">${formatSensorValue(w.value[k], k, 'MoistureData')}</span>
+            <span class="sensor-value">${formatSensorValue(val, k, 'MoistureData')}</span>
         </div>`;
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, w.displayName || 'Moisture Levels', content);
+    return wrapWidgetCard(w, w.displayName || 'Moisture Levels', content, isOffline);
 }
 
-function renderTimerCard(w, assetName) {
-    if (!w.value || typeof w.value !== 'object') return renderGenericCard(w);
+function renderTimerCard(w, assetName, isOffline = false) {
+    if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
-    let status = w.value['Status'] || 'Unknown';
+    let status = isOffline ? 'OFFLINE' : (w.value['Status'] || 'Unknown');
     if (typeof status === 'string') status = status.toUpperCase();
     const isActive = status === 'ACTIVE' || status === 'ON';
 
@@ -486,7 +550,7 @@ function renderTimerCard(w, assetName) {
         <div style="padding:1rem; display:flex; flex-direction:column; gap:0.5rem;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-weight:600; color:#555;">Status</span>
-                <span style="font-weight:700; color:${isActive ? 'var(--success)' : '#999'}">${isActive ? 'ACTIVE' : 'INACTIVE'}</span>
+                <span style="font-weight:700; color:${isOffline ? '#b91c1c' : (isActive ? 'var(--success)' : '#999')}">${isOffline ? 'OFFLINE' : (isActive ? 'ACTIVE' : 'INACTIVE')}</span>
             </div>
     `;
 
@@ -535,27 +599,28 @@ function renderTimerCard(w, assetName) {
     if (assetName) {
         timerTitle = `${timerTitle} - ${assetName}`;
     }
-    return wrapWidgetCard(w, timerTitle, content);
+    return wrapWidgetCard(w, timerTitle, content, isOffline);
 }
 
-function renderGenericCard(w) {
+function renderGenericCard(w, isOffline = false) {
     let content = '<div class="generic-content" style="padding: 1rem;">';
     if (typeof w.value === 'object' && w.value !== null) {
         content += '<pre style="background:#f4f4f4; padding:0.5rem; border-radius:4px; font-size:0.8rem; overflow-x:auto;">' + JSON.stringify(w.value, null, 2) + '</pre>';
     } else {
-        const formatted = formatSensorValue(w.value, w.key || '', w.attributeName || '');
+        const val = isOffline ? '--' : w.value;
+        const formatted = formatSensorValue(val, w.key || '', w.attributeName || '');
         content += `<div style="font-size:1.5rem; font-weight:700; color:var(--primary);">${formatted}</div>`;
     }
     content += '</div>';
-    return wrapWidgetCard(w, w.displayName || w.attributeName, content);
+    return wrapWidgetCard(w, w.displayName || w.attributeName, content, isOffline);
 }
 
-function wrapWidgetCard(w, title, contentHtml) {
+function wrapWidgetCard(w, title, contentHtml, isOffline = false) {
     const isFixed = !w.id;
     const isRuleParams = w.attributeName && w.attributeName === 'RuleTargets';
 
     return `
-        <div class="widget-card">
+        <div class="widget-card ${isOffline ? 'idle' : ''}">
             <div class="widget-card-header" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>${title}</span>
                 <div style="display:flex; gap:8px;">

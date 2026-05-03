@@ -199,16 +199,11 @@ async def get_user_assets(username: str, request: Request):
 
                         flat_attrs[k] = val
                         
-                        # EnvData for Activity Detection
-                        if ts and k == "EnvData":
-                            is_placeholder = False
-                            if isinstance(val, dict):
-                                # Ignore updates that only contain placeholders (e.g. from UI clearing)
-                                is_placeholder = all(v in [None, '--', 'null', ''] for v in val.values())
-                            
-                            if not is_placeholder:
-                                if last_activity_ts is None or ts > last_activity_ts:
-                                    last_activity_ts = ts
+                        # Activity Detection: use the latest timestamp from any sensor attribute
+                        # even if it was just cleared to placeholders (as requested by user)
+                        if ts and k in ["EnvData", "MoistureData", "NPKData"]:
+                            if last_activity_ts is None or ts > last_activity_ts:
+                                last_activity_ts = ts
                     else:
                         flat_attrs[k] = v
             
@@ -263,15 +258,11 @@ async def get_single_asset(username: str, request: Request, id: str):
 
                     flat_attrs[k] = val
 
-                    # EnvData for Activity Detection per user request
-                    if ts and k == "EnvData":
-                        is_placeholder = False
-                        if isinstance(val, dict):
-                            is_placeholder = all(v in [None, '--', 'null', ''] for v in val.values())
-                        
-                        if not is_placeholder:
-                            if last_activity_ts is None or ts > last_activity_ts:
-                                last_activity_ts = ts
+                    # Activity Detection: use the latest timestamp from any sensor attribute
+                    # even if it was just cleared to placeholders (as requested by user)
+                    if ts and k in ["EnvData", "MoistureData", "NPKData"]:
+                        if last_activity_ts is None or ts > last_activity_ts:
+                            last_activity_ts = ts
                 else:
                     flat_attrs[k] = v
         return {

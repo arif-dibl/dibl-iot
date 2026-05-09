@@ -199,11 +199,21 @@ async def get_user_assets(username: str, request: Request):
 
                         flat_attrs[k] = val
                         
-                        # Activity Detection: use the latest timestamp from any sensor attribute
-                        # even if it was just cleared to placeholders (as requested by user)
-                        if ts and k in ["EnvData", "MoistureData", "NPKData"]:
-                            if last_activity_ts is None or ts > last_activity_ts:
-                                last_activity_ts = ts
+                        # Activity Detection: use the latest timestamp from EnvData only
+                        # AND ensure it's not just placeholder data (all '--')
+                        if ts and k == "EnvData":
+                            has_real_data = False
+                            if isinstance(val, dict):
+                                for sub_val in val.values():
+                                    if sub_val not in [None, "", "--"]:
+                                        has_real_data = True
+                                        break
+                            elif val not in [None, "", "--"]:
+                                has_real_data = True
+
+                            if has_real_data:
+                                if last_activity_ts is None or ts > last_activity_ts:
+                                    last_activity_ts = ts
                     else:
                         flat_attrs[k] = v
             
@@ -258,11 +268,21 @@ async def get_single_asset(username: str, request: Request, id: str):
 
                     flat_attrs[k] = val
 
-                    # Activity Detection: use the latest timestamp from any sensor attribute
-                    # even if it was just cleared to placeholders (as requested by user)
-                    if ts and k in ["EnvData", "MoistureData", "NPKData"]:
-                        if last_activity_ts is None or ts > last_activity_ts:
-                            last_activity_ts = ts
+                    # Activity Detection: use the latest timestamp from EnvData only
+                    # AND ensure it's not just placeholder data (all '--')
+                    if ts and k == "EnvData":
+                        has_real_data = False
+                        if isinstance(val, dict):
+                            for sub_val in val.values():
+                                if sub_val not in [None, "", "--"]:
+                                    has_real_data = True
+                                    break
+                        elif val not in [None, "", "--"]:
+                            has_real_data = True
+
+                        if has_real_data:
+                            if last_activity_ts is None or ts > last_activity_ts:
+                                last_activity_ts = ts
                 else:
                     flat_attrs[k] = v
         return {

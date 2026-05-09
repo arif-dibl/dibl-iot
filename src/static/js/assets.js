@@ -131,6 +131,19 @@ function closeEditModal() {
 // Show ID Modal
 function showIdModal(id) {
     document.getElementById('displayAssetId').textContent = id;
+    
+    // Generate QR Code
+    const qrContainer = document.getElementById('qrCodeContainer');
+    qrContainer.innerHTML = ''; // Clear previous QR code if any
+    new QRCode(qrContainer, {
+        text: id,
+        width: 150,
+        height: 150,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
     document.getElementById('showIdModal').classList.add('show');
 }
 function closeIdModal() {

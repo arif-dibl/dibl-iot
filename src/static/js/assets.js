@@ -50,7 +50,7 @@ async function loadAssets() {
 
     <!-- Row 3: Actions (Show ID, Unlink) -->
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span onclick="event.stopPropagation(); showIdModal('${a.id}')"
+        <span onclick="event.stopPropagation(); showIdModal('${a.id}', '${a.name.replace(/'/g, "\\'")}')"
             style="cursor:pointer; color:var(--primary); font-weight:600; font-size:0.9rem; border-bottom:1px dashed var(--primary);">
             Show ID
         </span>
@@ -129,8 +129,14 @@ function closeEditModal() {
 }
 
 // Show ID Modal
-function showIdModal(id) {
+function showIdModal(id, name = 'IoT Device') {
     document.getElementById('displayAssetId').textContent = id;
+    
+    // Update Title
+    const titleEl = document.getElementById('showIdTitle');
+    if (titleEl) {
+        titleEl.textContent = `${name} ID`;
+    }
     
     // Generate QR Code
     const qrContainer = document.getElementById('qrCodeContainer');

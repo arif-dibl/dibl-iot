@@ -36,9 +36,8 @@ async function loadAssets() {
         </button>
     </div>
 
-    <!-- Row 2: Type and Status -->
+    <!-- Row 2: Status -->
     <div style="display:flex; align-items:center; gap:12px;">
-         <span style="background:var(--bg-light); padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:600; color:#555;">${a.type}</span>
          <div style="display:flex; align-items:center; gap:6px; font-size:0.9rem; background:#f8f9fa; padding:3px 10px; border-radius:12px; border:1px solid #eee;">
             <span>${statusDot}</span>
             <span style="color:${statusColor}; font-weight:700;">${activityStatus}</span>

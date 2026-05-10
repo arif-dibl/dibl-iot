@@ -28,7 +28,6 @@ async function loadDetail() {
         }
 
         document.getElementById('assetName').textContent = asset.name;
-        document.getElementById('assetTypeBadge').textContent = asset.type;
 
         // Update Last Update Text
         if (asset.lastActivityTimestamp) {
@@ -808,7 +807,30 @@ function closeWheelPicker() {
 }
 
 // ID Modal
-function openIdModal() { document.getElementById('showIdModal').classList.add('show'); }
+function openIdModal() { 
+    // Update Title with name
+    const assetName = document.getElementById('assetName').textContent;
+    const titleEl = document.getElementById('showIdTitle');
+    if (titleEl) {
+        titleEl.textContent = `${assetName} ID`;
+    }
+
+    // Generate QR Code
+    const qrContainer = document.getElementById('qrCodeContainer');
+    if (qrContainer) {
+        qrContainer.innerHTML = ''; // Clear previous QR code if any
+        new QRCode(qrContainer, {
+            text: ASSET_ID,
+            width: 150,
+            height: 150,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    document.getElementById('showIdModal').classList.add('show'); 
+}
 function closeIdModal() { document.getElementById('showIdModal').classList.remove('show'); }
 function copyIdToClipboard() {
     // Use global ASSET_ID

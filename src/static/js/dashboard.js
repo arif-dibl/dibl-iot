@@ -309,7 +309,7 @@ async function loadWidgets(assets = []) {
 function renderSensorCard(w, isOffline = false) {
     // If a specific key is pinned, render it with a high-visibility layout
     if (w.key) {
-        const val = isOffline ? '--' : w.value;
+        const val = w.value;
         const valueDisplay = formatSensorValue(val, w.key, w.attributeName);
         const label = w.displayName || getFriendlyLabel(w.key);
 
@@ -342,10 +342,10 @@ function renderNPKCard(w, isOffline = false) {
         if (match) {
             const idx = match[2];
             if (!zones[idx]) zones[idx] = [];
-            zones[idx].push({ k, v: isOffline ? '--' : w.value[k] });
+            zones[idx].push({ k, v: w.value[k] });
         } else {
             if (!zones['Other']) zones['Other'] = [];
-            zones['Other'].push({ k, v: isOffline ? '--' : w.value[k] });
+            zones['Other'].push({ k, v: w.value[k] });
         }
     });
 
@@ -510,7 +510,7 @@ function renderEnvCard(w, isOffline = false) {
     let content = '<div class="sensor-grid">';
 
     keys.forEach(k => {
-        const val = isOffline ? '--' : w.value[k];
+        const val = w.value[k];
         content += `<div class="sensor-item">
             <span class="sensor-label">${getFriendlyLabel(k)}</span>
             <span class="sensor-value">${formatSensorValue(val, k, 'EnvData')}</span>
@@ -528,7 +528,7 @@ function renderMoistureCard(w, isOffline = false) {
     let content = '<div class="sensor-grid">';
 
     keys.forEach(k => {
-        const val = isOffline ? '--' : w.value[k];
+        const val = w.value[k];
         content += `<div class="sensor-item">
             <span class="sensor-label">${getFriendlyLabel(k)}</span>
             <span class="sensor-value">${formatSensorValue(val, k, 'MoistureData')}</span>
@@ -607,7 +607,7 @@ function renderGenericCard(w, isOffline = false) {
     if (typeof w.value === 'object' && w.value !== null) {
         content += '<pre style="background:#f4f4f4; padding:0.5rem; border-radius:4px; font-size:0.8rem; overflow-x:auto;">' + JSON.stringify(w.value, null, 2) + '</pre>';
     } else {
-        const val = isOffline ? '--' : w.value;
+        const val = w.value;
         const formatted = formatSensorValue(val, w.key || '', w.attributeName || '');
         content += `<div style="font-size:1.5rem; font-weight:700; color:var(--primary);">${formatted}</div>`;
     }

@@ -38,7 +38,7 @@ async function loadDashboard() {
 
         loadSwitches(assets);
         loadWidgets(assets);
-        handleOfflineClearing(assets);
+        // handleOfflineClearing(assets); // Disabled: Keep last known values and timestamp when offline
 
     } catch (e) {
         console.error('Failed to load dashboard:', e);

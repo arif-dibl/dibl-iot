@@ -335,7 +335,7 @@ function renderRules() {
                     <span class="logic-label">When Condition</span>
                     <div class="device-selector-row" id="deviceRow_when_${rule.id}">
                         <div class="device-label-group">
-                            <span class="device-chip">📱 This Device</span>
+                            <span class="device-chip">📱 ${getWhenDeviceLabel(rule)}</span>
                         </div>
                         <button class="btn-device-change" onclick="showDeviceChangeConfirm('${rule.id}')">Change</button>
                     </div>
@@ -427,8 +427,26 @@ function showDeviceList(ruleId) {
 }
 
 function selectWhenDevice(ruleId, assetId) {
-    // Visual only for now - close the list and show device name
+    // Visual only for now - store selection and update display
+    const rule = rules.find(r => r.id === ruleId);
+    if (rule) {
+        rule.whenDeviceId = assetId;
+    }
     hideDeviceChangeConfirm(ruleId);
+    // Update just the chip text without full re-render
+    const row = document.getElementById(`deviceRow_when_${ruleId}`);
+    if (row) {
+        const chip = row.querySelector('.device-chip');
+        if (chip) chip.textContent = '📱 ' + getWhenDeviceLabel(rule);
+    }
+}
+
+function getWhenDeviceLabel(rule) {
+    if (!rule.whenDeviceId || rule.whenDeviceId === currentAssetId) {
+        return 'This Device';
+    }
+    const asset = allUserAssets.find(a => a.id === rule.whenDeviceId);
+    return asset ? asset.name : 'Unknown Device';
 }
 
 function getOperatorCode(op) {

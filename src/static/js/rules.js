@@ -4,6 +4,7 @@ let currentAssetId = null;
 let allAttributes = {};
 let isRulesPinned = false;
 let rulesTimestamp = null;
+let allUserAssets = [];
 
 
 async function init() {
@@ -11,6 +12,7 @@ async function init() {
         const res = await fetch(`${APP_PREFIX}/api/user/assets`);
         const data = await res.json();
         const assets = Array.isArray(data) ? data : (data.assets || []);
+        allUserAssets = assets;
 
         const select = document.getElementById('assetSelect');
         assets.forEach(asset => {
@@ -331,6 +333,20 @@ function renderRules() {
             <div class="rule-card-body">
                 <div class="logic-block">
                     <span class="logic-label">When Condition</span>
+                    <div class="device-selector-row" id="deviceRow_when_${rule.id}">
+                        <div class="device-label-group">
+                            <span class="device-chip">📱 This Device</span>
+                        </div>
+                        <button class="btn-device-change" onclick="showDeviceChangeConfirm('${rule.id}')">Change</button>
+                    </div>
+                    <div class="device-confirm" id="deviceConfirm_${rule.id}" style="display:none;">
+                        <span class="device-confirm-text">Are you sure?</span>
+                        <div class="device-confirm-actions">
+                            <button class="btn-confirm-yes" onclick="showDeviceList('${rule.id}')">Yes</button>
+                            <button class="btn-confirm-no" onclick="hideDeviceChangeConfirm('${rule.id}')">No</button>
+                        </div>
+                    </div>
+                    <div class="device-list" id="deviceList_${rule.id}" style="display:none;"></div>
                     <div class="start-controls">
                         <select class="form-control" style="flex: 2; min-width: 140px;" onchange="updateRule('${rule.id}', 'sensor', this.value)">
                             <option value="">Select sensor...</option>
@@ -349,6 +365,11 @@ function renderRules() {
                 
                 <div class="logic-block">
                     <span class="logic-label">Then Action</span>
+                    <div class="device-selector-row device-readonly">
+                        <div class="device-label-group">
+                            <span class="device-chip device-chip-muted">📱 This Device</span>
+                        </div>
+                    </div>
                     <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                         <span style="color: var(--text-dark);">Set</span>
                         <select class="form-control" style="flex: 1;" onchange="updateRule('${rule.id}', 'relay', this.value)">
@@ -375,6 +396,39 @@ function renderRules() {
             </div>
         </div>
     `).join('');
+}
+
+function getDeviceListHtml(ruleId) {
+    return allUserAssets.map(asset => {
+        const isCurrent = asset.id === currentAssetId;
+        return `<div class="device-list-item ${isCurrent ? 'current' : ''}" onclick="selectWhenDevice('${ruleId}', '${asset.id}')">
+            <span class="device-list-name">${asset.name}</span>
+            ${isCurrent ? '<span class="device-list-badge">This Device</span>' : ''}
+        </div>`;
+    }).join('');
+}
+
+function showDeviceChangeConfirm(ruleId) {
+    document.getElementById(`deviceRow_when_${ruleId}`).style.display = 'none';
+    document.getElementById(`deviceConfirm_${ruleId}`).style.display = 'flex';
+}
+
+function hideDeviceChangeConfirm(ruleId) {
+    document.getElementById(`deviceConfirm_${ruleId}`).style.display = 'none';
+    document.getElementById(`deviceList_${ruleId}`).style.display = 'none';
+    document.getElementById(`deviceRow_when_${ruleId}`).style.display = 'flex';
+}
+
+function showDeviceList(ruleId) {
+    document.getElementById(`deviceConfirm_${ruleId}`).style.display = 'none';
+    const listEl = document.getElementById(`deviceList_${ruleId}`);
+    listEl.innerHTML = getDeviceListHtml(ruleId);
+    listEl.style.display = 'block';
+}
+
+function selectWhenDevice(ruleId, assetId) {
+    // Visual only for now - close the list and show device name
+    hideDeviceChangeConfirm(ruleId);
 }
 
 function getOperatorCode(op) {

@@ -131,3 +131,172 @@
     border-color: #ddd;
     background: white;
 }
+
+/* ── Device Selector ── */
+.device-selector-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+    border: 1px solid #d0daf0;
+    border-radius: 6px;
+}
+
+.device-selector-row.device-readonly {
+    background: linear-gradient(135deg, #f0faf4 0%, #e8f5e9 100%);
+    border-color: #c8e6c9;
+}
+
+.device-label-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.device-chip {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1a56db;
+}
+
+.device-chip-muted {
+    color: #2e7d32;
+}
+
+.btn-device-change {
+    background: transparent;
+    border: 1px solid #a0b4d0;
+    color: #3b6cb4;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-device-change:hover {
+    background: #3b6cb4;
+    color: #fff;
+    border-color: #3b6cb4;
+}
+
+/* Confirmation dialog */
+.device-confirm {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
+    border: 1px solid #ffe082;
+    border-radius: 6px;
+    animation: fadeSlideIn 0.2s ease;
+}
+
+.device-confirm-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #7c6a0a;
+}
+
+.device-confirm-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-confirm-yes,
+.btn-confirm-no {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+}
+
+.btn-confirm-yes {
+    background: #27ae60;
+    color: #fff;
+}
+
+.btn-confirm-yes:hover {
+    background: #219a52;
+}
+
+.btn-confirm-no {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.btn-confirm-no:hover {
+    background: #ccc;
+}
+
+/* Device list */
+.device-list {
+    margin-bottom: 0.75rem;
+    border: 1px solid #d0daf0;
+    border-radius: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+    background: #fff;
+    animation: fadeSlideIn 0.2s ease;
+}
+
+.device-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.75rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.device-list-item:last-child {
+    border-bottom: none;
+}
+
+.device-list-item:hover {
+    background: #f0f4ff;
+}
+
+.device-list-item.current {
+    background: #e8f5e9;
+}
+
+.device-list-item.current:hover {
+    background: #c8e6c9;
+}
+
+.device-list-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.device-list-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: #27ae60;
+    color: #fff;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

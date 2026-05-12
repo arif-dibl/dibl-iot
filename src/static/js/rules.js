@@ -336,7 +336,7 @@ function renderRules() {
                     <span class="logic-label">When Condition</span>
                     <div class="device-selector-row" id="deviceRow_when_${rule.id}">
                         <div class="device-label-group">
-                            <span class="device-chip">📱 ${getWhenDeviceLabel(rule)}</span>
+                            <span class="device-chip">${getWhenDeviceLabel(rule)}</span>
                         </div>
                         <button class="btn-device-change" onclick="showDeviceChangeConfirm('${rule.id}')">Change</button>
                     </div>
@@ -368,7 +368,7 @@ function renderRules() {
                     <span class="logic-label">Then Action</span>
                     <div class="device-selector-row device-readonly">
                         <div class="device-label-group">
-                            <span class="device-chip device-chip-muted">📱 This Device</span>
+                            <span class="device-chip device-chip-muted">This Device</span>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
@@ -438,7 +438,7 @@ function selectWhenDevice(ruleId, assetId) {
     const row = document.getElementById(`deviceRow_when_${ruleId}`);
     if (row) {
         const chip = row.querySelector('.device-chip');
-        if (chip) chip.textContent = '📱 ' + getWhenDeviceLabel(rule);
+        if (chip) chip.textContent = getWhenDeviceLabel(rule);
     }
 }
 

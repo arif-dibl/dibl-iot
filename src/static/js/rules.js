@@ -98,7 +98,8 @@ async function loadAsset(assetId) {
                                     value: parseFloat(parts[1]),
                                     relay: `RelayData.${parts[2]}`,
                                     relayState: rVal,
-                                    enabled: true
+                                    enabled: true,
+                                    whenDeviceId: parts.length > 5 ? parts[5] : null
                                 });
                             }
                         }
@@ -168,7 +169,7 @@ async function saveRule(ruleId) {
 
         if (rule.enabled) {
             const state = rule.relayState !== undefined ? rule.relayState : true;
-            await updateRuleTargets(rule.sensor, rule.relay, state, rule.operator, rule.value, ruleId, rule.name);
+            await updateRuleTargets(rule.sensor, rule.relay, state, rule.operator, rule.value, ruleId, rule.name, rule.whenDeviceId);
         } else if (!rule.enabled && rule.sensor) {
             await clearRuleTarget(rule.sensor, ruleId);
         }
@@ -458,7 +459,7 @@ function getOperatorCode(op) {
     return 0;
 }
 
-async function updateRuleTargets(sensorPath, targetRelay, targetState, operator, threshold, ruleId, ruleName) {
+async function updateRuleTargets(sensorPath, targetRelay, targetState, operator, threshold, ruleId, ruleName, whenDeviceId) {
     const attrName = "RuleTargets";
     const { key: sensorKey } = parseThresholdAttribute(sensorPath);
     if (!sensorKey) return;
@@ -483,7 +484,12 @@ async function updateRuleTargets(sensorPath, targetRelay, targetState, operator,
     let groovyOp = operator;
     if (operator === '=') groovyOp = '==';
 
-    const valToStore = `${groovyOp}:${threshold}:${rVal}:${targetState ? '1' : '0'}:${ruleName || ''}`;
+    let valToStore = `${groovyOp}:${threshold}:${rVal}:${targetState ? '1' : '0'}:${ruleName || ''}`;
+
+    // If a different device is selected, append its asset ID as the 6th field
+    if (whenDeviceId && whenDeviceId !== currentAssetId) {
+        valToStore += `:${whenDeviceId}`;
+    }
 
     targets[uniqueKey] = valToStore;
 

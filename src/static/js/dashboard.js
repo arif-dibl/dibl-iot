@@ -104,9 +104,14 @@ async function loadSwitches(assets) {
 
     for (const asset of assets) {
         const relayData = asset.attributes?.RelayData;
+        const valveState = asset.attributes?.ValveState;
         if (relayData && typeof relayData === 'object') {
             const status = getAssetStatus(asset.lastActivityTimestamp);
             html += renderSwitchCard(asset.name, asset.id, relayData, status.isOffline);
+        }
+        if (valveState !== undefined) {
+            const status = getAssetStatus(asset.lastActivityTimestamp);
+            html += renderValveCard(asset.name, asset.id, valveState, status.isOffline);
         }
     }
 
@@ -229,6 +234,80 @@ function renameSwitch(assetId, key) {
         localStorage.setItem(`switch_name_${assetId}_${key}`, newName.trim());
         toast('Switch renamed');
         loadDashboard();
+    }
+}
+
+function renderValveCard(assetName, assetId, valveState, isIdle = false) {
+    const toggleKey = `${assetId}_ValveState`;
+    const isRecent = recentToggles[toggleKey] && (Date.now() - recentToggles[toggleKey] < 5000);
+    const boolVal = isRecent ? recentToggles[`${toggleKey}_val`] : toBool(valveState);
+    const storedName = localStorage.getItem(`switch_name_${assetId}_ValveState`) || 'Valve';
+    const safeAssetId = assetId.replace(/'/g, "\\'");
+
+    return `
+        <div class="switch-card-wrapper" data-asset-id="${assetId}">
+            <div class="switch-loading-layer"></div>
+            <div class="widget-card" style="width:100%;">
+                <div class="widget-card-header" style="font-size:1rem; border-bottom:1px solid #f0f0f0; margin-bottom:1rem; padding-bottom:0.5rem;">${assetName}</div>
+                <div class="switch-grid">
+                    <div class="switch-item ${boolVal ? 'switch-on' : 'switch-off'} ${isIdle ? 'idle' : ''}">
+                        <div class="switch-info-col">
+                            <div class="switch-label">${storedName}</div>
+                            <span class="switch-rename-btn" onclick="renameSwitch('${safeAssetId}', 'ValveState')">RENAME</span>
+                        </div>
+                        <div class="switch-toggle-col">
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${boolVal ? 'checked' : ''} ${isIdle ? 'disabled' : ''} onchange="toggleValve('${safeAssetId}', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function toggleValve(assetId, newValue) {
+    console.log(`[Dashboard] Toggling valve: ${assetId} -> ${newValue}`);
+
+    const wrapper = document.querySelector(`.switch-card-wrapper[data-asset-id="${assetId}"]`);
+    if (wrapper) {
+        if (wrapper.classList.contains('locked')) {
+            const cb = wrapper.querySelector('input[onchange*="toggleValve"]');
+            if (cb) cb.checked = !newValue;
+            return;
+        }
+        wrapper.classList.add('locked');
+        const layer = wrapper.querySelector('.switch-loading-layer');
+        if (layer) {
+            layer.style.animation = 'none';
+            void layer.offsetWidth;
+            layer.style.animation = '';
+        }
+        setTimeout(() => { wrapper.classList.remove('locked'); }, 1500);
+    }
+
+    try {
+        const toggleKey = `${assetId}_ValveState`;
+        recentToggles[toggleKey] = Date.now();
+        recentToggles[`${toggleKey}_val`] = newValue;
+        setTimeout(() => { delete recentToggles[toggleKey]; delete recentToggles[`${toggleKey}_val`]; }, 5000);
+
+        console.log('[Dashboard] Sending ValveState:', newValue);
+
+        const updateRes = await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/ValveState`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: newValue })
+        });
+
+        if (!updateRes.ok) throw new Error(`Failed to update attribute: ${updateRes.status}`);
+
+        toast(`Valve turned ${newValue ? 'ON' : 'OFF'}`);
+    } catch (e) {
+        toast('Failed to toggle valve');
+        console.error('[Dashboard] Valve toggle error:', e);
     }
 }
 

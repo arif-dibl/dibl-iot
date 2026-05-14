@@ -4,6 +4,8 @@ const openGroups = new Set();
 const pendingTimerData = {};
 // Track which cards have unsaved edits
 const dirtyTimers = new Set(); // keys like "assetId__attrName"
+// Track output type per asset: 'valve' or 'relay'
+const assetOutputType = {};
 
 async function loadTimers() {
     try {
@@ -46,6 +48,12 @@ async function loadTimers() {
                 const assetIdClean = asset.id.replace(/[^a-zA-Z0-9]/g, '');
                 const isOpen = openGroups.has(assetIdClean);
 
+                // Detect output type for this asset
+                if (asset.attributes?.ValveState !== undefined) {
+                    assetOutputType[asset.id] = 'valve';
+                } else {
+                    assetOutputType[asset.id] = 'relay';
+                }
                 // Seed the pending buffer with current server values
                 if (!pendingTimerData[asset.id]) pendingTimerData[asset.id] = {};
                 for (const [key, val] of Object.entries(timerAttributes)) {
@@ -225,10 +233,15 @@ function renderDaysSelector(assetId, attrName, nestedKey, val) {
 }
 
 function renderOutputsSelector(assetId, attrName, nestedKey, val) {
-    const relayOptions = ['r1', 'r2', 'r3', 'r4'];
+    const outputType = assetOutputType[assetId] || 'relay';
+    const isValve = outputType === 'valve';
+    const outputOptions = isValve ? ['valve'] : ['r1', 'r2', 'r3', 'r4'];
     const currentOutputs = (val || '').toLowerCase();
 
     const isActive = (rLabel) => {
+        if (isValve) {
+            return currentOutputs.includes('valve');
+        }
         const num = rLabel.replace('r', '');
         const target = `out 0${num}`;
         if (currentOutputs.includes(target) || currentOutputs.includes(rLabel)) return true;
@@ -236,12 +249,13 @@ function renderOutputsSelector(assetId, attrName, nestedKey, val) {
     };
 
     let html = '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
-    relayOptions.forEach(r => {
+    outputOptions.forEach(r => {
         const active = isActive(r);
-        const label = r.replace('r', '');
+        const label = isValve ? 'V' : r.replace('r', '');
+        const title = isValve ? 'Valve' : `Switch ${label}`;
         html += `
             <div onclick="bufferOutputToggle(event, '${assetId}', '${attrName}', '${nestedKey}', '${r}')"
-                title="Switch ${label}"
+                title="${title}"
                 style="width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                 background:${active ? 'var(--primary)' : '#e0e0e0'}; 
                 color:${active ? 'white' : '#777'};">
@@ -401,32 +415,41 @@ function bufferOutputToggle(event, assetId, attrName, nestedKey, relay) {
     if (!pendingTimerData[assetId]) pendingTimerData[assetId] = {};
     if (!pendingTimerData[assetId][attrName]) pendingTimerData[assetId][attrName] = {};
 
-    let currentOutputsStr = (pendingTimerData[assetId][attrName][nestedKey] || '').toUpperCase();
+    const outputType = assetOutputType[assetId] || 'relay';
+    const isValve = outputType === 'valve';
 
-    const mapOutToR = (str) => {
-        const parts = str.split(',').map(s => s.trim());
-        return parts.map(p => {
-            if (p.startsWith('OUT')) {
-                const num = parseInt(p.replace('OUT', '').trim());
-                return `r${num}`;
-            }
-            return p.toLowerCase();
-        }).filter(p => p.startsWith('r'));
-    };
+    if (isValve) {
+        // For valve: toggle between 'valve' and empty
+        pendingTimerData[assetId][attrName][nestedKey] = isActive ? '' : 'valve';
+    } else {
+        // For relay: existing OUT format logic
+        let currentOutputsStr = (pendingTimerData[assetId][attrName][nestedKey] || '').toUpperCase();
 
-    let activeOutputs = mapOutToR(currentOutputsStr);
-    if (activeOutputs.includes(relay)) activeOutputs = activeOutputs.filter(r => r !== relay);
-    else activeOutputs.push(relay);
+        const mapOutToR = (str) => {
+            const parts = str.split(',').map(s => s.trim());
+            return parts.map(p => {
+                if (p.startsWith('OUT')) {
+                    const num = parseInt(p.replace('OUT', '').trim());
+                    return `r${num}`;
+                }
+                return p.toLowerCase();
+            }).filter(p => p.startsWith('r'));
+        };
 
-    const sorted = activeOutputs.sort();
-    const mapRToOut = (rFormatList) => {
-        return rFormatList.map(r => {
-            const num = parseInt(r.replace('r', ''));
-            return `OUT ${String(num).padStart(2, '0')}`;
-        });
-    };
+        let activeOutputs = mapOutToR(currentOutputsStr);
+        if (activeOutputs.includes(relay)) activeOutputs = activeOutputs.filter(r => r !== relay);
+        else activeOutputs.push(relay);
 
-    pendingTimerData[assetId][attrName][nestedKey] = mapRToOut(sorted).join(',');
+        const sorted = activeOutputs.sort();
+        const mapRToOut = (rFormatList) => {
+            return rFormatList.map(r => {
+                const num = parseInt(r.replace('r', ''));
+                return `OUT ${String(num).padStart(2, '0')}`;
+            });
+        };
+
+        pendingTimerData[assetId][attrName][nestedKey] = mapRToOut(sorted).join(',');
+    }
     markDirty(assetId, attrName);
 }
 

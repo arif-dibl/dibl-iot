@@ -1,5 +1,6 @@
 {
     "attributes": {
+        "ValveState": "Valve Control",
         "EnvData": "Environment Data",
         "MoistureData": "Moisture Levels",
         "RelayData": "Switches & Relays",
@@ -47,6 +48,7 @@
         "Timer12": "Timer 12"
     },
     "keys": {
+        "valve": "Valve",
         "t0": "Board Temperature",
         "h0": "Board Humidity",
         "t1": "Temperature Port 1",

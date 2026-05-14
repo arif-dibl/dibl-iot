@@ -4,6 +4,7 @@ const recentToggles = {};
 
 function shouldShowPin(key, itemKey) {
     if (key === 'RelayData') return false;
+    if (key === 'ValveState') return false;
     if (key && key.includes('RelayNode')) return false;
     if (itemKey && itemKey.startsWith('r') && key === 'RelayData') return false;
     return true;
@@ -42,7 +43,7 @@ async function loadDetail() {
         } else {
             // Define grouping rules in requested order
             const groupingRules = [
-                { name: "Switches", pattern: /^(relaydata|relay)/i, priority: 1 },
+                { name: "Switches", pattern: /^(relaydata|relay|valvestate)/i, priority: 1 },
                 { name: "Sensors", pattern: /^(envdata|moisturedata)/i, priority: 2 },
                 { name: "Timers", pattern: /^timer/i, priority: 3 },
                 { name: "Nutritions", pattern: /^npk/i, priority: 4 },
@@ -270,17 +271,20 @@ async function loadDetail() {
                                     daysHtml += '</div>';
                                     valueHtml = daysHtml;
                                 } else if (item.k === 'Outputs') {
-                                    // Multi-output bubble selector for Relays (r1, r2, r3, r4)
-                                    const relayOptions = ['r1', 'r2', 'r3', 'r4'];
+                                    // Multi-output bubble selector
+                                    // Detect if this asset has ValveState or RelayData
+                                    const hasValve = asset.attributes?.ValveState !== undefined;
+                                    const outputOptions = hasValve ? ['valve'] : ['r1', 'r2', 'r3', 'r4'];
                                     const currentOutputs = (item.v || '').toLowerCase();
 
                                     let outputsHtml = '<div style="display:flex; gap:3px; flex-wrap:nowrap;">';
-                                    relayOptions.forEach(r => {
+                                    outputOptions.forEach(r => {
                                         const active = currentOutputs.includes(r);
-                                        const label = r.replace('r', ''); // Just "1", "2" etc.
+                                        const label = hasValve ? 'V' : r.replace('r', '');
+                                        const title = hasValve ? 'Valve' : `Switch ${label}`;
                                         outputsHtml += `
                                         <div onclick="event.stopPropagation(); toggleTimerOutput(event, '${key}', '${item.k}', '${r}')"
-                                            title="Switch ${label}"
+                                            title="${title}"
                                             style="width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                                             background:${active ? 'var(--primary)' : '#f0f0f0'}; 
                                             color:${active ? 'white' : '#999'}; 

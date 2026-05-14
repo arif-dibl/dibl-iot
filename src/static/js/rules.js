@@ -255,6 +255,13 @@ function getRelayOptions() {
         const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
         relays.push({ value: `RelayData.${k}`, label: keyLabel });
     });
+
+    // Fallback for cdvalve assets: if no relays, check for ValveState
+    if (relays.length === 0 && allAttributes['ValveState'] !== undefined) {
+        const valveLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel('valve') : 'Valve';
+        relays.push({ value: 'ValveState', label: valveLabel });
+    }
+
     return relays;
 }
 
@@ -374,7 +381,7 @@ function renderRules() {
                     <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                         <span style="color: var(--text-dark);">Set</span>
                         <select class="form-control" style="flex: 1;" onchange="updateRule('${rule.id}', 'relay', this.value)">
-                            <option value="">Select relay...</option>
+                            <option value="">Select output...</option>
                             ${relays.map(r => `<option value="${r.value}" ${rule.relay === r.value ? 'selected' : ''}>${r.label}</option>`).join('')}
                         </select>
                         <span style="color: var(--text-dark);">to</span>

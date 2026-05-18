@@ -54,7 +54,7 @@ configs:
 
       backend mqtt_backend
           mode tcp
-          timeout tunnel 60s
+          timeout tunnel 300s
           option clitcpka
           server manager manager:1883 resolvers docker_resolver init-addr none
 

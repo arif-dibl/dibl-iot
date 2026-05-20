@@ -307,6 +307,8 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
             
             return True, session.cookies
         else:
+            if post_resp.status_code == 200 and "verify your email" in post_resp.text.lower():
+                return False, "Please verify your email address to activate your account before logging in."
             return False, "Invalid username or password"
     except Exception as e:
         print(f"[LOGIN] Auto-login logic error: {e}")

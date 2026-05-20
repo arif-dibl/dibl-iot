@@ -63,7 +63,15 @@ async def signup_post(request: Request, username: str = Form(...), email: str = 
             user_id = get_user_id_by_username(realm, username, admin_token)
             if user_id:
                 assign_roles_to_user(realm, user_id, admin_token)
-            return templates.TemplateResponse("signup.html", {"request": request, "success": "Account created! You can now login.", "prefix": APP_PREFIX})
+                
+                # Trigger verification email
+                email_url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users/{user_id}/execute-actions-email"
+                try:
+                    requests.put(email_url, json=["VERIFY_EMAIL"], headers=headers)
+                except Exception as e:
+                    print(f"Failed to send verify email: {e}")
+                    
+            return templates.TemplateResponse("signup.html", {"request": request, "success": "Account created! Please check your email to verify your account before logging in.", "prefix": APP_PREFIX})
         else:
             error_msg = res.json().get("errorMessage", "Registration failed")
             return templates.TemplateResponse("signup.html", {"request": request, "error": error_msg, "prefix": APP_PREFIX})

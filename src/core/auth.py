@@ -307,9 +307,12 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
             
             return True, session.cookies
         else:
+            print(f"[DEBUG LOGIN] Keycloak returned status {post_resp.status_code}. Response text preview: {post_resp.text[:500]}")
             if post_resp.status_code == 200 and "verify your email" in post_resp.text.lower():
                 return False, "Please verify your email address to activate your account before logging in."
-            return False, "Invalid username or password"
+            elif post_resp.status_code == 200 and "update account information" in post_resp.text.lower():
+                return False, "Keycloak requires you to update your account information (e.g., missing email)."
+            return False, "Invalid username or password (or Keycloak is requiring an action we can't handle in Custom UI)"
     except Exception as e:
         print(f"[LOGIN] Auto-login logic error: {e}")
         return False, str(e)

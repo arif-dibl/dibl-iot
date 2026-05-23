@@ -350,7 +350,7 @@ async function loadWidgets(assets = []) {
             sensorsContainer.innerHTML = sensors.map(w => {
                 const asset = assets.find(a => a.id === w.assetId);
                 const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
-                return renderSensorCard(w, isOffline);
+                return renderSensorCard(w, isOffline, assets);
             }).join('');
         }
 
@@ -371,8 +371,9 @@ async function loadWidgets(assets = []) {
             } else {
                 rulesContainer.innerHTML = rules.map(w => {
                     const asset = assets.find(a => a.id === w.assetId);
+                    const assetName = asset ? asset.name : (w.assetName || '');
                     const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
-                    return renderRuleCard(w, asset ? asset.attributes : null, isOffline);
+                    return renderRuleCard(w, asset ? asset.attributes : null, assetName, isOffline, assets);
                 }).join('');
             }
         }
@@ -385,7 +386,7 @@ async function loadWidgets(assets = []) {
     }
 }
 
-function renderSensorCard(w, isOffline = false) {
+function renderSensorCard(w, isOffline = false, allAssets = []) {
     // If a specific key is pinned, render it with a high-visibility layout
     if (w.key) {
         const val = w.value;
@@ -406,7 +407,7 @@ function renderSensorCard(w, isOffline = false) {
     if (attr === 'npkdata') return renderNPKCard(w, isOffline);
     if (attr === 'envdata') return renderEnvCard(w, isOffline);
     if (attr === 'moisturedata') return renderMoistureCard(w, isOffline);
-    if (attr === 'ruletargets') return renderRuleCard(w, null, isOffline);
+    if (attr === 'ruletargets') return renderRuleCard(w, null, '', isOffline, allAssets);
     return renderGenericCard(w, isOffline);
 }
 
@@ -467,7 +468,7 @@ function renderNPKCard(w, isOffline = false) {
     return wrapWidgetCard(w, w.displayName || 'NPK Sensor Data', content, isOffline);
 }
 
-function renderRuleCard(w, assetAttributes = null, isOffline = false) {
+function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = false, allAssets = []) {
     let rulesList = [];
     if (w.value && typeof w.value === 'object') {
         rulesList = Object.entries(w.value).filter(([key]) => !key.startsWith('_'));
@@ -493,14 +494,22 @@ function renderRuleCard(w, assetAttributes = null, isOffline = false) {
                         threshold: parseFloat(parts[1]),
                         targetName: getFriendlyLabel(parts[2]),
                         targetVal: parts[3] === '1' ? 'ON' : 'OFF',
-                        ruleName: parts.length > 4 ? parts[4] : null
+                        ruleName: parts.length > 4 ? parts[4] : null,
+                        whenDeviceId: parts.length > 5 ? parts[5] : null
                     };
                 }
             }
 
             if (parsed) {
                 const sensorKey = ruleKey.split('_')[0];
-                const sensorName = getFriendlyLabel(sensorKey);
+                let sensorName = getFriendlyLabel(sensorKey);
+                
+                if (parsed.whenDeviceId && parsed.whenDeviceId !== w.assetId) {
+                    const sensorDevice = allAssets.find(a => a.id === parsed.whenDeviceId);
+                    if (sensorDevice && sensorDevice.name) {
+                        sensorName = `[${sensorDevice.name}] ${sensorName}`;
+                    }
+                }
 
                 let isActive = false;
                 let currentVal = null;
@@ -578,7 +587,13 @@ function renderRuleCard(w, assetAttributes = null, isOffline = false) {
         content += `</div>`;
     }
 
-    return wrapWidgetCard(w, w.displayName || w.assetName || 'Rule Targets', content, isOffline);
+    let ruleTitle = w.displayName || 'Rule Targets';
+    if (assetName) {
+        ruleTitle = `${ruleTitle} - ${assetName}`;
+    } else if (w.assetName) {
+        ruleTitle = `${ruleTitle} - ${w.assetName}`;
+    }
+    return wrapWidgetCard(w, ruleTitle, content, isOffline);
 }
 
 

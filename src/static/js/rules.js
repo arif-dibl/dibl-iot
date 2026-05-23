@@ -208,9 +208,15 @@ function saveToLocalStorage() {
     if (currentAssetId) localStorage.setItem(`rules_${currentAssetId}`, JSON.stringify(rules));
 }
 
-function getKeysFromAttribute(attrName) {
-    if (!allAttributes[attrName]) return [];
-    let val = allAttributes[attrName];
+function getKeysFromAsset(assetId, attrName) {
+    let attrs = allAttributes;
+    if (assetId && assetId !== currentAssetId) {
+        const asset = allUserAssets.find(a => a.id === assetId);
+        attrs = asset ? (asset.attributes || {}) : {};
+    }
+
+    if (!attrs[attrName]) return [];
+    let val = attrs[attrName];
 
     if (typeof val === 'string') {
         try { val = JSON.parse(val); } catch (e) { return []; }
@@ -222,7 +228,7 @@ function getKeysFromAttribute(attrName) {
     return [];
 }
 
-function getSensorOptions() {
+function getSensorOptions(assetId) {
     const sensors = [];
 
     const groupNames = {
@@ -231,22 +237,26 @@ function getSensorOptions() {
         'NPKData': typeof getFriendlyLabel === 'function' ? getFriendlyLabel('NPKData', true) : 'NPK Data'
     };
 
-    getKeysFromAttribute('EnvData').forEach(k => {
+    getKeysFromAsset(assetId, 'EnvData').forEach(k => {
         const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
         sensors.push({ value: `EnvData.${k}`, label: `${groupNames['EnvData']} → ${keyLabel}` });
     });
 
-    getKeysFromAttribute('MoistureData').forEach(k => {
+    getKeysFromAsset(assetId, 'MoistureData').forEach(k => {
         const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
         sensors.push({ value: `MoistureData.${k}`, label: `${groupNames['MoistureData']} → ${keyLabel}` });
     });
 
-    getKeysFromAttribute('NPKData').forEach(k => {
+    getKeysFromAsset(assetId, 'NPKData').forEach(k => {
         const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
         sensors.push({ value: `NPKData.${k}`, label: `${groupNames['NPKData']} → ${keyLabel}` });
     });
 
     return sensors.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function getKeysFromAttribute(attrName) {
+    return getKeysFromAsset(currentAssetId, attrName);
 }
 
 function getRelayOptions() {
@@ -307,7 +317,6 @@ function renderRules() {
         return;
     }
 
-    const sensors = getSensorOptions();
     const relays = getRelayOptions();
 
     let timestampHtml = '';
@@ -317,7 +326,9 @@ function renderRules() {
         timestampHtml = `<div style="grid-column: 1/-1; text-align: right; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;">Last Updated: ${formatted}</div>`;
     }
 
-    container.innerHTML = timestampHtml + rules.map(rule => `
+    container.innerHTML = timestampHtml + rules.map(rule => {
+        const sensors = getSensorOptions(rule.whenDeviceId || currentAssetId);
+        return `
         <div class="rule-card">
             <div class="rule-card-header">
                 <input type="text" class="rule-name-input" value="${rule.name || ''}" 
@@ -403,7 +414,8 @@ function renderRules() {
                 </div>
             </div>
         </div>
-    `).join('');
+    \`;
+    }).join('');
 }
 
 function getDeviceListHtml(ruleId) {
@@ -435,18 +447,13 @@ function showDeviceList(ruleId) {
 }
 
 function selectWhenDevice(ruleId, assetId) {
-    // Visual only for now - store selection and update display
     const rule = rules.find(r => r.id === ruleId);
     if (rule) {
         rule.whenDeviceId = assetId;
+        rule.sensor = ''; // reset sensor selection when device changes
     }
     hideDeviceChangeConfirm(ruleId);
-    // Update just the chip text without full re-render
-    const row = document.getElementById(`deviceRow_when_${ruleId}`);
-    if (row) {
-        const chip = row.querySelector('.device-chip');
-        if (chip) chip.textContent = getWhenDeviceLabel(rule);
-    }
+    renderRules();
 }
 
 function getWhenDeviceLabel(rule) {

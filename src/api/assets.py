@@ -199,9 +199,9 @@ async def get_user_assets(username: str, request: Request):
 
                         flat_attrs[k] = val
                         
-                        # Activity Detection: use the latest timestamp from EnvData or Timer01
+                        # Activity Detection: use the latest timestamp from EnvData or SystemData
                         # AND ensure it's not just placeholder data (all '--')
-                        if ts and k in ("EnvData", "Timer01"):
+                        if ts and k in ("EnvData", "SystemData"):
                             has_real_data = False
                             if isinstance(val, dict):
                                 for sub_val in val.values():
@@ -268,9 +268,9 @@ async def get_single_asset(username: str, request: Request, id: str):
 
                     flat_attrs[k] = val
 
-                    # Activity Detection: use the latest timestamp from EnvData or Timer01
+                    # Activity Detection: use the latest timestamp from EnvData or SystemData
                     # AND ensure it's not just placeholder data (all '--')
-                    if ts and k in ("EnvData", "Timer01"):
+                    if ts and k in ("EnvData", "SystemData"):
                         has_real_data = False
                         if isinstance(val, dict):
                             for sub_val in val.values():

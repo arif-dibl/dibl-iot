@@ -414,7 +414,7 @@ function renderRules() {
                 </div>
             </div>
         </div>
-    \`;
+    `;
     }).join('');
 }
 

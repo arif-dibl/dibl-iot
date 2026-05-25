@@ -189,7 +189,6 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
                     ${pinnedItems.some(p => p.assetId === assetId && p.attributeName === key) ? '★' : '☆'}
                 </span>
             </div>
-            ${items._timestamp ? `<div style="font-size:0.75rem; color:#999; margin-bottom:1rem; text-align:right;">Last modified: ${new Date(items._timestamp).toLocaleString()}</div>` : ''}
             ${innerHtml}
             <button id="save-btn-${assetId}-${key}"
                 onclick="saveTimerCard('${assetId}', '${key}')"

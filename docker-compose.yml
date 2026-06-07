@@ -9,6 +9,8 @@ volumes:
   proxy-data:
   manager-data:
   postgresql-data:
+  hawkbit-data:
+  hawkbit-artifact-data:
 
 
 services:
@@ -108,3 +110,74 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
+
+  # -------------------------
+  # HAWKBIT OTA UPDATE SERVICES
+  # -------------------------
+
+  # Dedicated PostgreSQL for HawkBit (isolated from OpenRemote DB)
+  hawkbitdb:
+    image: openremote/postgresql:${POSTGRESQL_VERSION:-latest}
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_DB: 'hawkbit'
+      POSTGRES_USER: ${HAWKBIT_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${HAWKBIT_DB_PASSWORD:-postgres}
+    volumes:
+      - hawkbit-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${HAWKBIT_DB_USER:-postgres} -d hawkbit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # HawkBit Update Server (backend API)
+  hawkbit:
+    image: openremote/hawkbit-update-server:${HAWKBIT_VERSION:-latest}
+    restart: always
+    depends_on:
+      hawkbitdb:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    volumes:
+      - hawkbit-artifact-data:/opt/hawkbit/artifactrepo
+    environment:
+      # Logging
+      LOGGING_LEVEL_ROOT: INFO
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://hawkbitdb:5432/hawkbit
+      SPRING_DATASOURCE_USERNAME: ${HAWKBIT_DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${HAWKBIT_DB_PASSWORD:-postgres}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_DATABASE: POSTGRESQL
+      # Disable RabbitMQ (not used)
+      HAWKBIT_DMF_RABBITMQ_ENABLED: "false"
+      # Artifact download config
+      HAWKBIT_ARTIFACT_URL_PROTOCOLS_DOWNLOAD_HTTP_PORT: 8080
+      HAWKBIT_ARTIFACT_URL_PROTOCOLS_DOWNLOAD_HTTP_PROTOCOL: http
+      # Keycloak OAuth2/OIDC Authentication
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_ID: ${HAWKBIT_OIDC_CLIENT_ID:-hawkbit}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET: ${HAWKBIT_OIDC_CLIENT_SECRET:-}
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_ISSUER_URI: http://keycloak:8080/auth/realms/master
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_JWK_SET_URI: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/auth/realms/master
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
+
+  # HawkBit Simple UI (web management dashboard)
+  hawkbit-simple-ui:
+    image: openremote/hawkbit-update-server:${HAWKBIT_VERSION:-latest}
+    restart: always
+    depends_on:
+      - hawkbit
+    ports:
+      - "8088:8088"
+    environment:
+      # Point UI at the hawkbit update server
+      HAWKBIT_SERVER_URL: http://hawkbit:8080
+      # Run in simple-ui mode
+      SPRING_PROFILES_ACTIVE: simple-ui
+      SERVER_PORT: 8088

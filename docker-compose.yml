@@ -171,7 +171,7 @@ services:
 
   # HawkBit Simple UI (web management dashboard)
   hawkbit-simple-ui:
-    image: openremote/hawkbit-update-server:${HAWKBIT_VERSION:-latest}
+    image: hawkbit/hawkbit-simple-ui:latest
     restart: always
     depends_on:
       - hawkbit

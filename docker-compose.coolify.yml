@@ -38,6 +38,12 @@ configs:
           acl is_resources path_beg /resources
           use_backend keycloak_backend if is_resources
 
+          # HawkBit Routing
+          acl is_ota_ui path_beg /ota/ui
+          use_backend hawkbit_ui_backend if is_ota_ui
+          acl is_ota path_beg /ota
+          use_backend hawkbit_backend if is_ota
+
           default_backend manager_backend
 
       # MQTT TLS Frontend with mTLS
@@ -51,6 +57,12 @@ configs:
 
       backend keycloak_backend
           server keycloak keycloak:8080 resolvers docker_resolver init-addr none
+
+      backend hawkbit_backend
+          server hawkbit hawkbit:8080 resolvers docker_resolver init-addr none
+
+      backend hawkbit_ui_backend
+          server hawkbit_ui hawkbit-simple-ui:8088 resolvers docker_resolver init-addr none
 
       backend mqtt_backend
           mode tcp
@@ -338,6 +350,8 @@ services:
     environment:
       # Logging
       LOGGING_LEVEL_ROOT: INFO
+      # Context Path
+      SERVER_SERVLET_CONTEXT_PATH: /ota
       # Database
       SPRING_DATASOURCE_URL: jdbc:postgresql://hawkbitdb:5432/hawkbit
       SPRING_DATASOURCE_USERNAME: ${HAWKBIT_DB_USER:-postgres}
@@ -367,13 +381,8 @@ services:
       - "${OR_HOSTNAME}:host-gateway"
     environment:
       # Point UI at the hawkbit update server
-      HAWKBIT_SERVER_URL: http://hawkbit:8080
+      HAWKBIT_SERVER_URL: http://hawkbit:8080/ota
       # Run in simple-ui mode
       SPRING_PROFILES_ACTIVE: simple-ui
       SERVER_PORT: 8088
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hawkbit.rule=Host(`${HAWKBIT_HOSTNAME}`)"
-      - "traefik.http.routers.hawkbit.entrypoints=http,https"
-      - "traefik.http.routers.hawkbit.tls=true"
-      - "traefik.http.services.hawkbit.loadbalancer.server.port=8088"
+      SERVER_SERVLET_CONTEXT_PATH: /ota/ui

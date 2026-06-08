@@ -168,6 +168,13 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_JWK_SET_URI: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/auth/realms/master
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
+      # Static Admin User for Simple UI
+      HAWKBIT_SERVER_IM_USERS_0_USERNAME: admin
+      HAWKBIT_SERVER_IM_USERS_0_PASSWORD: "{noop}secret"
+      HAWKBIT_SERVER_IM_USERS_0_FIRSTNAME: Admin
+      HAWKBIT_SERVER_IM_USERS_0_LASTNAME: User
+      HAWKBIT_SERVER_IM_USERS_0_EMAIL: admin@hawkbit.local
+      HAWKBIT_SERVER_IM_USERS_0_PERMISSIONS: ALL
 
   # HawkBit Simple UI (web management dashboard)
   hawkbit-simple-ui:

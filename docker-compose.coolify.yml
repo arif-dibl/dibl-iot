@@ -202,7 +202,6 @@ volumes:
   hawkbit-data:
   hawkbit-artifact-data:
 
-
 services:
   postgresql:
     image: openremote/postgresql:${POSTGRESQL_VERSION:-latest}
@@ -329,7 +328,7 @@ services:
     volumes:
       - hawkbit-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d hawkbit"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d hawkbit" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -348,29 +347,23 @@ services:
     volumes:
       - hawkbit-artifact-data:/opt/hawkbit/artifactrepo
     environment:
-      # Logging
       LOGGING_LEVEL_ROOT: INFO
-      # Context Path
       SERVER_SERVLET_CONTEXT_PATH: /ota
-      # Database
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
       SPRING_DATASOURCE_URL: jdbc:postgresql://hawkbitdb:5432/hawkbit
       SPRING_DATASOURCE_USERNAME: ${HAWKBIT_DB_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${HAWKBIT_DB_PASSWORD:-postgres}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE: POSTGRESQL
-      # Disable RabbitMQ (not used)
       HAWKBIT_DMF_RABBITMQ_ENABLED: "false"
-      # Artifact download config
-      HAWKBIT_ARTIFACT_URL_PROTOCOLS_DOWNLOAD_HTTP_PORT: 8080
-      HAWKBIT_ARTIFACT_URL_PROTOCOLS_DOWNLOAD_HTTP_PROTOCOL: http
-      # Keycloak OAuth2/OIDC Authentication
+      HAWKBIT_ARTIFACT_URL_PROTOCOLS_DOWNLOAD_HTTP_PORT: 443
+      HAWKBIT_ARTIFACT_URL_PROTOCOLS_DOWNLOAD_HTTP_PROTOCOL: https
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_ID: ${HAWKBIT_OIDC_CLIENT_ID:-hawkbit}
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET: ${HAWKBIT_OIDC_CLIENT_SECRET:-}
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_ISSUER_URI: https://${OR_HOSTNAME}/auth/realms/master
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_JWK_SET_URI: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: https://${OR_HOSTNAME}/auth/realms/master
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
-      # Static Admin User for Simple UI
       HAWKBIT_SERVER_IM_USERS_0_USERNAME: admin
       HAWKBIT_SERVER_IM_USERS_0_PASSWORD: "{noop}secret"
       HAWKBIT_SERVER_IM_USERS_0_FIRSTNAME: Admin
@@ -387,9 +380,7 @@ services:
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
     environment:
-      # Point UI at the hawkbit update server
-      HAWKBIT_SERVER_MGMTURL: http://hawkbit:8080/ota
-      # Run in simple-ui mode
+      HAWKBIT_SERVER_MGMTURL: https://${OR_HOSTNAME}/ota
       SPRING_PROFILES_ACTIVE: simple-ui
       SERVER_PORT: 8088
       SERVER_SERVLET_CONTEXT_PATH: /ota/ui

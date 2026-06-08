@@ -381,7 +381,7 @@ services:
       - "${OR_HOSTNAME}:host-gateway"
     environment:
       # Point UI at the hawkbit update server
-      HAWKBIT_SERVER_URL: http://hawkbit:8080/ota
+      HAWKBIT_URL: http://hawkbit:8080/ota
       # Run in simple-ui mode
       SPRING_PROFILES_ACTIVE: simple-ui
       SERVER_PORT: 8088

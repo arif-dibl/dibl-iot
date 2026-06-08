@@ -1,10 +1,11 @@
 import requests
 import json
 import base64
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, BackgroundTasks
 from core.config import OR_MANAGER_URL, DEFAULT_REALM
 from core.auth import get_valid_token, get_admin_token
 from core.utils import load_preferences, save_preferences
+from ota.hawkbit_client import sync_asset_to_hawkbit
 
 router = APIRouter(prefix="/api", tags=["assets"])
 
@@ -310,7 +311,7 @@ async def update_asset_attribute_api(username: str, request: Request, asset_id: 
         return {"status": "error", "message": str(e)}
 
 @router.post("/user/assets")
-async def link_user_asset_api(username: str, request: Request, payload: dict):
+async def link_user_asset_api(username: str, request: Request, payload: dict, background_tasks: BackgroundTasks):
     realm = request.session.get("realm", DEFAULT_REALM)
     user_id = request.session.get("user_id")
     asset_id = payload.get("assetId")
@@ -322,7 +323,17 @@ async def link_user_asset_api(username: str, request: Request, payload: dict):
     body = [{"id": {"realm": realm, "userId": user_id, "assetId": asset_id}}]
     try:
         res = requests.post(link_url, json=body, headers=headers)
-        return {"status": "success"} if res.status_code in [200, 204] else {"status": "error", "message": f"OR API Error: {res.status_code}"}
+        if res.status_code in [200, 204]:
+            # Trigger OTA Sync in background
+            get_res = requests.get(f"{OR_MANAGER_URL}/api/{realm}/asset/{asset_id}", headers=headers)
+            if get_res.status_code == 200:
+                asset_data = get_res.json()
+                asset_type = asset_data.get("type", "Asset")
+                background_tasks.add_task(sync_asset_to_hawkbit, asset_id, asset_type)
+            
+            return {"status": "success"}
+        else:
+            return {"status": "error", "message": f"OR API Error: {res.status_code}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

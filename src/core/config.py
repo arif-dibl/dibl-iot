@@ -9,14 +9,6 @@ OR_MANAGER_URL = os.getenv("OR_MANAGER_URL", "http://manager:8080")
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://keycloak:8080/auth")
 
 # -------------------------
-# HAWKBIT CONFIG
-# -------------------------
-HAWKBIT_URL = os.getenv("HAWKBIT_URL", "http://hawkbit:8080")
-HAWKBIT_USER = os.getenv("HAWKBIT_USER", "admin")
-HAWKBIT_PASSWORD = os.getenv("HAWKBIT_PASSWORD", "secret")
-
-
-# -------------------------
 # APPLICATION PREFIX (for reverse proxy subpath routing)
 # -------------------------
 APP_PREFIX = os.environ.get('APP_PREFIX', '')  # Empty for local dev, '/customui' for production

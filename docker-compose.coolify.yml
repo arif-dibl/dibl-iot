@@ -305,9 +305,6 @@ services:
     environment:
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
-      HAWKBIT_URL: http://hawkbit:8080
-      HAWKBIT_USER: admin
-      HAWKBIT_PASSWORD: "{noop}secret"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.customui.rule=Host(`${OR_CUSTOMUI_HOSTNAME}`)"

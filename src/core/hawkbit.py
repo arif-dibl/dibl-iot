@@ -19,7 +19,7 @@ logger = logging.getLogger("hawkbit")
 # -------------------------
 HAWKBIT_URL = os.getenv("HAWKBIT_URL", "http://hawkbit:8080/ota")
 HAWKBIT_USER = os.getenv("HAWKBIT_USER", "admin")
-HAWKBIT_PASSWORD = os.getenv("HAWKBIT_PASSWORD", "secret")
+HAWKBIT_PASSWORD = os.getenv("HAWKBIT_PASSWORD", "admin")
 
 
 def _hawkbit_auth():

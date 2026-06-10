@@ -307,7 +307,7 @@ services:
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       HAWKBIT_URL: http://hawkbit:8080/ota
       HAWKBIT_USER: admin
-      HAWKBIT_PASSWORD: "{noop}secret"
+      HAWKBIT_PASSWORD: "admin"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.customui.rule=Host(`${OR_CUSTOMUI_HOSTNAME}`)"

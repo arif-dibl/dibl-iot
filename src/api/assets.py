@@ -1,10 +1,12 @@
 import requests
 import json
 import base64
+import threading
 from fastapi import APIRouter, Request
 from core.config import OR_MANAGER_URL, DEFAULT_REALM
 from core.auth import get_valid_token, get_admin_token
 from core.utils import load_preferences, save_preferences
+from core.hawkbit import sync_assets_to_hawkbit
 
 router = APIRouter(prefix="/api", tags=["assets"])
 
@@ -230,6 +232,14 @@ async def get_user_assets(username: str, request: Request):
                 "location": loc,
                 "lastActivityTimestamp": last_activity_ts
             })
+        # Sync assets to HawkBit OTA in background (non-blocking)
+        if final_assets:
+            threading.Thread(
+                target=sync_assets_to_hawkbit,
+                args=(final_assets,),
+                daemon=True
+            ).start()
+
         return {"assets": final_assets}
     except Exception as e:
         print(f"[API] Error: {e}")
@@ -322,7 +332,30 @@ async def link_user_asset_api(username: str, request: Request, payload: dict):
     body = [{"id": {"realm": realm, "userId": user_id, "assetId": asset_id}}]
     try:
         res = requests.post(link_url, json=body, headers=headers)
-        return {"status": "success"} if res.status_code in [200, 204] else {"status": "error", "message": f"OR API Error: {res.status_code}"}
+        if res.status_code in [200, 204]:
+            # Sync newly linked asset to HawkBit in background
+            # Use admin_token (already fetched above) since Request is not thread-safe
+            _admin_token = admin_token
+            _realm = realm
+            _asset_id = asset_id
+            def _sync_linked_asset():
+                try:
+                    asset_headers = {"Authorization": f"Bearer {_admin_token}"}
+                    asset_res = requests.get(
+                        f"{OR_MANAGER_URL}/api/{_realm}/asset/{_asset_id}",
+                        headers=asset_headers
+                    )
+                    if asset_res.status_code == 200:
+                        a = asset_res.json()
+                        sync_assets_to_hawkbit([{
+                            "id": a["id"],
+                            "type": a.get("type", "Asset")
+                        }])
+                except Exception as e:
+                    print(f"[HAWKBIT] Link sync error: {e}")
+            threading.Thread(target=_sync_linked_asset, daemon=True).start()
+            return {"status": "success"}
+        return {"status": "error", "message": f"OR API Error: {res.status_code}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

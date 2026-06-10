@@ -37,7 +37,7 @@ These external calls are made by the Python backend (`src/api/*`, `src/core/*`) 
     *   `POST /realms/{realm}/protocol/openid-connect/token`
     *   `GET /realms/{realm}/protocol/openid-connect/auth`
     *   `POST /admin/realms/{realm}/users`
-    *   `PUT /admin/realms/{realm}/users/{user_id}/execute-actions-email`
+    *   `PUT /admin/realms/{realm}/users/{user_id}/execute-actions-email` (Requires JSON array payload e.g., `["VERIFY_EMAIL"]`. Note: When using a reverse proxy, ensure `X-Forwarded-Proto` and `Host` headers are properly configured to prevent "Invalid token issuer" errors.)
     *   `GET /admin/realms/{realm}/clients?clientId=openremote`
     *   `GET /admin/realms/{realm}/clients/{client_uuid}/roles`
     *   `GET /admin/realms/{realm}/roles`
@@ -51,7 +51,7 @@ These external calls are made by the Python backend (`src/api/*`, `src/core/*`) 
     *   `GET /api/{realm}/asset/user/current`
     *   `POST /api/master/asset/user/link`
     *   `GET /api/master/asset/user/link?realm={realm}`
-    *   `POST /api/{realm}/rule`
+    *   `POST /api/{realm}/rule` (Security Warning: In OpenRemote <= 1.21.0, this and `/api/{realm}/rules/asset` are vulnerable to RCE via unsandboxed JS/Groovy execution - CVE-2026-39842. Upgrade to >= 1.22.0)
     *   `DELETE /api/{realm}/rule/{ruleId}`
     *   `GET /api/{realm}/user/user/{pid}`
 
@@ -59,11 +59,14 @@ These external calls are made by the Python backend (`src/api/*`, `src/core/*`) 
 These REST APIs are exposed by the HawkBit update server on the `/rest/v1/` path for OTA lifecycle management.
 
 *   **Targets (Devices):**
-    *   `GET /rest/v1/targets`
-    *   `POST /rest/v1/targets`
-    *   `GET /rest/v1/targets/{controllerId}`
-    *   `PUT /rest/v1/targets/{controllerId}`
-    *   `DELETE /rest/v1/targets/{controllerId}`
+    *   **Management API (Backend):**
+        *   `GET /rest/v1/targets`
+        *   `POST /rest/v1/targets` (Payload requires a JSON array with `controllerId`)
+        *   `GET /rest/v1/targets/{targetId}` (Note: `{targetId}` here maps to the device's `controllerId`)
+        *   `PUT /rest/v1/targets/{targetId}`
+        *   `DELETE /rest/v1/targets/{targetId}`
+    *   **DDI API (Device Polling):**
+        *   `GET /{tenant}/controller/v1/{controllerId}`
 *   **Software Modules & Artifacts:**
     *   `GET /rest/v1/softwaremodules`
     *   `POST /rest/v1/softwaremodules`
@@ -79,6 +82,7 @@ These REST APIs are exposed by the HawkBit update server on the `/rest/v1/` path
     *   `POST /rest/v1/targetfilters`
     *   `PUT /rest/v1/targetfilters/{filterId}`
     *   `DELETE /rest/v1/targetfilters/{filterId}`
+    *   `POST /rest/v1/targetfilters/{filterId}/autoAssignDS` (Automatically assigns a Distribution Set to targets matching the filter)
 *   **Rollouts & Actions:**
     *   `POST /rest/v1/actions`
     *   `POST /rest/v1/rollouts`

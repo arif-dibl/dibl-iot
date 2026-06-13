@@ -333,6 +333,7 @@ async function loadWidgets(assets = []) {
         widgets = widgets.filter(w =>
             !w.attributeName.toLowerCase().includes('threshold') &&
             !w.attributeName.toLowerCase().includes('relaydata') &&
+            !w.attributeName.toLowerCase().includes('systemdata') &&
             !(w.displayName && w.displayName.toLowerCase().includes('threshold'))
         );
 

@@ -5,6 +5,7 @@ const recentToggles = {};
 function shouldShowPin(key, itemKey) {
     if (key === 'RelayData') return false;
     if (key === 'ValveState') return false;
+    if (key === 'SystemData') return false;
     if (key && key.includes('RelayNode')) return false;
     if (itemKey && itemKey.startsWith('r') && key === 'RelayData') return false;
     return true;
@@ -48,8 +49,9 @@ async function loadDetail() {
                 { name: "Timers", pattern: /^timer/i, priority: 3 },
                 { name: "Nutritions", pattern: /^npk/i, priority: 4 },
                 { name: "Rules", pattern: /^ruletargets/i, priority: 5 },
-                { name: "Device Info", pattern: /^(device|asset|id|status|type)/i, priority: 6 },
-                { name: "Configuration", pattern: /^(config|setting|mode)/i, priority: 7 }
+                { name: "System Data", pattern: /^systemdata/i, priority: 6 },
+                { name: "Device Info", pattern: /^(device|asset|id|status|type)/i, priority: 7 },
+                { name: "Configuration", pattern: /^(config|setting|mode)/i, priority: 8 }
             ];
 
             // Group attributes
@@ -134,7 +136,7 @@ async function loadDetail() {
                                 </div>
                              `;
                         }
-                    } else if (isBooleanLike(val)) {
+                    } else if (isBooleanLike(val) && key.toLowerCase() !== 'systemdata') {
                         const boolVal = toBool(val);
                         displayVal = `
                             <div style="display:flex; align-items:center; gap:10px;">
@@ -223,7 +225,7 @@ async function loadDetail() {
                                 const starColor = isPinned ? '#f1c40f' : '#ccc';
 
                                 let valueHtml;
-                                if (isBooleanLike(item.v)) {
+                                if (isBooleanLike(item.v) && key.toLowerCase() !== 'systemdata') {
                                     const nestedToggleKey = `${ASSET_ID}_${key}_${item.k}`;
                                     const isRecent = recentToggles[nestedToggleKey] && (Date.now() - recentToggles[nestedToggleKey] < 5000);
                                     const boolVal = isRecent ? recentToggles[`${nestedToggleKey}_val`] : toBool(item.v);
@@ -318,7 +320,7 @@ async function loadDetail() {
                                     const starColor = isPinned ? '#f1c40f' : '#ccc';
 
                                     let valueHtml;
-                                    if (isBooleanLike(item.v)) {
+                                    if (isBooleanLike(item.v) && key.toLowerCase() !== 'systemdata') {
                                         const nestedToggleKey = `${ASSET_ID}_${key}_${item.k}`;
                                         const isRecent = recentToggles[nestedToggleKey] && (Date.now() - recentToggles[nestedToggleKey] < 5000);
                                         const boolVal = isRecent ? recentToggles[`${nestedToggleKey}_val`] : toBool(item.v);

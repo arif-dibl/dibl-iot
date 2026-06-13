@@ -367,6 +367,9 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_JWK_SET_URI: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: https://${OR_HOSTNAME}/auth/realms/master
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 256MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 256MB
+      HAWKBIT_SERVER_SECURITY_DOS_MAXARTIFACTSIZE: 268435456
 
   # HawkBit Simple UI (web management dashboard)
   hawkbit-simple-ui:

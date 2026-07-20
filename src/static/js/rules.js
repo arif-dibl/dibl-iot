@@ -84,6 +84,17 @@ async function loadAsset(assetId) {
                             const rName = parts.length > 4 ? parts[4] : `Rule ${ruleIdCounter}`;
                             const rVal = parts[3] === '1';
 
+                            // Parse whenDeviceId (field 5)
+                            const rawWhenId = parts.length > 5 ? parts[5] : null;
+                            const whenDeviceId = (rawWhenId && rawWhenId.length > 0) ? rawWhenId : null;
+
+                            // Parse schedule limit fields (fields 6, 7, 8)
+                            const timeType = parts.length > 6 ? parts[6] : 'N';
+                            const rawStart = parts.length > 7 ? parts[7] : '';
+                            const rawEnd = parts.length > 8 ? parts[8] : '';
+                            const timeStart = rawStart ? rawStart.substring(0,2) + ':' + rawStart.substring(2) : '';
+                            const timeEnd = rawEnd ? rawEnd.substring(0,2) + ':' + rawEnd.substring(2) : '';
+
                             let sensorPath = '';
                             if (asset.attributes.EnvData && asset.attributes.EnvData[sensorKey] !== undefined) sensorPath = `EnvData.${sensorKey}`;
                             else if (asset.attributes.MoistureData && asset.attributes.MoistureData[sensorKey] !== undefined) sensorPath = `MoistureData.${sensorKey}`;
@@ -99,7 +110,10 @@ async function loadAsset(assetId) {
                                     relay: `RelayData.${parts[2]}`,
                                     relayState: rVal,
                                     enabled: true,
-                                    whenDeviceId: parts.length > 5 ? parts[5] : null
+                                    whenDeviceId: whenDeviceId,
+                                    timeType: timeType !== 'N' ? timeType : 'N',
+                                    timeStart: timeStart,
+                                    timeEnd: timeEnd
                                 });
                             }
                         }
@@ -132,7 +146,10 @@ function addRule() {
         value: 30,
         relay: '',
         relayState: true,
-        enabled: true
+        enabled: true,
+        timeType: 'N',
+        timeStart: '',
+        timeEnd: ''
     });
 
     renderRules();
@@ -408,6 +425,28 @@ function renderRules() {
                         </div>
                     </div>
                 </div>
+
+                <div class="logic-block schedule-limit-block">
+                    <div class="schedule-limit-header">
+                        <span class="logic-label" style="margin: 0;">Schedule Limit</span>
+                        <label class="toggle-switch" style="transform: scale(0.7);">
+                            <input type="checkbox" ${rule.timeType !== 'N' ? 'checked' : ''}
+                                   onchange="toggleScheduleLimit('${rule.id}', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="scheduleConfig_${rule.id}" class="schedule-config" style="display: ${rule.timeType !== 'N' ? 'flex' : 'none'};">
+                        <select class="form-control" style="flex: 1.2; min-width: 120px;" onchange="updateRule('${rule.id}', 'timeType', this.value)">
+                            <option value="I" ${rule.timeType === 'I' ? 'selected' : ''}>Skip during</option>
+                            <option value="A" ${rule.timeType === 'A' ? 'selected' : ''}>Run during</option>
+                        </select>
+                        <input type="time" class="form-control" style="flex: 1; min-width: 90px;" value="${rule.timeStart || ''}" 
+                               onchange="updateRule('${rule.id}', 'timeStart', this.value)">
+                        <span style="color: var(--text-muted); font-size: 0.85rem; white-space: nowrap;">to</span>
+                        <input type="time" class="form-control" style="flex: 1; min-width: 90px;" value="${rule.timeEnd || ''}" 
+                               onchange="updateRule('${rule.id}', 'timeEnd', this.value)">
+                    </div>
+                </div>
                 
                 <div style="margin-top: 0.5rem; text-align: right;">
                      <button class="btn-sm" style="width: 100%; margin-top: 1rem;" onclick="saveRule('${rule.id}')">Save Changes</button>
@@ -498,12 +537,16 @@ async function updateRuleTargets(sensorPath, targetRelay, targetState, operator,
     let groovyOp = operator;
     if (operator === '=') groovyOp = '==';
 
-    let valToStore = `${groovyOp}:${threshold}:${rVal}:${targetState ? '1' : '0'}:${ruleName || ''}`;
+    // Build the whenDeviceId field (field 5) — empty string if same device
+    const deviceField = (whenDeviceId && whenDeviceId !== currentAssetId) ? whenDeviceId : '';
 
-    // If a different device is selected, append its asset ID as the 6th field
-    if (whenDeviceId && whenDeviceId !== currentAssetId) {
-        valToStore += `:${whenDeviceId}`;
-    }
+    // Build schedule limit fields (fields 6, 7, 8)
+    const rule = rules.find(r => r.id === ruleId);
+    const timeType = (rule && rule.timeType && rule.timeType !== 'N') ? rule.timeType : 'N';
+    const timeStart = (rule && rule.timeStart) ? rule.timeStart.replace(':', '') : '';
+    const timeEnd = (rule && rule.timeEnd) ? rule.timeEnd.replace(':', '') : '';
+
+    let valToStore = `${groovyOp}:${threshold}:${rVal}:${targetState ? '1' : '0'}:${ruleName || ''}:${deviceField}:${timeType}:${timeStart}:${timeEnd}`;
 
     targets[uniqueKey] = valToStore;
 
@@ -600,6 +643,22 @@ async function pinRulesToDashboard() {
     } catch (e) {
         console.error(e);
         toast('Action failed');
+    }
+}
+
+function toggleScheduleLimit(ruleId, isEnabled) {
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    const panel = document.getElementById(`scheduleConfig_${ruleId}`);
+    if (isEnabled) {
+        rule.timeType = rule.timeType === 'N' ? 'I' : rule.timeType;
+        if (panel) panel.style.display = 'flex';
+    } else {
+        rule.timeType = 'N';
+        rule.timeStart = '';
+        rule.timeEnd = '';
+        if (panel) panel.style.display = 'none';
     }
 }
 

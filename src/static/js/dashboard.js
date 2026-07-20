@@ -496,7 +496,10 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
                         targetName: getFriendlyLabel(parts[2]),
                         targetVal: parts[3] === '1' ? 'ON' : 'OFF',
                         ruleName: parts.length > 4 ? parts[4] : null,
-                        whenDeviceId: parts.length > 5 ? parts[5] : null
+                        whenDeviceId: (parts.length > 5 && parts[5].length > 0) ? parts[5] : null,
+                        timeType: parts.length > 6 ? parts[6] : 'N',
+                        timeStart: parts.length > 7 ? parts[7] : '',
+                        timeEnd: parts.length > 8 ? parts[8] : ''
                     };
                 }
             }
@@ -535,6 +538,39 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
                     }
                 }
 
+                // Check schedule mute status
+                let isMuted = false;
+                let scheduleText = '';
+                if (parsed.timeType !== 'N' && parsed.timeStart && parsed.timeEnd) {
+                    const now = new Date();
+                    const nowMins = now.getHours() * 60 + now.getMinutes();
+                    const startMins = parseInt(parsed.timeStart.substring(0, 2)) * 60 + parseInt(parsed.timeStart.substring(2));
+                    const endMins = parseInt(parsed.timeEnd.substring(0, 2)) * 60 + parseInt(parsed.timeEnd.substring(2));
+
+                    const fmtTime = (hhmm) => {
+                        const h = parseInt(hhmm.substring(0, 2));
+                        const m = hhmm.substring(2);
+                        const suffix = h >= 12 ? 'PM' : 'AM';
+                        const h12 = h % 12 || 12;
+                        return `${h12}:${m} ${suffix}`;
+                    };
+
+                    const inWindow = startMins <= endMins
+                        ? (nowMins >= startMins && nowMins < endMins)
+                        : (nowMins >= startMins || nowMins < endMins);
+
+                    if (parsed.timeType === 'I') {
+                        scheduleText = `Skip ${fmtTime(parsed.timeStart)} - ${fmtTime(parsed.timeEnd)}`;
+                        if (inWindow) isMuted = true;
+                    } else if (parsed.timeType === 'A') {
+                        scheduleText = `Run ${fmtTime(parsed.timeStart)} - ${fmtTime(parsed.timeEnd)}`;
+                        if (!inWindow) isMuted = true;
+                    }
+                }
+
+                // Override active status if muted
+                if (isMuted) isActive = false;
+
                 const displayTitle = parsed.ruleName || getFriendlyLabel(ruleKey);
 
                 const opColors = {
@@ -553,18 +589,26 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
                 };
                 const switchColor = getSwitchColor(parsed.targetName);
 
-                const activeStyle = isActive
-                    ? `border-left: 6px solid #2ecc71; background: #e8f8f5; box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2); transform: scale(1.02);`
-                    : `border-left: 4px solid var(--primary); background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05);`;
+                let activeStyle, statusBadge;
+                if (isMuted) {
+                    activeStyle = `border-left: 4px solid #e67e22; background: #fef3e2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);`;
+                    statusBadge = `<span style="float:right; font-size:0.7rem; background:#e67e22; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">MUTED</span>`;
+                } else if (isActive) {
+                    activeStyle = `border-left: 6px solid #2ecc71; background: #e8f8f5; box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2); transform: scale(1.02);`;
+                    statusBadge = `<span style="float:right; font-size:0.7rem; background:#2ecc71; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">ACTIVE</span>`;
+                } else {
+                    activeStyle = `border-left: 4px solid var(--primary); background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05);`;
+                    statusBadge = ``;
+                }
 
-                const activeIndicator = isActive
-                    ? `<span style="float:right; font-size:0.7rem; background:#2ecc71; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">ACTIVE</span>`
-                    : ``;
+                const scheduleHtml = scheduleText
+                    ? `<div style="margin-top:6px; font-size:0.75rem; color:${isMuted ? '#c0792b' : '#888'}; font-weight:600;">${scheduleText}</div>`
+                    : '';
 
                 content += `
                     <div style="${activeStyle} padding:0.75rem; border-radius:4px; font-size:0.9rem; color:#444; transition: all 0.3s ease;">
-                        <div style="font-weight:700; color:${isActive ? '#27ae60' : '#999'}; margin-bottom:4px; text-transform:uppercase; font-size:0.65rem; letter-spacing:0.5px;">
-                            ${displayTitle} ${activeIndicator}
+                        <div style="font-weight:700; color:${isMuted ? '#c0792b' : (isActive ? '#27ae60' : '#999')}; margin-bottom:4px; text-transform:uppercase; font-size:0.65rem; letter-spacing:0.5px;">
+                            ${displayTitle} ${statusBadge}
                         </div>
                         <div style="line-height:1.5;">
                             <span style="font-weight:bold; color:#555;">If</span> 
@@ -578,6 +622,7 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
                             <span style="color:#555;">to</span> 
                             <span style="color:${parsed.targetVal === 'ON' ? '#27ae60' : '#c0392b'}; font-weight:700;">${parsed.targetVal}</span>
                         </div>
+                        ${scheduleHtml}
                     </div>
                  `;
             } else {

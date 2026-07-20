@@ -78,8 +78,12 @@
     background: #3498db;
 }
 
-.logic-block:last-of-type::before {
+.logic-block:nth-of-type(2)::before {
     background: #27ae60;
+}
+
+.logic-block.schedule-limit-block::before {
+    background: #e67e22;
 }
 
 .logic-label {
@@ -114,22 +118,29 @@
 }
 
 .rule-name-input {
-    border: 1px solid transparent;
+    border: none;
+    border-bottom: 2px dashed #ccc;
     background: transparent;
     font-weight: 700;
-    font-size: 1rem;
-    color: var(--text-dark);
+    font-size: 1.05rem;
+    color: var(--primary);
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: 0;
     width: 100%;
     max-width: 220px;
     transition: all 0.2s;
 }
 
-.rule-name-input:hover,
+.rule-name-input:hover {
+    border-bottom-color: var(--primary);
+    border-bottom-style: solid;
+}
+
 .rule-name-input:focus {
-    border-color: #ddd;
-    background: white;
+    border-bottom-color: var(--primary);
+    border-bottom-style: solid;
+    outline: none;
+    color: var(--text-dark);
 }
 
 /* ── Device Selector ── */
@@ -299,4 +310,30 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Schedule Limit Section */
+.schedule-limit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.schedule-config {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    animation: fadeSlideIn 0.2s ease;
+}
+
+/* Rule Disabled State */
+.rule-card.rule-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.rule-card.rule-disabled .rule-card-header {
+    pointer-events: auto;
 }

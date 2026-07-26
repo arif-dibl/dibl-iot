@@ -226,9 +226,16 @@ services:
       - ./deploy:/deployment
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /auth/health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && timeout 1 cat <&3 | grep -q '200'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     environment:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
+      KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
       KC_PROXY_HEADERS: xforwarded
       KC_HOSTNAME_STRICT: "false"

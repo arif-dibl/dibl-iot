@@ -4,7 +4,7 @@ configs:
   haproxy-config:
     content: |
       global
-          log stdout format raw local0 notice
+          log stdout format raw local0 info
 
       defaults
           log global
@@ -236,6 +236,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: "INFO"
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
       KC_PROXY_HEADERS: xforwarded
       KC_HOSTNAME_STRICT: "false"
@@ -310,6 +311,7 @@ services:
       - ./data:/app/data
       - ./config:/app/config
     environment:
+      PYTHONUNBUFFERED: "1"
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       HAWKBIT_URL: http://hawkbit:8080/ota

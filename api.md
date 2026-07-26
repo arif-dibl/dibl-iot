@@ -171,5 +171,3 @@ In HawkBit, devices are grouped using "Target Filters", which execute queries ag
 
 ### Conclusion
 By relying on HTTP status codes (`200 OK` vs `404 Not Found`) and lists (`GET` endpoints), the backend guarantees that targets and filters are never duplicated. This provides a robust, evidence-based auto-provisioning pipeline connecting OpenRemote and HawkBit OTA.
-
-

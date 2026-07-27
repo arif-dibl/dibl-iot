@@ -289,6 +289,7 @@ services:
     volumes:
       - proxy-data:/deployment
     environment:
+      DISABLE_ACME: "true"
       HAPROXY_CONFIG: '/data/proxy/haproxy.cfg'
       DOMAINNAME: ${OR_HOSTNAME:?Hostname required}
     labels:

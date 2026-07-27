@@ -50,7 +50,6 @@ configs:
       frontend mqtt
           bind *:8883 ssl crt /certs/mqtt-server-combined.pem ca-file /certs/ca.pem verify required
           mode tcp
-          option clitcpka
           default_backend mqtt_backend
 
       backend manager_backend
@@ -68,6 +67,7 @@ configs:
       backend mqtt_backend
           mode tcp
           timeout tunnel 300s
+          option clitcpka
           server manager manager:1883 resolvers docker_resolver init-addr none
 
   mqtt-server-cert:
@@ -272,7 +272,7 @@ services:
       OR_KEYCLOAK_PORT: 8080
 
   proxy:
-    image: openremote/proxy:${PROXY_VERSION:-latest}
+    image: openremote/proxy:${PROXY_VERSION:-2.9.15.1}
     restart: always
     depends_on:
       manager:

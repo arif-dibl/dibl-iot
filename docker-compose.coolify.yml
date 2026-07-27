@@ -50,6 +50,7 @@ configs:
       frontend mqtt
           bind *:8883 ssl crt /certs/mqtt-server-combined.pem ca-file /certs/ca.pem verify required
           mode tcp
+          option clitcpka
           default_backend mqtt_backend
 
       backend manager_backend

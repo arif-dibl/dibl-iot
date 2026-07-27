@@ -67,7 +67,6 @@ configs:
       backend mqtt_backend
           mode tcp
           timeout tunnel 300s
-          option clitcpka
           server manager manager:1883 resolvers docker_resolver init-addr none
 
   mqtt-server-cert:
@@ -251,7 +250,7 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf -o /dev/null http://localhost:8080/ || exit 0"]
+      test: ["CMD-SHELL", "curl -sf -o /dev/null http://localhost:8080/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 15

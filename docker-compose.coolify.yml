@@ -227,7 +227,7 @@ services:
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/auth/health/ready || curl -f http://localhost:8080/health/ready || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/auth/health/ready || curl -f http://localhost:8080/health/ready || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -251,7 +251,7 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf -o /dev/null http://localhost:8080/ || exit 1"]
+      test: [ "CMD-SHELL", "curl -sf -o /dev/null http://localhost:8080/ || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -272,7 +272,8 @@ services:
       OR_KEYCLOAK_PORT: 8080
 
   proxy:
-    image: openremote/proxy:${PROXY_VERSION:-2.9.15.1}
+    image: openremote/proxy:${PROXY_VERSION:-2.9.15.1} # Working version
+
     restart: always
     depends_on:
       manager:

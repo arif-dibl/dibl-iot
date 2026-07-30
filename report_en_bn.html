@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', 'Noto Sans Bengali', sans-serif;
+    color: #333;
+    line-height: 1.6;
+    padding: 0;
+    background: #fff;
+  }
+  .cover {
+    background: linear-gradient(135deg, #00AF50, #008f40);
+    color: white;
+    padding: 80px 60px;
+    text-align: center;
+    page-break-after: always;
+  }
+  .cover h1 { font-size: 36px; margin-bottom: 15px; font-weight: 800; }
+  .cover h2 { font-size: 22px; font-weight: 400; opacity: 0.9; margin-bottom: 30px; }
+  .cover .date { font-size: 14px; opacity: 0.7; }
+  .cover .logo { font-size: 48px; margin-bottom: 20px; }
+  .toc { padding: 40px 60px; page-break-after: always; }
+  .toc h2 { font-size: 24px; color: #00af50; margin-bottom: 20px; border-bottom: 2px solid #00af50; padding-bottom: 8px; }
+  .toc ul { list-style: none; }
+  .toc li { padding: 6px 0; font-size: 15px; }
+  .toc li a { color: #333; text-decoration: none; }
+  .toc li a:hover { color: #00af50; }
+  .section { padding: 30px 60px; page-break-inside: avoid; }
+  .section h2 { font-size: 22px; color: #00af50; margin-bottom: 15px; border-bottom: 2px solid #00af50; padding-bottom: 6px; }
+  .section h3 { font-size: 17px; color: #008f40; margin: 18px 0 10px 0; }
+  .section p { margin-bottom: 10px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 18px 0; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+  th { background: #f0fdf4; color: #008f40; font-weight: 600; }
+  tr:nth-child(even) { background: #fafafa; }
+  code { background: #f4f4f4; padding: 1px 4px; border-radius: 3px; font-size: 12px; color: #c0392b; }
+  .bn { font-family: 'Noto Sans Bengali', sans-serif; }
+  .divider { height: 1px; background: #e0e0e0; margin: 30px 0; }
+  .lang-badge {
+    display: inline-block;
+    background: #00af50;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .lang-badge.bn-badge { background: #e67e22; }
+  .highlight-box {
+    background: #f0fdf4;
+    border-left: 4px solid #00af50;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    border-radius: 0 6px 6px 0;
+  }
+  .evidence { color: #888; font-size: 12px; font-style: italic; }
+  ul, ol { margin: 8px 0 12px 20px; font-size: 14px; }
+  li { margin-bottom: 4px; }
+  .color-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .footer { text-align: center; padding: 20px; font-size: 12px; color: #999; border-top: 1px solid #eee; margin-top: 40px; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER PAGE ============ -->
+<div class="cover">
+  <div class="logo">🌿</div>
+  <h1>DIBL IoT Custom UI<br>App Interface Analysis Report</h1>
+  <h2>ডিআইবিএল আইওটি কাস্টম ইউআই<br>অ্যাপ ইন্টারফেস বিশ্লেষণ রিপোর্ট</h2>
+  <p style="font-size:15px; opacity:0.85; margin:20px 0;">A comprehensive bilingual analysis of the DIBL IoT Custom UI frontend & backend — as if it were an Android app</p>
+  <p class="date">Generated: July 29, 2026</p>
+</div>
+
+<!-- ============ TABLE OF CONTENTS ============ -->
+<div class="toc">
+  <h2>Table of Contents / সূচিপত্র</h2>
+  <ul>
+    <li><a href="#s1">1. Architecture Overview / আর্কিটেকচার ওভারভিউ</a></li>
+    <li><a href="#s2">2. Authentication &amp; Onboarding / অথেনটিকেশন ও অনবোর্ডিং</a></li>
+    <li><a href="#s3">3. Dashboard (Home Screen) / ড্যাশবোর্ড (হোম স্ক্রিন)</a></li>
+    <li><a href="#s4">4. Asset / Device Management / অ্যাসেট ও ডিভাইস ম্যানেজমেন্ট</a></li>
+    <li><a href="#s5">5. Automation Rules / অটোমেশন রুলস</a></li>
+    <li><a href="#s6">6. Timers &amp; Scheduling / টাইমারস ও শিডিউলিং</a></li>
+    <li><a href="#s7">7. History Logs &amp; Analytics / হিস্ট্রি লগস ও অ্যানালিটিক্স</a></li>
+    <li><a href="#s8">8. User Profile &amp; Settings / ইউজার প্রোফাইল ও সেটিংস</a></li>
+    <li><a href="#s9">9. Admin / Dev Features / অ্যাডমিন ও ডেভ ফিচার</a></li>
+    <li><a href="#s10">10. UI/UX Design Patterns / ডিজাইন প্যাটার্নস</a></li>
+  </ul>
+</div>
+
+<!-- ============ SECTION 1 ============ -->
+<div class="section page-break" id="s1">
+  <h2>1. Architecture Overview / আর্কিটেকচার ওভারভিউ</h2>
+
+  <table>
+    <tr><th>Component / কম্পোনেন্ট</th><th>Technology / টেকনোলজি</th><th>Role / ভূমিকা</th></tr>
+    <tr><td><strong>Backend</strong></td><td>Python 3.9 + <strong>FastAPI</strong> (port 5000)</td><td>Serves HTML pages, proxies API calls to OpenRemote Manager, handles session/auth<br>HTML পেজ সার্ভ করে, OpenRemote ম্যানেজারে API কল প্রক্সি করে, সেশন/অথ হ্যান্ডেল করে</td></tr>
+    <tr><td><strong>Frontend</strong></td><td><strong>Jinja2</strong> templates (server-rendered HTML) + <strong>Vanilla JS</strong> (ES6+)</td><td>All UI rendering, no framework (no React/Vue/Angular)<br>সব UI রেন্ডারিং, কোনো ফ্রেমওয়ার্ক নেই</td></tr>
+    <tr><td><strong>CSS</strong></td><td>Custom CSS (8 files), Inter font, CSS custom properties</td><td>Styling, responsive design / স্টাইলিং, রেস্পন্সিভ ডিজাইন</td></tr>
+    <tr><td><strong>IoT Backend</strong></td><td><strong>OpenRemote</strong> Manager + Keycloak (IAM)</td><td>Asset storage, authentication, rule engine<br>অ্যাসেট স্টোরেজ, অথেনটিকেশন, রুল ইঞ্জিন</td></tr>
+    <tr><td><strong>Deployment</strong></td><td>Docker / Docker Compose (Traefik/HAProxy)</td><td>Production behind reverse proxy<br>প্রোডাকশনে রিভার্স প্রক্সির পিছনে</td></tr>
+  </table>
+
+  <div class="highlight-box">
+    <strong>Evidence / প্রমাণ:</strong> <code>src/main.py:14</code> — <code>app = FastAPI(title="DIBL IoT Custom UI")</code>, runs on port 5000 with uvicorn. No Node.js, no React — pure server-rendered HTML with JS interactivity.<br>
+    পোর্ট ৫০০০-এ uvicorn চালায়। কোনো Node.js, React নেই — বিশুদ্ধ সার্ভার-রেন্ডারড HTML।
+  </div>
+
+  <h3>Project Structure / প্রজেক্ট স্ট্রাকচার</h3>
+  <pre style="background:#f8f9fa; padding:12px; border-radius:6px; font-size:12px; line-height:1.4;">
+DIBL_IOT/
+├── config/               # asset_template.json, friendly_names.json
+├── deploy/Dockerfile     # Build definition
+├── src/
+│   ├── api/              # assets.py, rules.py, user.py, debug.py
+│   ├── core/             # auth.py, config.py, utils.py, hawkbit.py
+│   ├── routes/           # auth.py, dashboard.py
+│   ├── static/
+│   │   ├── css/          # 8 CSS files
+│   │   ├── js/           # 10 JS files
+│   │   └── images/
+│   ├── templates/        # 14 Jinja2 HTML templates
+│   └── main.py           # FastAPI entry point
+├── docker-compose.yml
+├── docker-compose.coolify.yml
+├── secrets/              # Device certificates & setup scripts
+└── docs/                 # Documentation</pre>
+</div>
+
+<!-- ============ SECTION 2 ============ -->
+<div class="section page-break" id="s2">
+  <h2>2. Authentication &amp; Onboarding / অথেনটিকেশন ও অনবোর্ডিং</h2>
+
+  <p><strong>If this were an Android app:</strong> The login screen would be a <strong>split-screen design</strong> — 60% brand/info panel + 40% form panel.</p>
+  <p><strong>এটি যদি অ্যান্ড্রয়েড অ্যাপ হতো:</strong> লগইন স্ক্রিন হবে <strong>স্প্লিট-স্ক্রিন ডিজাইন</strong> — ৬০% ব্র্যান্ড/ইনফো প্যানেল + ৪০% ফর্ম প্যানেল।</p>
+
+  <h3>Login Page / লগইন পেজ (<code>src/templates/login.html</code>)</h3>
+  <table>
+    <tr><th>Element / এলিমেন্ট</th><th>Description / বর্ণনা</th></tr>
+    <tr><td><strong>Left Panel (60%)</strong></td><td>Brand hero: "Irrigation Made Easy." tagline, feature bullets (check soil instantly, set auto watering, view past data), links to DIBL Website, GitHub, Support<br>ব্র্যান্ড হিরো: ট্যাগলাইন, ফিচার বুলেট, ওয়েবসাইট/গিটহাব/সাপোর্ট লিংক</td></tr>
+    <tr><td><strong>Right Panel (40%)</strong></td><td>DIBL logo, "Welcome Back" heading, username/password fields with show/hide toggle, "Sign In" button, "Sign Up" link<br>DIBL লোগো, "Welcome Back", ইউজারনেম/পাসওয়ার্ড ফিল্ড, শো/হাইড টগল, সাইনইন বাটন</td></tr>
+    <tr><td><strong>Visual / ভিজ্যুয়াল</strong></td><td>Green gradient background: <code>linear-gradient(135deg, #00AF50, #008f40)</code></td></tr>
+    <tr><td><strong>Responsive / রেস্পন্সিভ</strong></td><td>Below 900px — info panel <strong>hides entirely</strong>, only form remains<br>৯০০px-এর নিচে ইনফো প্যানেল <strong>সম্পূর্ণ লুকিয়ে যায়</strong></td></tr>
+  </table>
+
+  <div class="highlight-box">
+    <strong>Evidence / প্রমাণ:</strong> <code>src/templates/login.html:18-81</code> — split-container with info-panel (60%) and form-panel (40%). <code>src/static/css/split_auth.css:153-165</code> — media query hides <code>.info-panel</code> at max-width 900px.
+  </div>
+
+  <h3>Signup Page / সাইনআপ পেজ (<code>src/templates/signup.html</code>)</h3>
+  <table>
+    <tr><th>Element / এলিমেন্ট</th><th>Description / বর্ণনা</th></tr>
+    <tr><td><strong>Layout / লে-আউট</strong></td><td>Same split-screen (info left, form right) / একই স্প্লিট-স্ক্রিন (বামে ইনফো, ডানে ফর্ম)</td></tr>
+    <tr><td><strong>Fields / ফিল্ড</strong></td><td>Username, Email, Password (with show/hide), Terms &amp; Conditions checkbox<br>ইউজারনেম, ইমেইল, পাসওয়ার্ড, টার্মস চেকবক্স</td></tr>
+    <tr><td><strong>Post-Signup</strong></td><td>Success modal: envelope icon ✉️, "Account Created!" message, "Go to Login" button<br>সাকসেস মডাল: খাম আইকন, "অ্যাকাউন্ট তৈরি!" মেসেজ, "লগইনে যান" বাটন</td></tr>
+  </table>
+
+  <p><strong>Auth Flow / অথ ফ্লো:</strong> Backend performs auto-login via Keycloak OIDC (<code>src/core/auth.py:230-318</code>) — fetches login form, submits credentials, captures session cookies, stores access/refresh tokens in session. ব্যাকএন্ড Keycloak OIDC-এর মাধ্যমে অটো-লগইন ড্যান্স করে — ফর্ম ফেচ, ক্রেডেনশিয়াল সাবমিট, কুকি ক্যাপচার, টোকেন স্টোর।</p>
+</div>
+
+<!-- ============ SECTION 3 ============ -->
+<div class="section page-break" id="s3">
+  <h2>3. Dashboard (Home Screen) / ড্যাশবোর্ড (হোম স্ক্রিন)</h2>
+
+  <h3>Top Navigation Bar / টপ নেভিগেশন বার (<code>src/templates/base.html</code>)</h3>
+  <table>
+    <tr><th>Element / এলিমেন্ট</th><th>Description / বর্ণনা</th></tr>
+    <tr><td><strong>Brand / ব্র্যান্ড</strong></td><td>DIBL IoT logo (32px height) / DIBL IoT লোগো (৩২px উচ্চতা)</td></tr>
+    <tr><td><strong>Nav items (desktop)</strong></td><td>Dashboard, My IoT Devices, Rules, Timers — inline with active underline<br>ইনলাইন দেখায়, একটিভের নিচে আন্ডারলাইন</td></tr>
+    <tr><td><strong>More menu (dropdown)</strong></td><td>User Settings, History Logs, Logout</td></tr>
+    <tr><td><strong>Mobile behavior</strong></td><td>Below 830px — main nav items hidden, all links in "•••" dropdown<br>৮৩০px-এর নিচে মেইন নেভ লুকানো, সব লিংক ড্রপডাউনে</td></tr>
+    <tr><td><strong>Smart navbar</strong></td><td>Scroll-down → navbar slides up/hides; scroll-up → reappears<br>স্ক্রোল-ডাউনে নেভবার উপরে স্লাইড/লুকায়; স্ক্রোল-আপে ফিরে আসে</td></tr>
+  </table>
+  <div class="highlight-box">
+    <strong>Evidence / প্রমাণ:</strong> <code>src/static/css/dashboard.css:474-537</code> — top-nav sticky. <code>dashboard.css:801-833</code> — mobile nav hide at 830px. <code>src/static/js/main.js:239-263</code> — scroll-based navbar visibility.
+  </div>
+
+  <h3>Overview Stats / ওভারভিউ স্ট্যাটস</h3>
+  <p>4 stat cards in responsive grid: "My IoT Devices" (count), "Online Devices" (🟢 green), "Offline Devices" (🔴 red), "My Rules" (count). Populated via live API (<code>/api/user/assets</code>) with 3-second auto-refresh. <span class="evidence">(<code>src/static/js/dashboard.js:4-37</code>)</span></p>
+
+  <h3>Switches / সুইচেস (Relay Control)</h3>
+  <table>
+    <tr><th>Feature / ফিচার</th><th>Description / বর্ণনা</th></tr>
+    <tr><td><strong>Cards / কার্ড</strong></td><td>Grouped by device, each switch as large toggle card / ডিভাইস অনুযায়ী গ্রুপড, বড় টগল কার্ড</td></tr>
+    <tr><td><strong>Toggle UI</strong></td><td>~90x50px toggle slider; green when ON, grey when OFF / সবুজ = চালু, ধূসর = বন্ধ</td></tr>
+    <tr><td><strong>Frosted overlay</strong></td><td>While API call in-flight: frosted glass + pulsing dot, blocks interaction ~1.5s<br>API কল চলাকালীন ফ্রস্টেড গ্লাস + পুলসিং ডট ১.৫ সেকেন্ড</td></tr>
+    <tr><td><strong>Offline state</strong></td><td>Light red bg (#fee2e2), red border, toggle disabled / হালকা লাল, লাল বর্ডার, টগল নিষ্ক্রিয়</td></tr>
+  </table>
+
+  <h3>Sensors, Timers &amp; Rules Widgets (Pinnable)</h3>
+  <p>Users pin widgets from device detail pages. Types: <strong>Environment</strong> (temp/humidity/light grid), <strong>Moisture</strong> (grid), <strong>NPK</strong> (zones with N/P/K/EC/pH), <strong>Timers</strong> (status + ON/OFF times + days), <strong>Rules</strong> (human-readable: "If [sensor] [op] [threshold], Set [switch] to [ON/OFF]"). 4-column responsive grid. <span class="evidence">(<code>src/static/js/dashboard.js:314-643</code>)</span></p>
+</div>
+
+<!-- ============ SECTION 4 ============ -->
+<div class="section page-break" id="s4">
+  <h2>4. Asset / Device Management / অ্যাসেট ও ডিভাইস ম্যানেজমেন্ট</h2>
+
+  <h3>Assets List / অ্যাসেটস লিস্ট (<code>src/templates/assets.html</code>)</h3>
+  <table>
+    <tr><th>Element / এলিমেন্ট</th><th>Description / বর্ণনা</th></tr>
+    <tr><td><strong>Action button</strong></td><td>"+ Link New IoT Device" — opens modal with QR + manual entry</td></tr>
+    <tr><td><strong>Asset cards</strong></td><td>Device name (editable), online/offline dot + time ago, "Show ID", "Unlink"</td></tr>
+    <tr><td><strong>Empty state</strong></td><td>Dashed border: "No IoT devices linked" / ড্যাশড বর্ডার</td></tr>
+  </table>
+
+  <h3>Link Device Flow / লিংক ডিভাইস ফ্লো (Modal)</h3>
+  <table>
+    <tr><th>Step / ধাপ</th><th>UI / ইউআই</th></tr>
+    <tr><td>1</td><td>Modal: "Scan QR code or enter device ID manually" / QR কোড স্ক্যান বা ম্যানুয়ালি ID দিন</td></tr>
+    <tr><td>2</td><td>QR scanner button (camera icon SVG) / QR স্ক্যানার বাটন (ক্যামেরা আইকন)</td></tr>
+    <tr><td>3</td><td>Text input for manual device ID / ম্যানুয়াল ID 입력ের টেক্সট ইনপুট</td></tr>
+    <tr><td>4</td><td>"How to get device ID?" → bilingual instructions (English / বাংলা)<br>নির্দেশনা মডাল (ইংরেজি ও বাংলা)</td></tr>
+    <tr><td>5</td><td>Cancel / Link IoT Device buttons</td></tr>
+  </table>
+  <p><strong>QR Scanning:</strong> Uses <code>html5-qrcode</code> library. Instructions include Bengali language support for local farmers. <span class="evidence">(<code>src/templates/device_id_instructions.html:1-68</code>)</span></p>
+
+  <h3>Device Detail / ডিভাইস ডিটেইল (<code>src/templates/asset_detail.html</code>)</h3>
+  <table>
+    <tr><th>Element / এলিমেন্ট</th><th>Description / বর্ণনা</th></tr>
+    <tr><td><strong>Header</strong></td><td>Device name, "Show ID" link, last update timestamp</td></tr>
+    <tr><td><strong>Groups</strong></td><td>All attribute groups listed (EnvData, MoistureData, NPKData, RelayData, etc.)</td></tr>
+    <tr><td><strong>Wheel Picker</strong></td><td>iOS-style circular picker — scroll-snap list, center highlight, "CONFIRM" button<br>iOS-স্টাইল সার্কুলার পিকার, স্নাপ-স্ক্রোল, সেন্টার হাইলাইট</td></tr>
+    <tr><td><strong>Show ID Modal</strong></td><td>Device ID + QR code (qrcodejs) + "Copy to Clipboard"</td></tr>
+  </table>
+  <p><span class="evidence">Evidence / প্রমাণ: <code>src/templates/asset_detail.html:33-49</code>, <code>src/static/css/asset_detail.css:1-26</code></span></p>
+</div>
+
+<!-- ============ SECTION 5 ============ -->
+<div class="section page-break" id="s5">
+  <h2>5. Automation Rules / অটোমেশন রুলস (<code>src/templates/rules.html</code>)</h2>
+
+  <table>
+    <tr><th>Element / এলিমেন্ট</th><th>Description / বর্ণনা</th></tr>
+    <tr><td><strong>Selector</strong></td><td>"Select IoT Device" dropdown + "Pin to Dashboard" + "+ New Rule" buttons</td></tr>
+    <tr><td><strong>Rules grid</strong></td><td>Cards (4-col responsive) — "if [sensor] [op] [threshold] then [switch] [ON/OFF]"</td></tr>
+    <tr><td><strong>Rule card layout</strong></td><td>Header (rule name + enable toggle), body (logic blocks with colored left-border)</td></tr>
+    <tr><td><strong>Schedule limits</strong></td><td>Optional time window (active/inactive hours) with orange accent / কমলা রঙে শিডিউল উইন্ডো</td></tr>
+    <tr><td><strong>Device selector</strong></td><td>Within rules: chip-based picker with confirmation dialog</td></tr>
+  </table>
+  <p><span class="evidence">Evidence / প্রমাণ: <code>src/static/css/rules.css:1-339</code> — rule card styling with colored left borders, device selectors, confirmation dialogs.</span></p>
+</div>
+
+<!-- ============ SECTION 6 ============ -->
+<div class="section page-break" id="s6">
+  <h2>6. Timers &amp; Scheduling / টাইমারস ও শিডিউলিং (<code>src/templates/timers.html</code>)</h2>
+
+  <ul>
+    <li>Lists all devices with timer attributes / সব টাইমার অ্যাট্রিবিউটযুক্ত ডিভাইসের তালিকা</li>
+    <li>Each asset shows timers: status, ON/OFF times, days, output targets</li>
+    <li>Uses the same <strong>wheel picker</strong> as asset detail for time value selection</li>
+    <li>Timer config: start hour/minute, end hour/minute, days selection, output assignment</li>
+  </ul>
+  <p><span class="evidence">Evidence / প্রমাণ: <code>src/templates/timers.html:14-31</code></span></p>
+</div>
+
+<!-- ============ SECTION 7 ============ -->
+<div class="section page-break" id="s7">
+  <h2>7. History Logs &amp; Analytics / হিস্ট্রি লগস ও অ্যানালিটিক্স (<code>src/templates/datapoint_history.html</code>)</h2>
+
+  <table>
+    <tr><th>Feature / ফিচার</th><th>Description / বর্ণনা</th></tr>
+    <tr><td><strong>Device selector</strong></td><td>Dropdown to choose device / ড্রপডাউনে ডিভাইস নির্বাচন</td></tr>
+    <tr><td><strong>Group selector</strong></td><td>Attribute group (EnvData, MoistureData, etc.) / অ্যাট্রিবিউট গ্রুপ নির্বাচন</td></tr>
+    <tr><td><strong>Time range</strong></td><td>Start/End date + time inputs / শুরু/শেষ তারিখ + সময়</td></tr>
+    <tr><td><strong>Actions</strong></td><td>"Fetch Data" + "Export CSV"</td></tr>
+    <tr><td><strong>View modes</strong></td><td>Radio buttons: <strong>Table</strong>, <strong>Chart</strong> (Chart.js), <strong>Raw Data</strong> (JSON with Copy button)<br>রেডিও বাটন: টেবিল, চার্ট (Chart.js), র JSON (কপি বাটনসহ)</td></tr>
+    <tr><td><strong>CSV Export</strong></td><td>Download sensor data as CSV file / CSV ফাইল ডাউনলোড</td></tr>
+  </table>
+  <p><span class="evidence">Evidence / প্রমাণ: <code>src/templates/datapoint_history.html:75-136</code>, <code>src/static/css/history_logs.css:1-136</code></span></p>
+</div>
+
+<!-- ============ SECTION 8 ============ -->
+<div class="section page-break" id="s8">
+  <h2>8. User Profile &amp; Settings / ইউজার প্রোফাইল ও সেটিংস (<code>src/templates/user.html</code>)</h2>
+
+  <table>
+    <tr><th>Card / কার্ড</th><th>Content / কন্টেন্ট</th></tr>
+    <tr><td><strong>Profile Card</strong></td><td>Avatar circle with initial, username (disabled), email (disabled), firstName/lastName (editable), "Save Profile" button</td></tr>
+    <tr><td><strong>Password Card</strong></td><td>Current / New / Confirm Password fields, "Change Password" (red/danger), "Sign Out" link<br>বর্তমান/নতুন/নিশ্চিত পাসওয়ার্ড ফিল্ড, "পাসওয়ার্ড পরিবর্তন" (লাল), "সাইন আউট"</td></tr>
+    <tr><td><strong>Linked Users Card</strong></td><td>Shows other users sharing the same assets (multi-user farm management)<br>একই অ্যাসেট শেয়ার করা অন্যান্য ইউজার দেখায় (মাল্টি-ইউজার ফার্ম ম্যানেজমেন্ট)</td></tr>
+  </table>
+  <p><span class="evidence">Evidence / প্রমাণ: <code>src/templates/user.html:1-136</code>, <code>src/api/user.py:88-173</code></span></p>
+</div>
+
+<!-- ============ SECTION 9 ============ -->
+<div class="section page-break" id="s9">
+  <h2>9. Admin / Dev Features / অ্যাডমিন ও ডেভ ফিচার</h2>
+
+</div>
+
+<!-- ============ SECTION 10 ============ -->
+<div class="section page-break" id="s10">
+  <h2>10. UI/UX Design Patterns / ডিজাইন প্যাটার্নস — সারসংক্ষেপ</h2>
+
+  <h3>Design System / ডিজাইন সিস্টেম (<code>src/static/css/common.css</code>)</h3>
+  <table>
+    <tr><th>Token / টোকেন</th><th>Value / ভ্যালু</th><th>Usage / ব্যবহার</th></tr>
+    <tr><td><code>--primary</code></td><td><span class="color-dot" style="background:#00af50"></span> <code>#00af50</code></td><td>Green brand, buttons, active states / সবুজ ব্র্যান্ড, বাটন, একটিভ</td></tr>
+    <tr><td><code>--primary-hover</code></td><td><span class="color-dot" style="background:#008f40"></span> <code>#008f40</code></td><td>Button hover state / বাটন হোভার</td></tr>
+    <tr><td><code>--bg-light</code></td><td><code>#f8f9fa</code></td><td>Page background / পেজ ব্যাকগ্রাউন্ড</td></tr>
+    <tr><td><code>--text-muted</code></td><td><code>#6c757d</code></td><td>Secondary text / সেকেন্ডারি টেক্সট</td></tr>
+    <tr><td><code>--danger</code></td><td><span class="color-dot" style="background:#dc3545"></span> <code>#dc3545</code></td><td>Delete, unlink / ডিলিট, আনলিংক</td></tr>
+    <tr><td><strong>Font / ফন্ট</strong></td><td><code>'Inter', -apple-system, sans-serif</code></td><td>Modern system font stack</td></tr>
+  </table>
+
+  <h3>Color Semantics / রঙের মনস্তত্ত্ব</h3>
+  <table>
+    <tr><th>Color / রঙ</th><th>Meaning / অর্থ</th></tr>
+    <tr><td><span class="color-dot" style="background:#00af50"></span> 🟢 Green / সবুজ</td><td>Primary brand, success, active, online / প্রাইমারি, সাকসেস, একটিভ, অনলাইন</td></tr>
+    <tr><td><span class="color-dot" style="background:#dc3545"></span> 🔴 Red / লাল</td><td>Danger, offline, delete, unlink / ডেঞ্জার, অফলাইন, ডিলিট, আনলিংক</td></tr>
+    <tr><td><span class="color-dot" style="background:#e67e22"></span> 🟠 Orange / কমলা</td><td>Warning, muted rules, schedule limits / ওয়ার্নিং, মিউটেড রুলস, শিডিউল</td></tr>
+    <tr><td><span class="color-dot" style="background:#3498db"></span> 🔵 Blue / নীল</td><td>Logic/condition blocks / লজিক/কন্ডিশন ব্লক</td></tr>
+    <tr><td><span class="color-dot" style="background:#6c757d"></span> ⚫ Grey / ধূসর</td><td>Muted text, inactive, disabled / মিউটেড টেক্সট, ইনএকটিভ</td></tr>
+  </table>
+
+  <h3>Responsive Breakpoints / রেস্পন্সিভ ব্রেকপয়েন্ট</h3>
+  <table>
+    <tr><th>Breakpoint</th><th>Behavior / বিহেভিয়ার</th></tr>
+    <tr><td>&gt;1200px</td><td>4-column grids / ৪-কলাম গ্রিড</td></tr>
+    <tr><td>900-1200px</td><td>3-column grids / ৩-কলাম গ্রিড</td></tr>
+    <tr><td>600-900px</td><td>2-column grids, auth info panel hides / ২-কলাম, অথ ইনফো প্যানেল লুকায়</td></tr>
+    <tr><td>&lt;830px</td><td>Nav items → hamburger menu / নেভ আইটেম → হ্যামবার্গার মেনু</td></tr>
+    <tr><td>&lt;768px</td><td>1-column grids, reduced padding / ১-কলাম গ্রিড, প্যাডিং কমে</td></tr>
+  </table>
+
+  <h3>Interaction Patterns / ইন্টারঅ্যাকশন প্যাটার্নস</h3>
+  <table>
+    <tr><th>Pattern / প্যাটার্ন</th><th>Implementation / বাস্তবায়ন</th></tr>
+    <tr><td><strong>Toast notifications</strong></td><td>Fixed bottom-right, auto-dismiss after 3s / ফিক্সড নিচে-ডানে, ৩ সেকেন্ড পর অটো-ডিসমিস</td></tr>
+    <tr><td><strong>Modals</strong></td><td>Overlay + centered content, CSS class toggle / ওভারলে + সেন্টারড, CSS ক্লাস টগল</td></tr>
+    <tr><td><strong>Tooltips</strong></td><td>CSS-only, disabled on touch devices via <code>@media (hover: hover)</code></td></tr>
+    <tr><td><strong>Wheel picker</strong></td><td>iOS-style circular scroll picker with snap-scroll + selection highlight<br>iOS-স্টাইল সার্কুলার স্ক্রোল পিকার</td></tr>
+    <tr><td><strong>Frosted overlay</strong></td><td><code>backdrop-filter: blur(6px)</code> + pulsing dot during API calls<br>ফ্রস্টেড গ্লাস + পুলসিং ডট অ্যানিমেশন</td></tr>
+    <tr><td><strong>Live refresh</strong></td><td><code>setInterval</code> every 3 seconds / প্রতি ৩ সেকেন্ডে অটো-রিফ্রেশ</td></tr>
+    <tr><td><strong>Friendly names</strong></td><td>Cached display names for sensor keys (e.g., <code>t1</code> → "Temperature 1"), <code>sessionStorage</code>-cached<br>সেন্সর কী-এর ক্যাশে ডিসপ্লে নাম</td></tr>
+  </table>
+
+  <h3>Key Technical Observations / গুরুত্বপূর্ণ টেকনিক্যাল পর্যবেক্ষণ</h3>
+
+  <ol>
+    <li><strong>State Management:</strong> No global state library — all state in <code>sessionStorage</code> (friendly names cache), <code>localStorage</code> (switch names, widget names), and FastAPI server session (tokens). কোনো গ্লোবাল স্টেট লাইব্রেরি নেই।</li>
+    <li><strong>API Pattern:</strong> FastAPI acts as <strong>BFF (Backend For Frontend)</strong> — proxies authenticated calls to OpenRemote, manages token refresh, flattens complex data. FastAPI ব্যাকএন্ড BFF হিসেবে কাজ করে।</li>
+    <li><strong>Real-time:</strong> No WebSocket — uses <strong>polling</strong> (3s intervals). An Android app would benefit from MQTT or WebSocket. কোনো WebSocket নেই — পোলিং ব্যবহার করে।</li>
+    <li><strong>Offline:</strong> Assets offline if last activity &gt; 10 seconds (<code>OFFLINE_TIMEOUT_MS = 10000</code> in <code>main.js:160</code>). Red cards with disabled controls. অফলাইন অ্যাসেট লাল কার্ড + নিষ্ক্রিয় কন্ট্রোল।</li>
+    <li><strong>Multi-language:</strong> Only device ID instructions bilingual (English/Bangla) — rest is English-only. শুধুমাত্র ডিভাইস ID নির্দেশনা ইংরেজি/বাংলা সাপোর্ট করে।</li>
+    <li><strong>Security:</strong> Session-based auth with auto-refresh, username-matching gatekeeper on all routes, hardcoded admin user (<code>arif</code>) for test API. সেশন-ভিত্তিক অথ + ইউজারনেম-ম্যাচিং গেটকিপার সব রুটে।</li>
+  </ol>
+</div>
+
+<!-- ============ SECTION 11 ============ -->
+<div class="section page-break" id="s11">
+  <h2>11. Proposed Android Project Structure (Android Studio) / প্রস্তাবিত অ্যান্ড্রয়েড প্রজেক্ট স্ট্রাকচার</h2>
+
+  <p>If the DIBL IoT Custom UI were developed as a native Android app in <strong>Android Studio</strong> (using Kotlin + Jetpack Compose), the recommended project structure would follow <strong>MVVM (Model-View-ViewModel)</strong> architecture with <strong>Clean Architecture</strong> principles. Below is the proposed package layout mapping directly to the existing web app's screens and features.</p>
+  <p>যদি DIBL IoT কাস্টম UI <strong>Android Studio</strong>-তে নেটিভ অ্যান্ড্রয়েড অ্যাপ হিসেবে ডেভেলপ করা হতো (Kotlin + Jetpack Compose ব্যবহার করে), তাহলে প্রস্তাবিত প্রজেক্ট স্ট্রাকচার <strong>MVVM (Model-View-ViewModel)</strong> আর্কিটেকচার + <strong>Clean Architecture</strong> অনুসরণ করবে। নিচের প্যাকেজ লে-আউটটি ওয়েব অ্যাপের স্ক্রিন ও ফিচারগুলোর সরাসরি ম্যাপিং।</p>
+
+  <pre style="background:#f8f9fa; padding:16px; border-radius:8px; font-size:11.5px; line-height:1.5; overflow-x:auto; white-space:pre;">
+com.dibl.iot/
+├── app/
+│   ├── DIBLIoTApp.kt                     # Application class (Hilt DI setup)
+│   ├── MainActivity.kt                   # Single Activity (Navigation host)
+│   └── MainNavigation.kt                 # NavGraph definition
+│
+├── data/                                 # DATA LAYER
+│   ├── local/
+│   │   ├── db/
+│   │   │   ├── AppDatabase.kt            # Room database
+│   │   │   ├── dao/
+│   │   │   │   ├── AssetDao.kt           # Cached assets
+│   │   │   │   ├── WidgetDao.kt          # Pinned widgets
+│   │   │   │   ├── SwitchNameDao.kt      # Renamed switch names
+│   │   │   │   └── FriendlyNameDao.kt    # Friendly names cache
+│   │   │   └── entity/
+│   │   │       ├── AssetEntity.kt
+│   │   │       ├── WidgetEntity.kt
+│   │   │       ├── SwitchNameEntity.kt
+│   │   │       └── FriendlyNameEntity.kt
+│   │   ├── preferences/
+│   │   │   └── UserPreferences.kt        # DataStore (session, tokens, realm)
+│   │   └── cache/
+│   │       └── FriendlyNamesCache.kt     # In-memory + disk LRU cache
+│   │
+│   ├── remote/
+│   │   ├── api/
+│   │   │   ├── OpenRemoteApi.kt          # Retrofit interface (all OR endpoints)
+│   │   │   ├── CustomUiApi.kt            # Retrofit interface (FastAPI BFF endpoints)
+│   │   │   └── KeycloakApi.kt            # Retrofit interface (auth token endpoints)
+│   │   ├── dto/                          # Data Transfer Objects
+│   │   │   ├── AssetDto.kt
+│   │   │   ├── AttributeDto.kt
+│   │   │   ├── RuleDto.kt
+│   │   │   ├── TimerDto.kt
+│   │   │   ├── UserProfileDto.kt
+│   │   │   ├── WidgetDto.kt
+│   │   │   └── AuthTokensDto.kt
+│   │   ├── mqtt/
+│   │   │   ├── MqttManager.kt            # MQTT client (replaces polling)
+│   │   │   ├── MqttMessageHandler.kt     # Parse incoming sensor data
+│   │   │   └── MqttTopics.kt             # Topic constants
+│   │   └── interceptor/
+│   │       ├── AuthInterceptor.kt        # Auto-inject Bearer token
+│   │       └── TokenRefreshInterceptor.kt # Auto-refresh expired tokens
+│   │
+│   ├── repository/                       # REPOSITORY IMPLEMENTATIONS
+│   │   ├── AuthRepositoryImpl.kt
+│   │   ├── AssetRepositoryImpl.kt
+│   │   ├── RuleRepositoryImpl.kt
+│   │   ├── TimerRepositoryImpl.kt
+│   │   ├── WidgetRepositoryImpl.kt
+│   │   ├── UserRepositoryImpl.kt
+│   │   ├── DatapointRepositoryImpl.kt
+│   │   └── FriendlyNameRepositoryImpl.kt
+│   │
+│   └── mapper/
+│       ├── AssetMapper.kt                # Dto → Domain model
+│       ├── WidgetMapper.kt
+│       ├── RuleMapper.kt
+│       └── TimerMapper.kt
+│
+├── domain/                               # DOMAIN LAYER (Pure Kotlin, no Android dep)
+│   ├── model/
+│   │   ├── Asset.kt                      # Domain models
+│   │   ├── Attribute.kt
+│   │   ├── Rule.kt
+│   │   ├── Timer.kt
+│   │   ├── Widget.kt
+│   │   ├── UserProfile.kt
+│   │   ├── Datapoint.kt
+│   │   ├── SensorReading.kt
+│   │   └── SwitchState.kt
+│   ├── repository/                       # REPOSITORY INTERFACES
+│   │   ├── AuthRepository.kt
+│   │   ├── AssetRepository.kt
+│   │   ├── RuleRepository.kt
+│   │   ├── TimerRepository.kt
+│   │   ├── WidgetRepository.kt
+│   │   ├── UserRepository.kt
+│   │   ├── DatapointRepository.kt
+│   │   └── FriendlyNameRepository.kt
+│   └── usecase/                          # USE CASES
+│       ├── auth/
+│       │   ├── LoginUseCase.kt
+│       │   ├── SignupUseCase.kt
+│       │   ├── LogoutUseCase.kt
+│       │   └── RefreshTokenUseCase.kt
+│       ├── asset/
+│       │   ├── GetAssetsUseCase.kt
+│       │   ├── LinkAssetUseCase.kt
+│       │   ├── UnlinkAssetUseCase.kt
+│       │   ├── RenameAssetUseCase.kt
+│       │   └── GetAssetDetailUseCase.kt
+│       ├── switch/
+│       │   ├── ToggleSwitchUseCase.kt
+│       │   ├── RenameSwitchUseCase.kt
+│       │   └── GetSwitchStatesUseCase.kt
+│       ├── rule/
+│       │   ├── GetRulesUseCase.kt
+│       │   ├── CreateRuleUseCase.kt
+│       │   ├── UpdateRuleUseCase.kt
+│       │   ├── DeleteRuleUseCase.kt
+│       │   └── ToggleRuleUseCase.kt
+│       ├── timer/
+│       │   ├── GetTimersUseCase.kt
+│       │   ├── UpdateTimerUseCase.kt
+│       │   └── CreateTimerUseCase.kt
+│       ├── widget/
+│       │   ├── PinWidgetUseCase.kt
+│       │   ├── UnpinWidgetUseCase.kt
+│       │   └── RenameWidgetUseCase.kt
+│       ├── user/
+│       │   ├── GetProfileUseCase.kt
+│       │   ├── UpdateProfileUseCase.kt
+│       │   └── ChangePasswordUseCase.kt
+│       └── datapoint/
+│           ├── FetchDatapointsUseCase.kt
+│           └── ExportCsvUseCase.kt
+│
+├── presentation/                         # PRESENTATION LAYER
+│   ├── navigation/
+│   │   ├── Screen.kt                     # Sealed class of route definitions
+│   │   └── NavGraph.kt                   # Compose Navigation graph
+│   │
+│   ├── theme/
+│   │   ├── Color.kt                      # #00af50 primary, #dc3545 danger, etc.
+│   │   ├── Type.kt                       # Inter font for English UI
+│   │   ├── Shape.kt                      # Rounded corner definitions
+│   │   └── Theme.kt                      # Material3 theme (light/dark)
+│   │
+│   ├── components/                       # REUSABLE COMPOSE COMPONENTS
+│   │   ├── DIBLTopBar.kt                 # Top app bar with nav dropdown
+│   │   ├── SmartNavBar.kt                # Scroll-hide/show navbar
+│   │   ├── StatCard.kt                   # Overview stat card
+│   │   ├── SwitchCard.kt                 # Relay toggle card (with frosted overlay)
+│   │   ├── SensorWidgetCard.kt           # Sensor data widget (Env/Moisture/NPK)
+│   │   ├── TimerWidgetCard.kt            # Timer status widget
+│   │   ├── RuleWidgetCard.kt             # Rule display widget
+│   │   ├── WheelPicker.kt                # iOS-style circular scroll picker
+│   │   ├── QRScannerView.kt              # Camera-based QR scanner
+│   │   ├── QRCodeView.kt                 # QR code generator
+│   │   ├── ToastMessage.kt               # Bottom toast overlay
+│   │   ├── LoadingOverlay.kt             # Frosted glass loading overlay
+│   │   ├── BilingualText.kt              # EN/BN text switcher component
+│   │   └── OfflineBanner.kt              # Red offline status banner
+│   │
+│   ├── auth/                             # AUTH FLOW
+│   │   ├── LoginScreen.kt                # Split-screen login (info + form)
+│   │   ├── LoginViewModel.kt
+│   │   ├── SignupScreen.kt               # Signup with Terms modal
+│   │   └── SignupViewModel.kt
+│   │
+│   ├── dashboard/                        # DASHBOARD (Home)
+│   │   ├── DashboardScreen.kt            # Overview + Switches + Sensors + Timers + Rules
+│   │   ├── DashboardViewModel.kt         # 3-sec polling → Channel/Flow
+│   │   └── DashboardUiState.kt           # Sealed UI state
+│   │
+│   ├── assets/                           # ASSET MANAGEMENT
+│   │   ├── AssetsListScreen.kt           # Device list
+│   │   ├── AssetsListViewModel.kt
+│   │   ├── AssetDetailScreen.kt          # Attribute groups + wheel picker
+│   │   ├── AssetDetailViewModel.kt
+│   │   ├── LinkAssetScreen.kt            # QR + manual entry modal
+│   │   └── LinkAssetViewModel.kt
+│   │
+│   ├── rules/                            # AUTOMATION RULES
+│   │   ├── RulesScreen.kt                # Device selector + rules grid
+│   │   ├── RulesViewModel.kt
+│   │   ├── RuleEditorScreen.kt           # Create/edit rule form
+│   │   └── RuleEditorViewModel.kt
+│   │
+│   ├── timers/                           # TIMERS
+│   │   ├── TimersScreen.kt               # All device timers
+│   │   ├── TimersViewModel.kt
+│   │   ├── TimerEditorScreen.kt          # Create/edit timer
+│   │   └── TimerEditorViewModel.kt
+│   │
+│   ├── history/                          # DATA HISTORY & ANALYTICS
+│   │   ├── HistoryScreen.kt              # Device+group selectors, fetch, view toggle
+│   │   ├── HistoryViewModel.kt
+│   │   ├── TableView.kt                  # Sticky header data table
+│   │   ├── ChartView.kt                  # Chart.js equivalent (MPAndroidChart / Vico)
+│   │   └── RawJsonView.kt                # Monospace JSON viewer + copy
+│   │
+│   ├── profile/                          # USER SETTINGS
+│   │   ├── ProfileScreen.kt              # Profile card + password form + linked users
+│   │   ├── ProfileViewModel.kt
+│   │   ├── LinkedUsersCard.kt            # Multi-user farm management
+│   │   └── ChangePasswordSheet.kt        # Bottom sheet for password change
+│   │
+├── di/                                   # DEPENDENCY INJECTION (Hilt)
+│   ├── module/
+│   │   ├── NetworkModule.kt              # OkHttp, Retrofit, MQTT client
+│   │   ├── DatabaseModule.kt             # Room database, DAOs
+│   │   ├── RepositoryModule.kt           # Bind interfaces → implementations
+│   │   └── DataStoreModule.kt            # Preferences DataStore
+│   └── qualifier/
+│       ├── BaseUrl.kt                    # @BaseUrl qualifier annotations
+│       └── Dispatchers.kt                # Coroutine dispatcher qualifiers
+│
+├── service/                              # BACKGROUND SERVICES
+│   ├── MqttBackgroundService.kt          # Foreground service for MQTT (replaces polling)
+│   ├── TokenRefreshWorker.kt             # WorkManager periodic token refresh
+│   └── AssetSyncWorker.kt                # WorkManager periodic asset data sync
+│
+├── util/                                 # UTILITIES
+│   ├── DateTimeUtils.kt                  # timeAgo(), formatSensorValue()
+│   ├── SensorUnitMapper.kt               # getSensorUnit() — °C, %RH, mg/kg, etc.
+│   ├── FriendlyNameMapper.kt             # getFriendlyLabel() — t1→Temperature 1
+│   ├── ConnectivityObserver.kt           # Network status (offline detection)
+│   └── CsvExporter.kt                    # Export datapoints to CSV
+│
+├── res/
+│   ├── values/
+│   │   ├── strings.xml                   # English strings
+│   │   ├── colors.xml                    # Primary green, danger red, etc.
+│   │   └── themes.xml                    # Material3 theme overlay
+│   ├── values-bn/                        # Bengali localization
+│   │   └── strings.xml                   # বাংলা স্ট্রিং
+│   ├── drawable/
+│   │   ├── logo.png                      # DIBL IoT logo
+│   │   ├── favicon.png
+│   │   └── ic_qr_scanner.xml             # QR scanner icon
+│   └── font/
+│       └── inter.ttf                     # Inter font (matches web)
+│
+└── test/                                 # UNIT & INSTRUMENTATION TESTS
+    ├── unit/
+    │   ├── repository/
+    │   │   ├── AuthRepositoryTest.kt
+    │   │   └── AssetRepositoryTest.kt
+    │   └── usecase/
+    │       ├── LoginUseCaseTest.kt
+    │       └── ToggleSwitchUseCaseTest.kt
+    └── instrumented/
+        ├── DashboardScreenTest.kt
+        ├── LoginScreenTest.kt
+        └── AssetsListScreenTest.kt</pre>
+
+  <h3>Screen → Android Component Mapping / স্ক্রিন → অ্যান্ড্রয়েড কম্পোনেন্ট ম্যাপিং</h3>
+  <table>
+    <tr><th>Web Screen (Existing) / ওয়েব স্ক্রিন</th><th>Android Screen / অ্যান্ড্রয়েড স্ক্রিন</th><th>Key Changes / মূল পরিবর্তন</th></tr>
+    <tr><td><code>login.html</code> + <code>split_auth.css</code></td><td><code>LoginScreen.kt</code> (Compose)</td><td>Split-panel layout using Compose <code>Row</code> + <code>Box</code>; info panel collapses to <code>CollapsedTopAppBar</code> on narrow screens / স্প্লিট-প্যানেল কম্পোজ Row+Box; ছোট স্ক্রিনে ইনফো প্যানেল নাম্বার-এ যাবে</td></tr>
+    <tr><td><code>dashboard.html</code> + <code>dashboard.js</code></td><td><code>DashboardScreen.kt</code> + <code>DashboardViewModel.kt</code></td><td>3s polling → <b>MQTT background service</b> for real-time; ViewModel exposes <code>StateFlow</code> for each section / ৩ সেকেন্ড পোলিং → MQTT ব্যাকগ্রাউন্ড সার্ভিস; ViewModel-এ StateFlow</td></tr>
+    <tr><td><code>assets.html</code> + <code>assets.js</code></td><td><code>AssetsListScreen.kt</code> + <code>LinkAssetScreen.kt</code></td><td>QR scanner via <b>CameraX</b> (not browser API); device ID clipboard via <b>ClipboardManager</b> / QR স্ক্যানার CameraX দিয়ে; ক্লিপবোর্ড ClipboardManager দিয়ে</td></tr>
+    <tr><td><code>asset_detail.html</code> + <code>asset_detail.js</code></td><td><code>AssetDetailScreen.kt</code></td><td>iOS wheel picker → <b>Compose wheel picker</b> or <b>NumberPicker</b>; QR code via <b>ZXing</b> / হুইল পিকার কম্পোজ বা NumberPicker; QR কোড ZXing</td></tr>
+    <tr><td><code>rules.html</code> + <code>rules.js</code></td><td><code>RulesScreen.kt</code> + <code>RuleEditorScreen.kt</code></td><td>Visual rule builder with drag-and-drop logic blocks / ড্র্যাগ-এন্ড-ড্রপ লজিক ব্লক দিয়ে ভিজুয়াল রুল বিল্ডার</td></tr>
+    <tr><td><code>timers.html</code> + <code>timers.js</code></td><td><code>TimersScreen.kt</code> + <code>TimerEditorScreen.kt</code></td><td>Time picker → <b>Material3 TimePicker</b>; day selector → <b>chip group</b> / টাইম পিকার Material3; দিন সিলেক্টর চিপ গ্রুপ</td></tr>
+    <tr><td><code>datapoint_history.html</code> + <code>datapoint_history.js</code></td><td><code>HistoryScreen.kt</code></td><td>Chart.js → <b>Vico</b> or <b>MPAndroidChart</b>; CSV export via <b>MediaStore</b> + <b>ShareSheet</b> / Chart.js → Vico/MPAndroidChart; CSV এক্সপোর্ট MediaStore+ShareSheet</td></tr>
+    <tr><td><code>user.html</code> + <code>user_profile.js</code></td><td><code>ProfileScreen.kt</code></td><td>Password change → <b>BottomSheet</b>; linked users → <b>LazyColumn</b> / পাসওয়ার্ড পরিবর্তন BottomSheet; লিংকড ইউজার LazyColumn</td></tr>
+  </table>
+
+  <h3>Key Architectural Changes / মূল আর্কিটেকচারাল পরিবর্তন</h3>
+  <table>
+    <tr><th>Web App (Current) / বর্তমান ওয়েব</th><th>Android App (Proposed) / প্রস্তাবিত অ্যান্ড্রয়েড</th></tr>
+    <tr><td><b>Polling</b> — <code>setInterval(loadDashboard, 3000)</code></td><td><b>MQTT</b> — persistent TCP connection via foreground service; instant push updates; battery-optimized with <code>WorkManager</code> fallback<br>ফোরগ্রাউন্ড সার্ভিসের মাধ্যমে MQTT, তাৎক্ষণিক আপডেট, WorkManager ব্যাকআপ</td></tr>
+    <tr><td><b>sessionStorage</b> + <b>localStorage</b></td><td><b>Room database</b> (entities + DAOs) + <b>DataStore</b> (preferences)<br>রুম ডাটাবেস (এনটিটি + DAO) + DataStore (প্রেফারেন্স)</td></tr>
+    <tr><td><b>Vanilla JS</b> DOM manipulation</td><td><b>Jetpack Compose</b> — declarative UI, state hoisting, recomposition<br>জেটপ্যাক কম্পোজ — ডিক্লেয়ারেটিভ UI, স্টেট হোইস্টিং</td></tr>
+    <tr><td><b>Server-rendered</b> Jinja2 templates</td><td><b>Native Compose</b> screens — offline-capable, instant navigation<br>নেটিভ কম্পোজ স্ক্রিন — অফলাইন-সক্ষম, তাৎক্ষণিক নেভিগেশন</td></tr>
+    <tr><td><b>No DI</b> — global functions</td><td><b>Hilt</b> — constructor injection, scoped dependencies<br>Hilt — কনস্ট্রাক্টর ইনজেকশন, স্কোপড ডিপেন্ডেন্সি</td></tr>
+    <tr><td><b>Single language</b> (English, except device instructions)</td><td><b>Full i18n</b> — <code>values-bn/strings.xml</code> for complete Bengali localization<br>সম্পূর্ণ i18n — বাংলা লোকালাইজেশন <code>values-bn/strings.xml</code></td></tr>
+    <tr><td><b>10s offline timeout</b></td><td><b>ConnectivityObserver</b> — real-time network state via <code>ConnectivityManager</code> Flow; graceful offline mode with cached Room data<br>রিয়েল-টাইম নেটওয়ার্ক স্টেট, ক্যাশে ডেটা সহ গ্রেসফুল অফলাইন মোড</td></tr>
+    <tr><td><b>BFF proxy</b> (FastAPI to OpenRemote)</td><td><b>Direct API calls</b> to OpenRemote Manager + Keycloak via Retrofit (or keep BFF for security)<br>সরাসরি API কল Retrofit এর মাধ্যমে (অথবা BFF রাখা)</td></tr>
+  </table>
+
+  <div class="highlight-box">
+    <strong>Key Advantage of Android over Web / অ্যান্ড্রয়েডের মূল সুবিধা ওয়েবের চেয়ে:</strong><br>
+    • <b>Push notifications</b> — alarm when sensor threshold exceeded / সেন্সর থ্রেশহোল্ড অতিক্রম করলে নোটিফিকেশন<br>
+    • <b>Offline-first</b> — cached dashboard data works without internet / ইন্টারনেট ছাড়াই ক্যাশে ড্যাশবোর্ড data<br>
+    • <b>Camera integration</b> — native QR scanner (CameraX), no browser permission prompts / নেটিভ QR স্ক্যানার, ব্রাউজার পারমিশন প্রম্পট নেই<br>
+    • <b>Background sync</b> — MQTT + WorkManager keeps data fresh even when app is closed / অ্যাপ বন্ধ থাকলেও ডেটা আপডেট থাকে<br>
+    • <b>Native sensors</b> — Haptics, Biometric auth (fingerprint), Share sheet / হ্যাপটিক্স, বায়োমেট্রিক অথ, শেয়ার শিট<br>
+    • <b>Play Store distribution</b> — easy updates and discovery / প্লে স্টোরে আপডেট ও ডিসকভারি সহজ
+  </div>
+</div>
+
+<div class="footer">
+  <p>DIBL IoT Custom UI — App Interface Analysis Report | ডিআইবিএল আইওটি কাস্টম ইউআই — অ্যাপ ইন্টারফেস বিশ্লেষণ রিপোর্ট</p>
+  <p>Generated: July 29, 2026 | Source code analyzed: <code>src/</code> directory (FastAPI, Jinja2, CSS, JS)</p>
+</div>
+
+</body>
+</html>

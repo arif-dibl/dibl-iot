@@ -156,11 +156,15 @@ function closeIdModal() {
 }
 function copyIdToClipboard() {
     const id = document.getElementById('displayAssetId').textContent;
-    navigator.clipboard.writeText(id).then(() => {
-        toast('ID copied to clipboard');
-    }).catch(() => {
-        toast('Failed to copy ID');
-    });
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(id).then(() => {
+            toast('ID copied to clipboard');
+        }).catch(() => {
+            toast('Failed to copy ID');
+        });
+    } else {
+        fallbackCopy(id);
+    }
 }
 
 async function updateAssetName() {

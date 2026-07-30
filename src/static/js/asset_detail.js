@@ -840,7 +840,11 @@ function openIdModal() {
 function closeIdModal() { document.getElementById('showIdModal').classList.remove('show'); }
 function copyIdToClipboard() {
     // Use global ASSET_ID
-    navigator.clipboard.writeText(ASSET_ID).then(() => toast('ID copied'));
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(ASSET_ID).then(() => toast('ID copied'));
+    } else {
+        fallbackCopy(ASSET_ID);
+    }
 }
 
 async function renamePin(attrName, key) {

@@ -2,6 +2,7 @@ import requests
 import json
 import base64
 import threading
+import time
 from fastapi import APIRouter, Request
 from core.config import OR_MANAGER_URL, DEFAULT_REALM
 from core.auth import get_valid_token, get_admin_token
@@ -396,4 +397,112 @@ async def unlink_user_asset_api(username: str, request: Request, asset_id: str):
                 
         return {"status": "success"} if res.status_code in [200, 204] else {"status": "error", "message": f"OR API Error: {res.status_code}"}
     except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@router.post("/user/provision-device")
+async def provision_device(username: str, request: Request, payload: dict):
+    """
+    Provision a new IoT device via BLE setup.
+    Creates the asset in OpenRemote and links it to the user.
+    """
+    realm = request.session.get("realm", DEFAULT_REALM)
+    user_id = request.session.get("user_id")
+    access_token = get_valid_token(request)
+    if not user_id or not access_token:
+        return {"status": "error", "message": "Not authenticated"}
+
+    device_name = payload.get("name", "DIBL Device")
+    device_type = payload.get("type", "sens")
+    device_id = payload.get("id", "")
+    wifi_ssid = payload.get("wifi_ssid", "")
+    wifi_password = payload.get("wifi_password", "")
+
+    if not device_id:
+        return {"status": "error", "message": "Missing device ID"}
+
+    try:
+        # 1. Create asset in OpenRemote using the admin token
+        admin_token = get_admin_token(realm)
+        if not admin_token:
+            return {"status": "error", "message": "Could not get admin token"}
+
+        headers = {
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+
+        asset_type_map = {
+            "farmhub": "FarmHub",
+            "flite": "Flite",
+            "sens": "Sensor",
+            "slevel": "SoilLevel",
+            "slite": "SoilLite",
+            "smoist": "SoilMoisture",
+            "valve": "ValveController",
+            "switch": "Switch"
+        }
+        or_asset_type = asset_type_map.get(device_type, "Sensor")
+
+        # Build initial attributes for the new asset
+        attributes = {
+            "EnvData": {},
+            "RelayData": {},
+            "SystemData": {
+                "firmware": payload.get("firmware", "1.0.0"),
+                "bleId": device_id,
+                "provisionedVia": "ble",
+                "provisionedAt": int(time.time() * 1000)
+            }
+        }
+
+        if wifi_ssid:
+            attributes["SystemData"]["wifiSsid"] = wifi_ssid
+
+        asset_data = {
+            "name": device_name,
+            "type": or_asset_type,
+            "attributes": attributes
+        }
+
+        # 2. Create the asset via OpenRemote Manager API
+        create_url = f"{OR_MANAGER_URL}/api/{realm}/asset"
+        create_res = requests.post(create_url, json=asset_data, headers=headers, verify=False)
+        if create_res.status_code not in [200, 201]:
+            return {"status": "error", "message": f"Failed to create asset: {create_res.status_code} {create_res.text}"}
+
+        created_asset = create_res.json()
+        asset_id = created_asset.get("id")
+
+        if not asset_id:
+            return {"status": "error", "message": "Asset created but no ID returned"}
+
+        # 3. Link the asset to the user
+        link_url = f"{OR_MANAGER_URL}/api/master/asset/user/link"
+        link_body = [{"id": {"realm": realm, "userId": user_id, "assetId": asset_id}}]
+        link_res = requests.post(link_url, json=link_body, headers=headers, verify=False)
+        if link_res.status_code not in [200, 204]:
+            # Asset created but linking failed — still return success so user can link manually
+            print(f"[PROVISION] Asset {asset_id} created but link failed: {link_res.status_code}")
+
+        # 4. Sync to HawkBit in background
+        try:
+            from core.hawkbit import sync_assets_to_hawkbit
+            import threading
+            threading.Thread(
+                target=sync_assets_to_hawkbit,
+                args=([{"id": asset_id, "type": or_asset_type}],),
+                daemon=True
+            ).start()
+        except Exception as e:
+            print(f"[PROVISION] HawkBit sync error: {e}")
+
+        return {
+            "status": "success",
+            "assetId": asset_id,
+            "name": device_name,
+            "message": f"Device '{device_name}' provisioned and linked successfully"
+        }
+
+    except Exception as e:
+        print(f"[PROVISION] Error: {e}")
         return {"status": "error", "message": str(e)}

@@ -568,22 +568,26 @@ function copyToClipboard() {
     const text = document.getElementById('responseOutput').textContent;
     const btn = document.getElementById('copyBtn');
 
-    navigator.clipboard.writeText(text).then(() => {
-        btn.classList.add('success');
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            Copied!
-        `;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+            btn.classList.add('success');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Copied!
+            `;
 
-        setTimeout(() => {
-            btn.classList.remove('success');
-            btn.innerHTML = originalHtml;
-        }, 2000);
-    }).catch(err => {
-        console.error('Could not copy text: ', err);
-        btn.textContent = "Error";
-    });
+            setTimeout(() => {
+                btn.classList.remove('success');
+                btn.innerHTML = originalHtml;
+            }, 2000);
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+            btn.textContent = "Error";
+        });
+    } else {
+        fallbackCopy(text);
+    }
 }
 
 function resetCopyButton() {

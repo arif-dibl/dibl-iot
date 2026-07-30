@@ -173,6 +173,22 @@ function getAssetStatus(lastActivityTimestamp) {
     }
 }
 
+function fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        toast('Copied!');
+    } catch {
+        toast('Failed to copy');
+    }
+    document.body.removeChild(textarea);
+}
+
 function toast(msg) {
     const div = document.createElement('div');
     div.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#333;color:white;padding:12px 24px;border-radius:8px;z-index:99999;animation:fadeIn 0.3s;';

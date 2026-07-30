@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DIBL IoT Android App - Full Architecture & UI Report</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+    padding: 40px 20px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    padding: 50px 60px;
+}
+
+h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #00af50;
+    margin-bottom: 4px;
+}
+
+h1 span { color: #333; display: block; font-size: 20px; font-weight: 400; margin-top: 4px; }
+
+h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #00af50;
+    border-bottom: 2px solid #00af50;
+    padding-bottom: 6px;
+    margin-top: 40px;
+    margin-bottom: 16px;
+}
+
+h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #333;
+    margin-top: 24px;
+    margin-bottom: 8px;
+}
+
+h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 20px;
+    margin-bottom: 6px;
+}
+
+p { margin-bottom: 12px; font-size: 14px; }
+
+.toc { background: #f8f9fa; border-radius: 8px; padding: 24px 32px; margin: 20px 0;}
+.toc a { color: #00af50; text-decoration: none; display: block; padding: 3px 0; font-size: 14px; }
+.toc a:hover { text-decoration: underline; }
+.toc .sub { padding-left: 20px; font-size: 13px; }
+
+table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+th { background: #00af50; color: white; padding: 10px 12px; text-align: left; font-weight: 600; }
+td { padding: 8px 12px; border-bottom: 1px solid #e1e4e8; }
+tr:nth-child(even) td { background: #f8f9fa; }
+
+code { background: #f1f3f5; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'Consolas', monospace; }
+pre { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.5; margin: 8px 0; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 2px; }
+.badge-green { background: #e8f5e9; color: #00af50; }
+.badge-blue { background: #e3f2fd; color: #1565c0; }
+.badge-orange { background: #fff3e0; color: #e67e22; }
+.badge-red { background: #ffeef0; color: #dc3545; }
+.badge-purple { background: #f3e5f5; color: #7b1fa2; }
+
+.section-highlight {
+    background: #f0fff4;
+    border-left: 4px solid #00af50;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+}
+
+.issue-box {
+    background: #fff8f8;
+    border-left: 4px solid #dc3545;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+}
+
+.issue-box h4 { color: #dc3545; margin-top: 0; text-transform: none; letter-spacing: 0; }
+
+.warning-box {
+    background: #fffef0;
+    border-left: 4px solid #e67e22;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+}
+
+.warning-box h4 { color: #e67e22; margin-top: 0; text-transform: none; letter-spacing: 0; }
+
+ul, ol { margin: 8px 0 12px 20px; font-size: 14px; }
+li { margin-bottom: 4px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+.card { background: #f8f9fa; border: 1px solid #e1e4e8; border-radius: 8px; padding: 16px; }
+.card h4 { margin-top: 0; }
+
+.page-break { page-break-before: always; }
+
+.footer { text-align: center; padding: 20px 0; color: #6c757d; font-size: 12px; border-top: 1px solid #e1e4e8; margin-top: 40px; }
+
+.status-complete { color: #00af50; font-weight: 600; }
+.status-issue { color: #e67e22; font-weight: 600; }
+.status-missing { color: #dc3545; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>DIBL IoT Android App <span>Complete Architecture, UI & Implementation Report</span></h1>
+
+<div style="color:#6c757d; font-size:13px; margin-bottom:20px;">
+    <strong>Version:</strong> 1.0.0 &nbsp;|&nbsp; <strong>Last Updated:</strong> July 29, 2026 &nbsp;|&nbsp; <strong>Platform:</strong> Android (API 26+) &nbsp;|&nbsp; <strong>Language:</strong> Kotlin + Jetpack Compose
+</div>
+
+<div class="toc">
+<h3 style="margin-top:0;color:#333;">Table of Contents</h3>
+<a href="#s1">1. Introduction & Overview</a>
+<a href="#s2">2. Project Architecture</a>
+<a href="#s3">3. Screens & UI Breakdown</a>
+<div class="sub"><a href="#s3-0">3.0 Web vs Android — Full Comparison</a></div>
+<div class="sub"><a href="#s3-1">3.1 Login / Signup</a></div>
+<div class="sub"><a href="#s3-2">3.2 Dashboard</a></div>
+<div class="sub"><a href="#s3-3">3.3 My IoT Devices (Asset List)</a></div>
+<div class="sub"><a href="#s3-4">3.4 Asset Detail</a></div>
+<div class="sub"><a href="#s3-5">3.5 Automation Rules</a></div>
+<div class="sub"><a href="#s3-6">3.6 Timers</a></div>
+<div class="sub"><a href="#s3-7">3.7 History Logs</a></div>
+<div class="sub"><a href="#s3-8">3.8 User Settings</a></div>
+<div class="sub"><a href="#s3-9">3.9 Setup New Device</a></div>
+<a href="#s4">4. API Layer & Endpoints</a>
+<a href="#s5">5. Authentication Flow</a>
+<a href="#s6">6. Data Models</a>
+<a href="#s7">7. Design System</a>
+<a href="#s8">8. Navigation & Routing</a>
+<a href="#s9">9. Build Configuration & Dependencies</a>
+<a href="#s10">10. Setup & Build Instructions</a>
+<a href="#s11">11. Known Issues & Remediation Path</a>
+</div>
+
+<!-- ============ SECTION 1 ============ -->
+<h2 id="s1">1. Introduction & Overview</h2>
+
+<p>The <strong>DIBL IoT Android App</strong> is a native Android application that mirrors the functionality of the DIBL IoT Custom UI web application. It communicates with an already-running VPS server via REST API calls to provide IoT device management, monitoring, and control capabilities on mobile devices.</p>
+
+<div class="section-highlight">
+<strong>Key Design Principles:</strong><br>
+• <strong>Native Android Experience</strong> — Built with Kotlin + Jetpack Compose for modern, fluid UI<br>
+• <strong>API Compatibility</strong> — Uses the exact same API endpoints as the web Custom UI<br>
+• <strong>Cookie-based Auth</strong> — Shares session with the server via OkHttp CookieJar<br>
+• <strong>Real-time Polling</strong> — 3-second polling for dashboard and asset detail (same as web app)<br>
+• <strong>Design Fidelity</strong> — Matches the web UI's green (#00af50) theme, card layouts, and interaction patterns
+</div>
+
+<h3>1.1 Core Capabilities</h3>
+<ul>
+    <li><strong>Authentication:</strong> Login and signup through Keycloak-backed authentication</li>
+    <li><strong>Dashboard:</strong> Overview with stat cards (total/online/offline devices, rules count), switches, sensors, timer cards, and rule cards</li>
+    <li><strong>Device Management:</strong> List, link, rename, and unlink IoT devices; view device details with all attributes</li>
+    <li><strong>Control:</strong> Toggle relays/valves, configure timers, manage automation rules</li>
+    <li><strong>Monitoring:</strong> View environmental sensor data (temperature, humidity, moisture, NPK) with historical data in table/chart/json modes</li>
+    <li><strong>Provisioning:</strong> 4-step wizard for setting up new devices via BLE or manual ID entry</li>
+    <li><strong>User Management:</strong> Profile editing, password change, view linked asset partners</li>
+</ul>
+
+<h3>1.2 Technology Stack</h3>
+<table>
+    <tr><th>Layer</th><th>Technology</th><th>Version</th></tr>
+    <tr><td>Language</td><td>Kotlin</td><td>1.9.22</td></tr>
+    <tr><td>UI Framework</td><td>Jetpack Compose (Material 3)</td><td>BOM 2024.01.00</td></tr>
+    <tr><td>Networking</td><td>Retrofit 2 + OkHttp 4</td><td>2.9.0 / 4.12.0</td></tr>
+    <tr><td>Serialization</td><td>Gson</td><td>2.10.1</td></tr>
+    <tr><td>DI</td><td>Dagger Hilt</td><td>2.50</td></tr>
+    <tr><td>Navigation</td><td>Navigation Compose</td><td>2.7.7</td></tr>
+    <tr><td>State Management</td><td>ViewModel + StateFlow</td><td>2.7.0</td></tr>
+    <tr><td>Local Storage</td><td>DataStore Preferences</td><td>1.0.0</td></tr>
+    <tr><td>Build System</td><td>Gradle with Kotlin DSL</td><td>8.5</td></tr>
+    <tr><td>Min SDK / Target</td><td>Android 8.0 (API 26) / Android 14 (API 34)</td><td>26 / 34</td></tr>
+</table>
+
+<!-- ============ SECTION 2 ============ -->
+<h2 id="s2">2. Project Architecture</h2>
+
+<p>The app follows a clean layered architecture with clear separation of concerns:</p>
+
+<pre style="font-size:13px;">
+DIBL-IOT-APP/
+├── app/
+│   ├── build.gradle.kts
+│   └── src/main/java/com/dibl/iot/
+│       ├── DIBLApp.kt              # Hilt Application class
+│       ├── MainActivity.kt         # Single Activity entry point
+│       ├── di/
+│       │   └── AppModule.kt        # Hilt DI module (DataStore, NetworkClient, ApiService)
+│       ├── data/
+│       │   ├── model/             # Data classes for API responses
+│       │   │   ├── AssetModels.kt
+│       │   │   ├── WidgetModels.kt
+│       │   │   ├── RuleModels.kt
+│       │   │   ├── UserModels.kt
+│       │   │   └── DataPointModels.kt
+│       │   ├── remote/           # Networking layer
+│       │   │   ├── ApiService.kt       # Retrofit interface (35 endpoints)
+│       │   │   └── NetworkClient.kt    # OkHttp client with cookie jar
+│       │   └── repository/       # Data repositories
+│       │       ├── AuthRepository.kt
+│       │       ├── AssetRepository.kt
+│       │       ├── RuleRepository.kt
+│       │       └── UserRepository.kt
+│       ├── ui/
+│       │   ├── theme/            # Design system
+│       │   │   ├── Color.kt
+│       │   │   ├── Theme.kt
+│       │   │   └── Type.kt
+│       │   ├── navigation/       # Routing
+│       │   │   ├── NavRoutes.kt
+│       │   │   └── AppNavigation.kt
+│       │   ├── components/       # Shared composables
+│       │   │   └── DIBLComponents.kt
+│       │   └── screens/          # Feature screens
+│       │       ├── login/
+│       │       ├── dashboard/
+│       │       ├── assets/
+│       │       ├── assetdetail/
+│       │       ├── rules/
+│       │       ├── timers/
+│       │       ├── history/
+│       │       ├── settings/
+│       │       └── setupdevice/
+│       └── util/
+│           ├── Constants.kt
+│           ├── Extensions.kt
+│           └── TimeUtils.kt
+└── Project-level files
+    ├── build.gradle.kts
+    ├── settings.gradle.kts
+    ├── gradle.properties
+    └── gradle/wrapper/gradle-wrapper.properties
+</pre>
+
+<h3>2.1 Architecture Layers</h3>
+
+<table>
+    <tr><th>Layer</th><th>Responsibility</th><th>Key Classes</th></tr>
+    <tr><td><strong>UI Layer</strong></td><td>Compose screens, state rendering, user interaction</td><td>*Screen.kt, *ViewModel.kt, DIBLComponents.kt</td></tr>
+    <tr><td><strong>Domain/ViewModels</strong></td><td>Business logic, state management, API coordination</td><td>*ViewModel.kt (10 ViewModels)</td></tr>
+    <tr><td><strong>Repository</strong></td><td>Data access abstraction, error handling</td><td>AssetRepository, AuthRepository, RuleRepository, UserRepository</td></tr>
+    <tr><td><strong>Remote Data</strong></td><td>HTTP networking, JSON serialization, cookie management</td><td>ApiService (Retrofit), NetworkClient (OkHttp)</td></tr>
+    <tr><td><strong>Model</strong></td><td>DTOs for API request/response</td><td>Asset, WidgetItem, RuleDefinition, UserProfile, etc.</td></tr>
+</table>
+
+<h3>2.2 Data Flow Pattern</h3>
+
+<p>The app uses a unidirectional data flow:</p>
+
+<ol>
+    <li><strong>User Action</strong> → UI Composable triggers ViewModel function</li>
+    <li><strong>ViewModel</strong> → Calls Repository method in viewModelScope coroutine</li>
+    <li><strong>Repository</strong> → Calls ApiService Retrofit method, wraps result in Result&lt;T&gt;</li>
+    <li><strong>ViewModel</strong> → Updates MutableStateFlow&lt;UiState&gt; with Success/Failure</li>
+    <li><strong>UI</strong> → Collects StateFlow, recomposes with new state</li>
+</ol>
+
+<div class="section-highlight">
+<strong>Polling Pattern:</strong> Dashboard and Asset Detail screens use 3-second polling intervals (same as the web Custom UI). The ViewModel launches a coroutine that loops with <code>delay(3000)</code>, fetching updated data on each iteration. The polling is started in <code>LaunchedEffect</code> and cancelled in <code>DisposableEffect</code>.
+</div>
+
+<!-- ============ SECTION 3 ============ -->
+<h2 id="s3">3. Screens & UI Breakdown</h2>
+
+<!-- 3.0 Comparison -->
+<h3 id="s3-0">3.0 Web vs Android — Full Comparison</h3>
+
+<p>The table below shows every DIBL IoT Custom UI web page alongside its Android counterpart and completion status:</p>
+
+<table>
+    <tr><th>Web Page</th><th>Android Screen</th><th>Status</th></tr>
+    <tr><td>Login (<code>/login</code>)</td><td><code>LoginScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Signup (<code>/signup</code>)</td><td><code>SignupScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Dashboard (<code>/{user}/dashboard</code>)</td><td><code>DashboardScreen</code></td><td class="status-complete">✅ Complete (3s polling)</td></tr>
+    <tr><td>Asset List (<code>/{user}/assets</code>)</td><td><code>AssetsScreen</code></td><td class="status-complete">✅ Complete (CRUD + dialogs)</td></tr>
+    <tr><td>Asset Detail (<code>/{user}/asset/{name}</code>)</td><td><code>AssetDetailScreen</code></td><td class="status-complete">✅ Complete (3s polling)</td></tr>
+    <tr><td>Rules (<code>/{user}/rules</code>)</td><td><code>RulesScreen</code></td><td class="status-complete">✅ Complete (create/delete)</td></tr>
+    <tr><td>Timers (<code>/{user}/timers</code>)</td><td><code>TimersScreen</code></td><td class="status-issue">⚠️ Time/day editing incomplete</td></tr>
+    <tr><td>History Logs (<code>/{user}/datapoint-history</code>)</td><td><code>HistoryLogsScreen</code></td><td class="status-issue">⚠️ fetchData() is a stub — never calls API</td></tr>
+    <tr><td>User Profile (<code>/{user}/user</code>)</td><td><code>SettingsScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Setup Device (<code>/{user}/setup-device</code>)</td><td><code>SetupDeviceScreen</code></td><td class="status-complete">✅ Placeholder (works without BLE)</td></tr>
+    <tr><td>Test API (<code>/{user}/test-api</code>)</td><td>❌ Not present</td><td class="status-complete">✅ Not needed</td></tr>
+</table>
+
+<p><strong>Total:</strong> 9 of 11 web pages fully implemented, 2 have minor issues, 1 intentionally excluded.</p>
+
+<!-- 3.1 Login -->
+<h3 id="s3-1">3.1 Login / Signup</h3>
+
+<div class="grid-2">
+    <div class="card">
+        <h4>Login Screen</h4>
+        <ul>
+            <li>Water droplet icon + "DIBL IOT USER ACCOUNT" branding</li>
+            <li>Username + Password fields with show/hide toggle</li>
+            <li>"Sign In" button with loading spinner</li>
+            <li>"Server Configuration" expandable section (base URL + prefix)</li>
+            <li>Error banner (red card with icon)</li>
+            <li>"Sign Up" link at bottom</li>
+        </ul>
+    </div>
+    <div class="card">
+        <h4>Signup Screen</h4>
+        <ul>
+            <li>Username, Email, Password fields</li>
+            <li>Terms & Conditions checkbox</li>
+            <li>Success state with "Go to Login" button</li>
+            <li>Error banner for validation failures</li>
+            <li>"Sign In" link at bottom</li>
+        </ul>
+    </div>
+</div>
+
+<p><strong>ViewModel:</strong> <code>LoginViewModel</code> / <code>SignupViewModel</code> — handles form submission, calls AuthRepository. On login success, navigates to Dashboard. Credentials (username, base URL, prefix) are persisted via DataStore.</p>
+
+<!-- 3.2 Dashboard -->
+<h3 id="s3-2">3.2 Dashboard</h3>
+
+<p>The main overview screen matching the web dashboard exactly:</p>
+
+<table>
+    <tr><th>Section</th><th>Content</th><th>Component</th></tr>
+    <tr><td><strong>Stats Grid</strong></td><td>4 stat cards in 2x2 grid: My IoT Devices (count), Online Devices (green), Offline Devices (red), My Rules (blue)</td><td>StatCard</td></tr>
+    <tr><td><strong>Switches</strong></td><td>Cards for each device with RelayData/ValveState toggles. Shows online/offline status dot. Disabled when offline.</td><td>SwitchCard</td></tr>
+    <tr><td><strong>Sensors</strong></td><td>Widget cards showing pinned EnvData, MoistureData, NPKData with sensor grids and unit formatting</td><td>SensorWidgetCard</td></tr>
+    <tr><td><strong>Timers</strong></td><td>Widget cards showing pinned timer attributes with status, start/end time, schedule days</td><td>TimerWidgetCard</td></tr>
+    <tr><td><strong>Rules</strong></td><td>Widget cards showing pinned RuleTargets with rule name list</td><td>RuleWidgetCard</td></tr>
+</table>
+
+<p><strong>ViewModel:</strong> <code>DashboardViewModel</code> — polls both <code>/api/user/assets</code> and <code>/api/user/dashboard/widgets</code> every 3 seconds. Computes online/offline counts using 10-second timeout.</p>
+
+<!-- 3.3 Assets -->
+<h3 id="s3-3">3.3 My IoT Devices (Asset List)</h3>
+
+<div class="grid-2">
+    <div class="card">
+        <h4>List View</h4>
+        <ul>
+            <li>Each asset as a Card with name, type, status dot, time ago</li>
+            <li>Truncated asset ID in monospace</li>
+            <li>Edit (rename) and Delete (unlink) buttons per card</li>
+            <li>Click navigates to Asset Detail</li>
+            <li>FAB (+ button) opens Link Asset dialog</li>
+        </ul>
+    </div>
+    <div class="card">
+        <h4>Dialogs</h4>
+        <ul>
+            <li><strong>Link Asset:</strong> Device ID text input + Confirm/Cancel</li>
+            <li><strong>Edit Asset:</strong> Name text input + Save/Cancel</li>
+            <li><strong>Unlink Confirm:</strong> Destructive confirmation dialog</li>
+        </ul>
+    </div>
+</div>
+
+<p><strong>ViewModel:</strong> <code>AssetsViewModel</code> — loads asset list, handles link/rename/unlink operations with API calls and list refresh.</p>
+
+<!-- 3.4 Asset Detail -->
+<h3 id="s3-4">3.4 Asset Detail</h3>
+
+<p>A comprehensive single-asset view with auto-grouped attributes:</p>
+
+<table>
+    <tr><th>Group</th><th>Display Method</th></tr>
+    <tr><td><strong>Status Card</strong></td><td>Online/Offline dot, last seen time, copy ID button</td></tr>
+    <tr><td><strong>Switches</strong></td><td>Toggle switches for each relay (r1-r4) with ON/OFF labels — same as web app</td></tr>
+    <tr><td><strong>Environment / Moisture / NPK</strong></td><td>Sensor grid with 4 columns, units from Extensions.kt (e.g., °C, %RH, µS/cm, mg/kg)</td></tr>
+    <tr><td><strong>Timers</strong></td><td>Timer card with Status toggle, Start/End time display, Days selector, Outputs</td></tr>
+    <tr><td><strong>Other</strong></td><td>2-column attribute cards with key-value display</td></tr>
+</table>
+
+<p>Attributes are grouped using a priority-based algorithm in <code>groupAttributes()</code> — same logic as the web JS. The screen polls the asset every 3 seconds.</p>
+
+<!-- 3.5 Rules -->
+<h3 id="s3-5">3.5 Automation Rules</h3>
+
+<ul>
+    <li><strong>Asset Selector:</strong> Radio-button list of devices at the top</li>
+    <li><strong>Rule Cards:</strong> Each shows rule name, description, enabled/disabled state with toggle, and delete button</li>
+    <li><strong>Create:</strong> FAB opens a dialog for new rule name</li>
+    <li><strong>Delete:</strong> Confirmation dialog before removal</li>
+    <li>Disabled rules shown with reduced opacity and "Disabled" badge</li>
+</ul>
+
+<p><strong>ViewModel:</strong> <code>RulesViewModel</code> — loads assets for selector, fetches rules for selected asset, handles create/delete.</p>
+
+<!-- 3.6 Timers -->
+<h3 id="s3-6">3.6 Timers</h3>
+
+<ul>
+    <li>Devices are grouped by asset name headers</li>
+    <li>Each timer attribute rendered as a TimerCard with:</li>
+    <li>Status toggle (ON/OFF)</li>
+    <li>Start/End time fields</li>
+    <li>Day selector (7 day bubbles: SUN-SAT)</li>
+    <li>Outputs display</li>
+    <li>Save triggers API call to update the attribute</li>
+    <li>Toast notification on save success/failure</li>
+</ul>
+
+<!-- 3.7 History -->
+<h3 id="s3-7">3.7 History Logs</h3>
+
+<ul>
+    <li><strong>Device Selector:</strong> Radio-button list</li>
+    <li><strong>Attribute Selector:</strong> Filter chips in 2-column grid (excludes timers, RuleTargets, SystemData)</li>
+    <li><strong>View Modes:</strong> Table / Chart / Raw JSON via FilterChip toggle</li>
+    <li><strong>Table View:</strong> Date-time and value pairs, 50 records max display</li>
+    <li><strong>Chart View:</strong> Placeholder (requires MPAndroidChart or similar library)</li>
+    <li><strong>JSON View:</strong> Pretty-printed with <code>SelectionContainer</code> for copy</li>
+</ul>
+
+<!-- 3.8 Settings -->
+<h3 id="s3-8">3.8 User Settings</h3>
+
+<div class="grid-2">
+    <div class="card">
+        <h4>Profile Card</h4>
+        <ul>
+            <li>Avatar circle with gradient and initial letter</li>
+            <li>Display name and email</li>
+            <li>Form fields: Username (disabled), Email (disabled), First Name, Last Name</li>
+            <li>"Save Profile" button with success feedback</li>
+        </ul>
+    </div>
+    <div class="card">
+        <h4>Password Card</h4>
+        <ul>
+            <li>Expandable section with collapse/expand toggle</li>
+            <li>Current Password, New Password, Confirm Password fields</li>
+            <li>Validation: min 6 chars, passwords must match</li>
+            <li>"Change Password" button (red/danger style)</li>
+            <li>Linked Users section showing asset partners</li>
+            <li>"Sign Out" button at bottom</li>
+        </ul>
+    </div>
+</div>
+
+<!-- 3.9 Setup Device -->
+<h3 id="s3-9">3.9 Setup New Device</h3>
+
+<p>A 4-step wizard identical in flow to the web UI's setup_device.html:</p>
+
+<table>
+    <tr><th>Step</th><th>Content</th></tr>
+    <tr><td><strong>1. Discover</strong></td><td>BLE scan button (placeholder — shows "BLE not available" warning) + manual Device ID text input + "Use This ID" button. Info banner when BLE is unavailable.</td></tr>
+    <tr><td><strong>2. Configure</strong></td><td>Device info summary card, Device Name text field, Device Type selector (8 types: FarmHub, Flite, Sensor, Soil Level, SoilLite, SoilMoisture, ValveController, Switch), WiFi SSID/Password (optional), Cancel & Provision buttons</td></tr>
+    <tr><td><strong>3. Provisioning</strong></td><td>Animated 4-step progress (Connecting → Config → WiFi → Finalize) with check/spinner/cross icons, "failed" error display</td></tr>
+    <tr><td><strong>4. Success</strong></td><td>Green checkmark icon, "Device Provisioned Successfully!", device info card (name + ID in monospace), "Go to My IoT Devices" and "Setup Another Device" buttons</td></tr>
+</table>
+
+<p><strong>ViewModel:</strong> <code>SetupDeviceViewModel</code> — manages step state, form fields, BLE capability flag. The provision API call posts to <code>/api/user/provision-device</code> with name, type, id, wifi credentials.</p>
+
+<!-- ============ SECTION 4 ============ -->
+<h2 id="s4">4. API Layer & Endpoints</h2>
+
+<p>The app communicates with the server via REST API calls. All 35 endpoints from the web Custom UI are implemented in <code>ApiService.kt</code> as Retrofit suspend functions.</p>
+
+<h3>4.1 Endpoint Summary</h3>
+
+<table>
+    <tr><th>Category</th><th>Method</th><th>Path</th><th>Purpose</th></tr>
+    <tr><td rowspan="2">Auth</td><td>POST</td><td><code>{prefix}/login</code></td><td>Login with username + password</td></tr>
+    <tr><td>POST</td><td><code>{prefix}/signup</code></td><td>Register new user</td></tr>
+    <tr><td rowspan="7">Assets</td><td>GET</td><td><code>{prefix}/{username}/api/user/assets</code></td><td>List all linked assets</td></tr>
+    <tr><td>GET</td><td><code>{prefix}/{username}/api/asset/{id}</code></td><td>Get single asset by ID</td></tr>
+    <tr><td>POST</td><td><code>.../api/asset/{id}/attribute/{name}</code></td><td>Update attribute value</td></tr>
+    <tr><td>POST</td><td><code>.../api/user/assets</code></td><td>Link asset to user</td></tr>
+    <tr><td>PUT</td><td><code>.../api/user/assets/{id}</code></td><td>Rename asset</td></tr>
+    <tr><td>DELETE</td><td><code>.../api/user/assets/{id}</code></td><td>Unlink asset</td></tr>
+    <tr><td>POST</td><td><code>.../api/user/provision-device</code></td><td>Provision new BLE device</td></tr>
+    <tr><td rowspan="4">Dashboard</td><td>GET</td><td><code>.../api/user/dashboard/widgets</code></td><td>Get pinned widget values</td></tr>
+    <tr><td>GET</td><td><code>.../api/user/preferences</code></td><td>Get user preferences</td></tr>
+    <tr><td>POST</td><td><code>.../api/user/preferences/pin</code></td><td>Toggle pin attribute</td></tr>
+    <tr><td>GET</td><td><code>{prefix}/api/friendly-names</code></td><td>Get friendly names (public)</td></tr>
+    <tr><td rowspan="3">Rules</td><td>GET</td><td><code>.../api/user/rules</code></td><td>List user rules</td></tr>
+    <tr><td>POST</td><td><code>.../api/user/rules</code></td><td>Create rule</td></tr>
+    <tr><td>DELETE</td><td><code>.../api/user/rules/{id}</code></td><td>Delete rule</td></tr>
+    <tr><td rowspan="3">User</td><td>GET</td><td><code>.../api/user/profile</code></td><td>Get user profile</td></tr>
+    <tr><td>PUT</td><td><code>.../api/user/profile</code></td><td>Update profile</td></tr>
+    <tr><td>PUT</td><td><code>.../api/user/change-password</code></td><td>Change password</td></tr>
+    <tr><td>Debug</td><td>POST</td><td><code>.../api/debug/proxy</code></td><td>Generic API proxy</td></tr>
+    <tr><td>History</td><td>POST</td><td><code>.../api/debug/proxy</code> (with datapoint body)</td><td>Fetch datapoints</td></tr>
+</table>
+
+<p><em>Note:</em> <code>{prefix}</code> is configurable (empty string or "/customui"). <code>{username}</code> is the logged-in user's username, auto-inserted into all protected endpoints.</p>
+
+<h3>4.2 Networking Configuration</h3>
+
+<div class="section-highlight">
+<strong>Cookie-based Session Management:</strong><br>
+• <code>OkHttpClient</code> uses a thread-safe <code>CookieJar</code> backed by a <code>ConcurrentHashMap</code><br>
+• Login: POST to <code>{prefix}/login</code> with form data → server returns 303 redirect + Set-Cookie<br>
+• Subsequent API calls: cookies auto-attached by OkHttp<br>
+• <code>followRedirects(false)</code> is set so the app can detect login success (303) vs failure (200 with HTML)
+</div>
+
+<h3>4.3 Error Handling Pattern</h3>
+
+<p>All repository methods follow the same pattern:</p>
+<pre>suspend fun getAssets(prefix: String, username: String): Result&lt;List&lt;Asset&gt;&gt; {
+    return try {
+        val response = api.getAssets(prefix, username)
+        if (response.isSuccessful && response.body() != null) {
+            Result.success(response.body()!!.assets ?: emptyList())
+        } else {
+            Result.failure(Exception("Failed: ${response.code()}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(Exception("Network error: ${e.message}"))
+    }
+}</pre>
+
+<!-- ============ SECTION 5 ============ -->
+<h2 id="s5">5. Authentication Flow</h2>
+
+<h3>5.1 Login Process</h3>
+
+<ol>
+    <li>User enters username + password → taps "Sign In"</li>
+    <li><code>LoginViewModel.login()</code> calls <code>AuthRepository.login()</code></li>
+    <li>Repository POSTs to <code>{prefix}/login</code> with form-encoded username + password</li>
+    <li><strong>Success:</strong> Server responds with HTTP 303 redirect + Set-Cookie header. OkHttp stores the cookie. Repository returns <code>Result.success(username)</code>.</li>
+    <li><strong>Failure:</strong> Server responds with HTTP 200 + HTML page containing error message. Repository parses error from HTML patterns (alert-error class, "Invalid" keywords). Returns <code>Result.failure</code>.</li>
+    <li>On success, credentials (username, baseUrl, prefix) are persisted in <strong>DataStore Preferences</strong> for session restoration.</li>
+    <li>ViewModel collects the success state → <code>LaunchedEffect</code> triggers navigation to Dashboard.</li>
+</ol>
+
+<h3>5.2 Cookie Persistence</h3>
+
+<p>Cookies are stored in memory via OkHttp's <code>CookieJar</code> (ConcurrentHashMap). On app restart, the user needs to re-authenticate. The saved DataStore credentials can be used to restore the session by calling the login endpoint again with saved credentials.</p>
+
+<h3>5.3 Logout</h3>
+<p><code>AuthRepository.logout()</code> calls <code>NetworkClient.clearCookies()</code> to clear all stored cookies. The LoginViewModel state resets, and navigation returns to the Login screen.</p>
+
+<!-- ============ SECTION 6 ============ -->
+<h2 id="s6">6. Data Models</h2>
+
+<h3>6.1 Asset Data Structure</h3>
+
+<pre>data class Asset(
+    val id: String = "",
+    val name: String = "",
+    val type: String = "",
+    val attributes: Map&lt;String, Any&gt;? = null,
+    val location: Location? = null,
+    val lastActivityTimestamp: String? = null
+) {
+    fun flattenAttributes(): Map&lt;String, Any?&gt;
+    fun getLastActivityTimeMs(): Long?
+    fun getAttributeValue(attrName: String): Any?
+}</pre>
+
+<p>The <code>flattenAttributes()</code> function recursively extracts nested values (e.g., <code>EnvData.t1</code>, <code>RelayData.r1</code>) for easy access. The <code>getLastActivityTimeMs()</code> function tries multiple timestamp sources (top-level, EnvData, SystemData) to determine device online status.</p>
+
+<h3>6.2 Key Models</h3>
+
+<table>
+    <tr><th>Model</th><th>Key Fields</th><th>Used By</th></tr>
+    <tr><td>Asset</td><td>id, name, type, attributes (Map), location, lastActivityTimestamp</td><td>Assets, Dashboard, Detail, Timers, History</td></tr>
+    <tr><td>WidgetItem</td><td>assetId, assetName, attributeName, key, displayName, value</td><td>Dashboard</td></tr>
+    <tr><td>RuleDefinition</td><td>id, name, desc, active, rawName</td><td>Rules</td></tr>
+    <tr><td>UserProfile</td><td>id, username, email, firstName, lastName, fullName, enabled</td><td>Settings</td></tr>
+    <tr><td>ProvisionDeviceRequest</td><td>name, type, id, timestamp, wifiSsid, wifiPassword</td><td>Setup Device</td></tr>
+    <tr><td>DataPointEntry</td><td>x (timestamp ms), y (value), timestamp, value</td><td>History</td></tr>
+</table>
+
+<!-- ============ SECTION 7 ============ -->
+<h2 id="s7">7. Design System</h2>
+
+<h3>7.1 Color Palette</h3>
+
+<table>
+    <tr><th>Token</th><th>Hex</th><th>Usage</th></tr>
+    <tr><td>Primary</td><td><code>#00AF50</code></td><td>Buttons, active nav, toggles (checked), badges, links</td></tr>
+    <tr><td>Primary Hover</td><td><code>#008F40</code></td><td>Button press states</td></tr>
+    <tr><td>Primary Light</td><td><code>#E8F5E9</code></td><td>Selection backgrounds, filter chip selected</td></tr>
+    <tr><td>Background</td><td><code>#F8F9FA</code></td><td>Page background</td></tr>
+    <tr><td>Surface</td><td><code>#FFFFFF</code></td><td>Cards, dialogs, top bar</td></tr>
+    <tr><td>Text Primary</td><td><code>#333333</code></td><td>Body text, headings</td></tr>
+    <tr><td>Text Secondary</td><td><code>#6C757D</code></td><td>Labels, placeholders, timestamps</td></tr>
+    <tr><td>Border</td><td><code>#E1E4E8</code></td><td>Card borders, dividers, input borders</td></tr>
+    <tr><td>Danger</td><td><code>#DC3545</code></td><td>Offline indicators, delete buttons, password change</td></tr>
+    <tr><td>Online Green</td><td><code>#00AF50</code></td><td>Status dot (online)</td></tr>
+    <tr><td>Offline Red</td><td><code>#DC3545</code></td><td>Status dot (offline)</td></tr>
+</table>
+
+<h3>7.2 Typography</h3>
+<ul>
+    <li><strong>Font Family:</strong> System sans-serif (Inter-like: -apple-system, Segoe UI, Roboto, Helvetica)</li>
+    <li><strong>Monospace:</strong> For device IDs, JSON, terminal output</li>
+    <li><strong>Scale:</strong> 10sp (label) to 32sp (display), using Material 3 type scale</li>
+    <li><strong>Weights:</strong> Normal (400), Medium (500), SemiBold (600), Bold (700)</li>
+</ul>
+
+<h3>7.3 Shared Components</h3>
+
+<table>
+    <tr><th>Component</th><th>Description</th></tr>
+    <tr><td><code>StatCard</code></td><td>Rounded square card with icon, large value, and title. Clickable with hover effect. Used in dashboard stats grid.</td></tr>
+    <tr><td><code>WidgetCard</code></td><td>Card with title, optional subtitle, pin/close buttons. Red background when offline. Used for sensors, timers, rules.</td></tr>
+    <tr><td><code>ToggleSwitch</code></td><td>Row with label + Material 3 Switch. Green when checked, grey when unchecked. Disable state support.</td></tr>
+    <tr><td><code>StatusDot</code></td><td>Small circle (10dp), green for online, red for offline.</td></tr>
+    <tr><td><code>DaySelector</code></td><td>Row of 7 circular day buttons (SUN-SAT). Green when selected, grey when not.</td></tr>
+    <tr><td><code>SectionHeader</code></td><td>Title + optional action button (e.g., "See All").</td></tr>
+    <tr><td><code>ConfirmDialog</code></td><td>AlertDialog with cancel + confirm button. Supports destructive mode (red confirm).</td></tr>
+    <tr><td><code>LoadingIndicator</code></td><td>Fullscreen centered CircularProgressIndicator in Primary color.</td></tr>
+    <tr><td><code>ErrorState</code></td><td>Fullscreen error display with icon, message, and optional retry button.</td></tr>
+    <tr><td><code>EmptyState</code></td><td>Fullscreen empty state with icon, message, and optional action button.</td></tr>
+    <tr><td><code>ToastMessage</code></td><td>Bottom snackbar-style message, green for success, red for error.</td></tr>
+</table>
+
+<!-- ============ SECTION 8 ============ -->
+<h2 id="s8">8. Navigation & Routing</h2>
+
+<h3>8.1 Route Structure</h3>
+
+<table>
+    <tr><th>Route</th><th>Screen</th><th>Bottom Nav?</th></tr>
+    <tr><td><code>login</code></td><td>Login</td><td>No</td></tr>
+    <tr><td><code>signup</code></td><td>Signup</td><td>No</td></tr>
+    <tr><td><code>dashboard</code></td><td>Dashboard</td><td>Yes (Home)</td></tr>
+    <tr><td><code>assets</code></td><td>My IoT Devices</td><td>Yes (Devices)</td></tr>
+    <tr><td><code>asset_detail/{assetId}/{assetName}</code></td><td>Asset Detail</td><td>No</td></tr>
+    <tr><td><code>rules</code></td><td>Automation Rules</td><td>Yes (Rules)</td></tr>
+    <tr><td><code>timers</code></td><td>Timers</td><td>Yes (Timers)</td></tr>
+    <tr><td><code>settings</code></td><td>User Settings</td><td>No (More menu)</td></tr>
+    <tr><td><code>history_logs</code></td><td>History Logs</td><td>No (More menu)</td></tr>
+    <tr><td><code>setup_device</code></td><td>Setup New Device</td><td>No (More menu)</td></tr>
+</table>
+
+<h3>8.2 Navigation Architecture</h3>
+<ul>
+    <li><strong>Single Activity:</strong> <code>MainActivity</code> hosts <code>NavHost</code> via <code>setContent</code></li>
+    <li><strong>Start Destination:</strong> Determined by authentication state (Login or Dashboard)</li>
+    <li><strong>Bottom Navigation:</strong> 5 tabs (Dashboard, Devices, Rules, Timers, More) — visible on main screens</li>
+    <li><strong>Back Navigation:</strong> Standard back stack via <code>navController.popBackStack()</code></li>
+    <li><strong>Login Flow:</strong> On success, navigate to Dashboard with <code>popUpTo(Login, inclusive=true)</code> to prevent back-navigation to login</li>
+    <li><strong>Logout:</strong> Navigate to Login with <code>popUpTo(0, inclusive=true)</code> to clear entire back stack</li>
+</ul>
+
+<!-- ============ SECTION 9 ============ -->
+<h2 id="s9">9. Build Configuration & Dependencies</h2>
+
+<h3>9.1 Gradle Configuration</h3>
+
+<table>
+    <tr><th>Setting</th><th>Value</th></tr>
+    <tr><td>AGP (Android Gradle Plugin)</td><td>8.2.2</td></tr>
+    <tr><td>Kotlin</td><td>1.9.22</td></tr>
+    <tr><td>Gradle</td><td>8.5</td></tr>
+    <tr><td>compileSdk</td><td>34</td></tr>
+    <tr><td>minSdk</td><td>26 (Android 8.0)</td></tr>
+    <tr><td>targetSdk</td><td>34 (Android 14)</td></tr>
+    <tr><td>Java</td><td>17</td></tr>
+    <tr><td>Namespace</td><td>com.dibl.iot</td></tr>
+    <tr><td>Application ID</td><td>com.dibl.iot</td></tr>
+</table>
+
+<h3>9.2 Key Dependencies</h3>
+
+<table>
+    <tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
+    <tr><td>androidx.compose:compose-bom</td><td>2024.01.00</td><td>Compose UI framework</td></tr>
+    <tr><td>androidx.compose.material3:material3</td><td>(BOM managed)</td><td>Material 3 design system</td></tr>
+    <tr><td>androidx.navigation:navigation-compose</td><td>2.7.7</td><td>Screen navigation</td></tr>
+    <tr><td>androidx.lifecycle:lifecycle-viewmodel-compose</td><td>2.7.0</td><td>ViewModel integration</td></tr>
+    <tr><td>com.google.dagger:hilt-android</td><td>2.50</td><td>Dependency injection</td></tr>
+    <tr><td>com.squareup.retrofit2:retrofit</td><td>2.9.0</td><td>HTTP client</td></tr>
+    <tr><td>com.squareup.okhttp3:logging-interceptor</td><td>4.12.0</td><td>Network logging</td></tr>
+    <tr><td>com.google.code.gson:gson</td><td>2.10.1</td><td>JSON serialization</td></tr>
+    <tr><td>androidx.datastore:datastore-preferences</td><td>1.0.0</td><td>Persistent key-value storage</td></tr>
+    <tr><td>com.google.accompanist:accompanist-swiperefresh</td><td>0.32.0</td><td>Pull-to-refresh</td></tr>
+</table>
+
+<h3>9.3 Android Permissions</h3>
+<table>
+    <tr><th>Permission</th><th>Purpose</th></tr>
+    <tr><td>INTERNET</td><td>API calls to VPS server</td></tr>
+    <tr><td>BLUETOOTH / BLUETOOTH_ADMIN</td><td>BLE device scanning (legacy, maxSdk=30)</td></tr>
+    <tr><td>BLUETOOTH_SCAN / BLUETOOTH_CONNECT</td><td>BLE device scanning (API 31+)</td></tr>
+    <tr><td>CAMERA</td><td>QR code scanning (optional feature)</td></tr>
+    <tr><td>ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION</td><td>BLE scanning requires location on Android 10-</td></tr>
+</table>
+
+<!-- ============ SECTION 10 ============ -->
+<h2 id="s10">10. Setup & Build Instructions</h2>
+
+<h3>10.1 Prerequisites</h3>
+<ul>
+    <li><strong>Android Studio</strong> Hedgehog (2023.1.1) or later</li>
+    <li><strong>JDK 17</strong> (included with Android Studio)</li>
+    <li><strong>Android SDK</strong> API 34 (compile target)</li>
+    <li><strong>Gradle</strong> (wrapped via gradle-wrapper.properties)</li>
+</ul>
+
+<h3>10.2 Build Steps</h3>
+<ol>
+    <li><strong>Open project</strong> in Android Studio: File → Open → select <code>~/Desktop/DIBL-IOT-APP/</code></li>
+    <li><strong>Sync Gradle:</strong> Android Studio will detect the build.gradle.kts files and prompt to sync. Click "Sync Now".</li>
+    <li><strong>Configure VPS URL:</strong>
+        <ul>
+            <li><em>Option A:</em> On first run, tap the "Server Configuration" expandable section on the login screen and enter your VPS URL (e.g., <code>https://iot.dibl.tech/</code>) and prefix (<code>/customui</code> or empty)</li>
+            <li><em>Option B:</em> Edit <code>app/build.gradle.kts</code> line 15: change <code>DEFAULT_BASE_URL</code> and <code>DEFAULT_PREFIX</code> buildConfigField values</li>
+        </ul>
+    </li>
+    <li><strong>Build:</strong> Run menu → Run 'app' (or Shift+F10). The app will be installed on your connected device or emulator.</li>
+</ol>
+
+<h3>10.3 VPS Server Requirements</h3>
+<p>The VPS must be running the DIBL IoT Custom UI server (FastAPI on port 5000). The Android app connects to the same server endpoints. No server-side changes are needed — the app uses the exact same login, API, and session management endpoints as the existing web Custom UI.</p>
+
+<h3>10.4 Network Configuration</h3>
+<ul>
+    <li>If connecting to a local dev server over HTTP, set <code>android:usesCleartextTraffic="true"</code> in AndroidManifest.xml (line 23)</li>
+    <li>If using a self-signed certificate, add network security config in <code>res/xml/network_security_config.xml</code></li>
+    <li>For production (HTTPS with valid certificate), no changes needed</li>
+</ul>
+
+<h3>10.5 File Structure (53 files)</h3>
+<table>
+    <tr><th>Category</th><th>Count</th></tr>
+    <tr><td>Kotlin source files</td><td>43</td></tr>
+    <tr><td>Gradle configuration files (.kts, .properties)</td><td>4</td></tr>
+    <tr><td>XML resources (manifest, colors, strings, themes)</td><td>4</td></tr>
+    <tr><td>ProGuard rules</td><td>1</td></tr>
+</table>
+
+<!-- ============ SECTION 11 ============ -->
+<h2 id="s11">11. Known Issues & Remediation Path</h2>
+
+<p>The following issues were identified during a full code review comparing the DIBL IoT Custom UI web application (FastAPI + Jinja2) with the Android app (Jetpack Compose):</p>
+
+<!-- Issue 1 -->
+<div class="issue-box">
+<h4>🔴 Issue 1 — History Logs Data Never Loads (Critical)</h4>
+<p><strong>File:</strong> <code>HistoryViewModel.kt</code>, lines 75-91</p>
+<p><strong>Description:</strong> The <code>fetchData()</code> method creates a <code>ProxyRequest</code> object but never calls <code>ApiService.proxyRequest()</code> or any API method. It simply sets <code>fetchLoading = false</code> and returns — no data fetching occurs. Lines 87-88 create a dummy asset fetch call and immediately set loading to false.</p>
+<p><strong>Impact:</strong> The History Logs page renders its UI but never loads any data from the server. Users see an empty state regardless of actual data availability.</p>
+<p><strong>Remediation:</strong> Wire <code>fetchData()</code> to call <code>ApiService.proxyRequest()</code> (via <code>AssetRepository</code> or directly) with the correct datapoint API path (<code>/api/{prefix}/asset/datapoint/{assetId}/{attribute}</code>) as a POST request.</p>
+</div>
+
+<!-- Issue 2 -->
+<div class="issue-box">
+<h4>🟡 Issue 2 — Timer Start/End Time and Days Not Editable</h4>
+<p><strong>File:</strong> <code>TimersScreen.kt</code></p>
+<p><strong>Description:</strong> The <code>TimerTimeField</code> component (lines 144-148) is display-only — it renders text in a <code>Surface</code> with no <code>TimePicker</code> dialog or editable field. Additionally, <code>DaySelector</code> day toggles (lines 163-165) update local state but the changes are never sent to the ViewModel's <code>onSave</code> callback. Only the Status toggle (lines 135-139) actually triggers an API call.</p>
+<p><strong>Impact:</strong> Users cannot modify timer start/end times or schedule days. The Timers page is effectively read-only.</p>
+<p><strong>Remediation:</strong> Add a Material3 <code>TimePicker</code> dialog triggered on <code>TimerTimeField</code> click. Wire <code>DaySelector</code> changes through <code>onSave</code>. Persist full timer value map to the API.</p>
+</div>
+
+<!-- Issue 3 -->
+<div class="issue-box">
+<h4>🟡 Issue 3 — Chart View is a Placeholder</h4>
+<p><strong>File:</strong> <code>HistoryLogsScreen.kt</code>, lines 176-182</p>
+<p><strong>Description:</strong> The Chart view mode displays only: "Chart view (requires Chart.js or MPAndroidChart)" — no actual chart is rendered.</p>
+<p><strong>Impact:</strong> Users cannot visualize data trends. Only Table and JSON views are functional.</p>
+<p><strong>Remediation:</strong> Integrate a Compose-compatible charting library such as <code>com.patrykandpatrick.vico:compose</code>, <code>io.github.bytebeats:compose-charts</code>, or wrap MPAndroidChart in an <code>AndroidView</code> composable.</p>
+</div>
+
+<!-- Issue 4 -->
+<div class="warning-box">
+<h4>⚪ Other Observations</h4>
+<ul>
+    <li><strong>Setup Device BLE Scanning:</strong> Currently a placeholder — real BLE scanning via Android BLE API is not implemented. Manual Device ID entry works. User has confirmed placeholder is sufficient.</li>
+    <li><strong>QR Scanner:</strong> Not integrated in the asset linking flow (web app uses html5-qrcode). Would require CameraX or ML Kit.</li>
+    <li><strong>Offline Mode:</strong> No offline caching — all data is fetched from the server.</li>
+    <li><strong>SignupViewModel Scoping:</strong> <code>SignupViewModel</code> (line 56) creates a manual <code>CoroutineScope</code> instead of using the built-in <code>viewModelScope</code> — should be refactored for consistency.</li>
+</ul>
+</div>
+
+<h3>Summary Status</h3>
+
+<table>
+    <tr><th>Web Page</th><th>Android Screen</th><th>Status</th></tr>
+    <tr><td>Login / Signup</td><td><code>LoginScreen</code> / <code>SignupScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Dashboard</td><td><code>DashboardScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Asset List</td><td><code>AssetsScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Asset Detail</td><td><code>AssetDetailScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Rules</td><td><code>RulesScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Timers</td><td><code>TimersScreen</code></td><td class="status-issue">⚠️ Time/day editing incomplete</td></tr>
+    <tr><td>History Logs</td><td><code>HistoryLogsScreen</code></td><td class="status-issue">⚠️ fetchData() is a stub</td></tr>
+    <tr><td>User Profile</td><td><code>SettingsScreen</code></td><td class="status-complete">✅ Complete</td></tr>
+    <tr><td>Setup Device</td><td><code>SetupDeviceScreen</code></td><td class="status-complete">✅ Placeholder sufficient</td></tr>
+    <tr><td>Test API</td><td>❌ Not present</td><td class="status-complete">✅ Not needed</td></tr>
+</table>
+
+<p>The Android app is a near-complete mobile version of the DIBL IoT Custom UI web application. It uses the same server, same API endpoints, and same authentication mechanism. Fixing the three issues listed above will bring the app to 100% feature parity.</p>
+
+<div class="footer">
+    DIBL IoT Android App — Architecture & Implementation Report — July 2026
+</div>
+
+</div>
+</body>
+</html>

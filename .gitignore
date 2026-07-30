@@ -33,6 +33,7 @@ arduino-feature.md
 device-feature.md
 feature.md
 ARCHITECT_REPORT.md
+*.pdf
 
 # --- Tests ---
 tests/

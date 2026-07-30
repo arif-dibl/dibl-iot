@@ -92,7 +92,7 @@ The project uses a **flat multi-CA model** (not a hierarchical Root → Intermed
 
 ```
 RootCA (Server Identity — signs MQTT server cert only)
-├── mqtt-server cert (fh.dripirrigation.com.bd)
+├── mqtt-server cert (master.senspanel.com)
 │
 valve_CA ──────── signs valve device certs
 sens_CA ───────── signs sensor device certs
@@ -243,12 +243,12 @@ The MQTT server certificate is presented to IoT devices during TLS handshake. It
 
 ```bash
 cat > secrets/certs/mqtt-server-ext.cnf << 'EOF'
-subjectAltName = DNS:fh.dripirrigation.com.bd
+subjectAltName = DNS:master.senspanel.com
 extendedKeyUsage = serverAuth
 EOF
 ```
 
-> **Evidence:** This matches the existing file at `secrets/certs/mqtt-server-ext.cnf` in the project. Replace `fh.dripirrigation.com.bd` with your actual `OR_HOSTNAME`.
+> **Evidence:** This matches the existing file at `secrets/certs/mqtt-server-ext.cnf` in the project. Replace `master.senspanel.com` with your actual `OR_HOSTNAME` if different.
 
 ### 2.2 Generate the Server Private Key
 
@@ -261,7 +261,7 @@ openssl genrsa -out secrets/certs/mqtt-server.key 4096
 ```bash
 openssl req -new -key secrets/certs/mqtt-server.key \
   -out secrets/certs/mqtt-server.csr \
-  -subj "/C=BD/ST=Dhaka/L=Dhaka/O=DripIrrigation/OU=IoT/CN=fh.dripirrigation.com.bd"
+  -subj "/C=BD/ST=Dhaka/L=Dhaka/O=DripIrrigation/OU=IoT/CN=master.senspanel.com"
 ```
 
 ### 2.4 Sign the Server Certificate with the Root CA
@@ -293,12 +293,12 @@ openssl x509 -in secrets/certs/mqtt-server.pem -noout -subject -issuer -dates -e
 
 Expected output:
 ```
-subject=C=BD, ST=Dhaka, L=Dhaka, O=DripIrrigation, OU=IoT, CN=fh.dripirrigation.com.bd
+subject=C=BD, ST=Dhaka, L=Dhaka, O=DripIrrigation, OU=IoT, CN=master.senspanel.com
 issuer=C=BD, ST=Dhaka, L=Dhaka, O=DripIrrigation, OU=IoT, CN=RootCA
-notBefore=Feb 14 04:18:43 2026 GMT
-notAfter=Feb 14 04:18:43 2028 GMT
+notBefore=Jul 30 03:29:31 2026 GMT
+notAfter=Jul 27 03:29:31 2036 GMT
 X509v3 Subject Alternative Name:
-    DNS:fh.dripirrigation.com.bd
+    DNS:master.senspanel.com
 ```
 
 ---
@@ -582,7 +582,7 @@ Based on actual inspection of the project's `secrets/` directory:
 | File | Subject | Issuer | Valid From | Valid Until | Key Size |
 |------|---------|--------|-----------|-------------|----------|
 | `certs/ca.pem` | `CN=RootCA` | Self-signed | 2025-11-09 | 2027-11-09 | 4096-bit |
-| `certs/mqtt-server.pem` | `CN=fh.dripirrigation.com.bd` | `CN=RootCA` | 2026-02-14 | 2028-02-14 | 4096-bit |
+| `certs/mqtt-server.pem` | `CN=master.senspanel.com` | `CN=RootCA` | 2026-07-30 | 2036-07-27 | 4096-bit |
 
 ### Category CAs
 
@@ -618,8 +618,8 @@ Based on actual inspection of the project's `secrets/` directory:
 ```
 2027-03-24  ◄── Legacy device certs (device01-03) expire
 2027-11-09  ◄── RootCA expires (affects MQTT server identity chain)
-2028-02-14  ◄── MQTT server cert expires
 2036-06-15  ◄── All 10 category CAs expire (10-year validity)
+2036-07-27  ◄── MQTT server cert expires (10-year validity)
 ```
 
 ### Renewal Process
@@ -630,7 +630,7 @@ Based on actual inspection of the project's `secrets/` directory:
 # 1. Generate a new CSR (reuse existing key or generate new)
 openssl req -new -key secrets/certs/mqtt-server.key \
   -out secrets/certs/mqtt-server.csr \
-  -subj "/C=BD/ST=Dhaka/L=Dhaka/O=DripIrrigation/OU=IoT/CN=fh.dripirrigation.com.bd"
+  -subj "/C=BD/ST=Dhaka/L=Dhaka/O=DripIrrigation/OU=IoT/CN=master.senspanel.com"
 
 # 2. Sign with Root CA
 openssl x509 -req -days 730 \

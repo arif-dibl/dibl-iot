@@ -38,14 +38,6 @@ configs:
           acl is_resources path_beg /resources
           use_backend keycloak_backend if is_resources
 
-          # Custom Action Token Routing
-          acl is_clean_reset path_beg /reset-action
-          acl is_clean_verify path_beg /verify-action
-          http-request set-path /auth/realms/dibl-iot/login-actions/action-token if is_clean_reset
-          http-request set-path /auth/realms/dibl-iot/login-actions/action-token if is_clean_verify
-          use_backend keycloak_backend if is_clean_reset
-          use_backend keycloak_backend if is_clean_verify
-
           # HawkBit Routing
           acl is_ota_ui path_beg /ota/ui
           use_backend hawkbit_ui_backend if is_ota_ui
@@ -232,7 +224,6 @@ services:
         condition: service_healthy
     volumes:
       - ./deploy:/deployment
-      - ./deploy/themes:/opt/keycloak/themes
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
     healthcheck:
@@ -334,6 +325,10 @@ services:
       HAWKBIT_URL: http://hawkbit:8080/ota
       HAWKBIT_USER: admin
       HAWKBIT_PASSWORD: "admin"
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: dibliot843@gmail.com
+      SMTP_PASS: ${SMTP_PASS:-}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.customui.rule=Host(`${OR_CUSTOMUI_HOSTNAME}`)"

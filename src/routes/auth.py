@@ -24,8 +24,21 @@ async def login_get(request: Request):
     return RedirectResponse(get_prefixed_path("/"))
 
 @router.post("/login", response_class=HTMLResponse)
-async def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
-    success, result = perform_auto_login_logic(request, DEFAULT_REALM, username, password)
+async def login_post(request: Request, email: str = Form(...), password: str = Form(...)):
+    realm = DEFAULT_REALM
+    admin_token = get_admin_token(realm)
+    
+    if not admin_token:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "System error. Please try again later.", "prefix": APP_PREFIX})
+        
+    from core.auth import get_username_by_email
+    username = get_username_by_email(realm, email, admin_token)
+    
+    if not username:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid email or password", "prefix": APP_PREFIX})
+
+    # Pass the actual username to Keycloak for auto-login
+    success, result = perform_auto_login_logic(request, realm, username, password)
     if success:
         return RedirectResponse(get_prefixed_path(f"/{username}/dashboard"), status_code=303)
     return templates.TemplateResponse("login.html", {"request": request, "error": result, "prefix": APP_PREFIX})

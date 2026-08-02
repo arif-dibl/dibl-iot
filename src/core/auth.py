@@ -140,6 +140,18 @@ def get_user_id_by_username(realm, username, admin_token):
         print(f"[USER] Lookup error: {e}")
     return None
 
+def get_user_id_by_email(realm, email, admin_token):
+    url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users"
+    params = {"email": email, "exact": True}
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    try:
+        res = requests.get(url, params=params, headers=headers)
+        if res.status_code == 200 and res.json():
+            return res.json()[0]['id']
+    except Exception as e:
+        print(f"[USER] Lookup error by email: {e}")
+    return None
+
 def assign_realm_roles(realm, user_id, role_names, admin_token):
     try:
         headers = {

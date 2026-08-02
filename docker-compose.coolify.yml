@@ -41,8 +41,8 @@ configs:
           # Custom Action Token Routing
           acl is_clean_reset path_beg /reset-action
           acl is_clean_verify path_beg /verify-action
-          http-request set-path /auth/realms/master/login-actions/action-token if is_clean_reset
-          http-request set-path /auth/realms/master/login-actions/action-token if is_clean_verify
+          http-request set-path /auth/realms/dibl-iot/login-actions/action-token if is_clean_reset
+          http-request set-path /auth/realms/dibl-iot/login-actions/action-token if is_clean_verify
           use_backend keycloak_backend if is_clean_reset
           use_backend keycloak_backend if is_clean_verify
 

@@ -6,7 +6,7 @@
     <p>Someone just requested to change your password for the DIBL IOT platform. If this was you, click on the link below to reset it.</p>
     
     <p style="text-align: center; margin: 30px 0;">
-        <a href="${link?replace('auth/realms/master/login-actions/action-token', 'reset-action')}" 
+        <a href="${link?replace('auth/realms/[^/]+/login-actions/action-token', 'reset-action', 'r')}" 
            style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
             Reset Password
         </a>

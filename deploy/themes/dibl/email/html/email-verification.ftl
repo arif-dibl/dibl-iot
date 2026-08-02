@@ -6,7 +6,7 @@
     <p>Someone has created an account in the DIBL IOT platform with this email address. If this was you, click the link below to verify your email address and complete the registration.</p>
     
     <p style="text-align: center; margin: 30px 0;">
-        <a href="${link?replace('auth/realms/master/login-actions/action-token', 'verify-action')}" 
+        <a href="${link?replace('auth/realms/[^/]+/login-actions/action-token', 'verify-action', 'r')}" 
            style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
             Verify Email
         </a>

@@ -64,14 +64,12 @@ async def signup_post(request: Request, username: str = Form(...), email: str = 
             if user_id:
                 assign_roles_to_user(realm, user_id, admin_token)
                 
-                # Trigger verification email
-                email_url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users/{user_id}/execute-actions-email"
-                try:
-                    requests.put(email_url, json=["VERIFY_EMAIL"], headers=headers)
-                except Exception as e:
-                    print(f"Failed to send verify email: {e}")
+                # Trigger verification email via OTP
+                from core.otp import generate_otp, send_otp_email
+                otp = generate_otp(email, "verify")
+                send_otp_email(email, otp, "Verify your DIBL IOT Account")
                     
-            return templates.TemplateResponse("signup.html", {"request": request, "success": "Account created! Please check your email to verify your account before logging in.", "prefix": APP_PREFIX})
+            return RedirectResponse(url=get_prefixed_path(f"/verify-email?email={email}"), status_code=303)
         else:
             error_msg = res.json().get("errorMessage", "Registration failed")
             return templates.TemplateResponse("signup.html", {"request": request, "error": error_msg, "prefix": APP_PREFIX})
@@ -94,22 +92,55 @@ async def forgot_password_post(request: Request, email: str = Form(...)):
     user_id = get_user_id_by_email(realm, email, admin_token)
     
     if not user_id:
-        return templates.TemplateResponse("forgot_password.html", {"request": request, "success": "If an account with that email exists, a password reset link has been sent.", "prefix": APP_PREFIX})
+        return RedirectResponse(url=get_prefixed_path(f"/reset-password?email={email}"), status_code=303)
 
-    # Trigger password reset email with client_id and redirect_uri
-    email_url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users/{user_id}/execute-actions-email?client_id=openremote&redirect_uri=https://{OR_HOSTNAME}/manager/"
-    headers = {"Authorization": f"Bearer {admin_token}", "Content-Type": "application/json"}
+    from core.otp import generate_otp, send_otp_email
+    otp = generate_otp(email, "reset")
+    send_otp_email(email, otp, "Reset your DIBL IOT Password")
     
-    try:
-        res = requests.put(email_url, json=["UPDATE_PASSWORD"], headers=headers)
-        if res.status_code in [200, 204]:
-            return templates.TemplateResponse("forgot_password.html", {"request": request, "success": "If an account with that email exists, a password reset link has been sent.", "prefix": APP_PREFIX})
-        else:
-            print(f"Failed to send reset email: {res.status_code} - {res.text}")
-            return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "Failed to send reset email. Please contact support.", "prefix": APP_PREFIX})
-    except Exception as e:
-        print(f"Error sending reset email: {e}")
-        return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "An error occurred while sending the email.", "prefix": APP_PREFIX})
+    return RedirectResponse(url=get_prefixed_path(f"/reset-password?email={email}"), status_code=303)
+
+@router.get("/verify-email", response_class=HTMLResponse)
+async def verify_email_get(request: Request, email: str = ""):
+    return templates.TemplateResponse("verify_email.html", {"request": request, "email": email, "prefix": APP_PREFIX})
+
+@router.post("/verify-email", response_class=HTMLResponse)
+async def verify_email_post(request: Request, email: str = Form(...), otp: str = Form(...)):
+    from core.otp import verify_otp
+    if verify_otp(email, otp, "verify"):
+        realm = DEFAULT_REALM
+        admin_token = get_admin_token(realm)
+        from core.auth import get_user_id_by_email
+        user_id = get_user_id_by_email(realm, email, admin_token)
+        if user_id and admin_token:
+            headers = {"Authorization": f"Bearer {admin_token}", "Content-Type": "application/json"}
+            url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users/{user_id}"
+            requests.put(url, json={"emailVerified": True}, headers=headers)
+        return templates.TemplateResponse("login.html", {"request": request, "success": "Email verified successfully! You can now log in.", "prefix": APP_PREFIX})
+    return templates.TemplateResponse("verify_email.html", {"request": request, "error": "Invalid or expired OTP", "email": email, "prefix": APP_PREFIX})
+
+@router.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_get(request: Request, email: str = ""):
+    return templates.TemplateResponse("reset_password.html", {"request": request, "email": email, "prefix": APP_PREFIX})
+
+@router.post("/reset-password", response_class=HTMLResponse)
+async def reset_password_post(request: Request, email: str = Form(...), otp: str = Form(...), password: str = Form(...)):
+    from core.otp import verify_otp
+    if verify_otp(email, otp, "reset"):
+        realm = DEFAULT_REALM
+        admin_token = get_admin_token(realm)
+        from core.auth import get_user_id_by_email
+        user_id = get_user_id_by_email(realm, email, admin_token)
+        if user_id and admin_token:
+            headers = {"Authorization": f"Bearer {admin_token}", "Content-Type": "application/json"}
+            url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users/{user_id}/reset-password"
+            res = requests.put(url, json={"type": "password", "value": password, "temporary": False}, headers=headers)
+            if res.status_code in [200, 204]:
+                return templates.TemplateResponse("login.html", {"request": request, "success": "Password reset successfully! You can now log in.", "prefix": APP_PREFIX})
+            else:
+                return templates.TemplateResponse("reset_password.html", {"request": request, "error": "Failed to update password in auth server.", "email": email, "prefix": APP_PREFIX})
+        return templates.TemplateResponse("reset_password.html", {"request": request, "error": "User not found or connection failed.", "email": email, "prefix": APP_PREFIX})
+    return templates.TemplateResponse("reset_password.html", {"request": request, "error": "Invalid or expired OTP", "email": email, "prefix": APP_PREFIX})
 
 @router.get("/logout")
 async def logout(request: Request):

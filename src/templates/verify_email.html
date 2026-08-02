@@ -1,40 +1,74 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Verify Email - DIBL IOT{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - DIBL IOT</title>
+    <link rel="icon" type="image/png" href="{{ prefix }}/static/images/favicon.png">
+    <link rel="shortcut icon" type="image/png" href="{{ prefix }}/static/images/favicon.png">
+    <link rel="stylesheet" href="{{ prefix }}/static/css/common.css">
+    <link rel="stylesheet" href="{{ prefix }}/static/css/auth.css">
+    <link rel="stylesheet" href="{{ prefix }}/static/css/split_auth.css">
+    <script src="{{ prefix }}/static/js/auth.js"></script>
+</head>
 
-{% block content %}
-<div class="row justify-content-center align-items-center min-vh-100">
-    <div class="col-12 col-md-8 col-lg-6 col-xl-5">
-        <div class="card shadow-lg border-0 rounded-lg">
-            <div class="card-header bg-primary text-white text-center py-4">
-                <h3 class="font-weight-light my-2">Verify Your Email</h3>
-            </div>
-            <div class="card-body p-5">
-                {% if error %}
-                <div class="alert alert-danger" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+<body>
+    <div class="split-container">
+        <!-- LEFT PANEL: Instructions & Info (60%) -->
+        <div class="info-panel">
+            <div class="info-content">
+                <h1 class="info-title">Irrigation<br>Made Easy.</h1>
+                <p class="info-text">
+                    Control your watering systems from your phone or computer.
+                    DIBL IoT helps you save water and grow better crops without the hassle.
+                </p>
+                <ul class="info-features">
+                    <li>Check soil and environment instantly</li>
+                    <li>Set automatic watering schedules</li>
+                    <li>View past data anytime</li>
+                    <li>Safe for your whole team</li>
+                </ul>
+                <div class="info-links">
+                    <a href="https://dripirrigation.com.bd/" target="_blank" class="info-link">DIBL Website</a>
+                    <a href="https://github.com/openremote/openremote" target="_blank" class="info-link">GitHub</a>
+                    <a href="https://dripirrigation.com.bd/contact-us/" target="_blank" class="info-link">Support</a>
                 </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Form (40%) -->
+        <div class="form-panel">
+            <div class="auth-wrapper">
+                <div class="brand-logo">
+                    <img src="{{ prefix }}/static/images/logo.png" alt="DIBL IoT">
+                </div>
+                <h2 class="auth-title">Verify Email</h2>
+                <p class="auth-subtitle">Please enter the 6-digit verification code sent to your email.</p>
+
+                {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
                 {% endif %}
                 {% if success %}
-                <div class="alert alert-success" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>{{ success }}
-                </div>
+                <div class="alert alert-success">{{ success }}</div>
                 {% endif %}
-                
-                <p class="text-muted mb-4">Please enter the 6-digit verification code sent to your email address.</p>
-                
-                <form method="POST" action="{{ prefix }}/verify-email">
-                    <input type="hidden" name="email" value="{{ email }}">
-                    <div class="form-floating mb-3">
-                        <input class="form-control" id="otp" name="otp" type="text" placeholder="123456" required autocomplete="off" />
-                        <label for="otp">Verification Code</label>
+
+                <div>
+                    <form action="{{ prefix }}/verify-email" method="POST">
+                        <input type="hidden" name="email" value="{{ email }}">
+                        <div class="form-group">
+                            <label for="otp">Verification Code</label>
+                            <input type="text" id="otp" name="otp" required placeholder="123456" autocomplete="off">
+                        </div>
+                        <button type="submit">Verify Email</button>
+                    </form>
+                    <div class="toggle-link">
+                        Back to <a href="{{ prefix }}/login">Sign In</a>
                     </div>
-                    <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
-                        <button type="submit" class="btn btn-primary w-100 py-2">Verify Email</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+</body>
+
+</html>

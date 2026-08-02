@@ -78,6 +78,39 @@ async def signup_post(request: Request, username: str = Form(...), email: str = 
     except Exception as e:
         return templates.TemplateResponse("signup.html", {"request": request, "error": str(e), "prefix": APP_PREFIX})
 
+@router.get("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_get(request: Request):
+    return templates.TemplateResponse("forgot_password.html", {"request": request, "prefix": APP_PREFIX})
+
+@router.post("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_post(request: Request, username: str = Form(...)):
+    realm = DEFAULT_REALM
+    admin_token = get_admin_token(realm)
+    
+    if not admin_token:
+        return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "Could not connect to auth server", "prefix": APP_PREFIX})
+
+    from core.auth import get_user_id_by_username
+    user_id = get_user_id_by_username(realm, username, admin_token)
+    
+    if not user_id:
+        return templates.TemplateResponse("forgot_password.html", {"request": request, "success": "If an account with that username exists, a password reset link has been sent to its registered email.", "prefix": APP_PREFIX})
+
+    # Trigger password reset email
+    email_url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users/{user_id}/execute-actions-email"
+    headers = {"Authorization": f"Bearer {admin_token}", "Content-Type": "application/json"}
+    
+    try:
+        res = requests.put(email_url, json=["UPDATE_PASSWORD"], headers=headers)
+        if res.status_code in [200, 204]:
+            return templates.TemplateResponse("forgot_password.html", {"request": request, "success": "If an account with that username exists, a password reset link has been sent to its registered email.", "prefix": APP_PREFIX})
+        else:
+            print(f"Failed to send reset email: {res.status_code} - {res.text}")
+            return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "Failed to send reset email. Please contact support.", "prefix": APP_PREFIX})
+    except Exception as e:
+        print(f"Error sending reset email: {e}")
+        return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "An error occurred while sending the email.", "prefix": APP_PREFIX})
+
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()

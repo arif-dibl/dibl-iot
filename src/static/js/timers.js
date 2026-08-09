@@ -7,6 +7,12 @@ const dirtyTimers = new Set(); // keys like "assetId__attrName"
 // Track output type per asset: 'valve' or 'relay'
 const assetOutputType = {};
 
+// ── New: Filter & Selection State ──
+const selectedTimers = new Set();       // keys: "assetId__attrName"
+const activeFilters = {};               // per device: activeFilters[assetIdClean] = 'all'|'active'|'inactive'
+// Cache timer metadata per device for batch operations
+const deviceTimerMeta = {};             // deviceTimerMeta[assetId] = [{ attrName, status, friendlyName }]
+
 async function loadTimers() {
     try {
         const res = await fetch(`${APP_PREFIX}/api/user/assets`);
@@ -68,11 +74,37 @@ async function loadTimers() {
 
                 const sortedKeys = Object.keys(timerAttributes).sort();
 
+                // Build timer metadata for this device (used by filter counts and batch ops)
+                deviceTimerMeta[asset.id] = [];
+                let activeCount = 0;
+                let inactiveCount = 0;
+
+                for (const key of sortedKeys) {
+                    const displayVal = pendingTimerData[asset.id][key] || timerAttributes[key];
+                    const status = (typeof displayVal === 'object' && displayVal !== null)
+                        ? String(displayVal['Status'] || 'OFF').toUpperCase()
+                        : 'OFF';
+                    const isActive = status === 'ON' || status === 'ACTIVE';
+                    if (isActive) activeCount++; else inactiveCount++;
+                    const friendlyName = typeof getFriendlyLabel === 'function'
+                        ? getFriendlyLabel(key, true)
+                        : key.replace(/(\d+)/, ' $1');
+                    deviceTimerMeta[asset.id].push({ attrName: key, status: isActive ? 'active' : 'inactive', friendlyName });
+                }
+
+                // Set default filter
+                if (!activeFilters[assetIdClean]) activeFilters[assetIdClean] = 'all';
+
+                // Render timer cards
                 let timersHtml = '';
                 for (const key of sortedKeys) {
                     const displayVal = pendingTimerData[asset.id][key] || timerAttributes[key];
                     timersHtml += renderEditableTimer(asset.id, key, displayVal, pinnedItems);
                 }
+
+                // Build the select bar (includes filter tabs + select-all + pin dropdown)
+                const totalCount = sortedKeys.length;
+                const selectBarHtml = renderSelectBar(assetIdClean, asset.id, totalCount, activeCount);
 
                 const html = `
                     <div style="margin-bottom:1.5rem; border:1px solid var(--border); border-radius:8px; overflow:visible;">
@@ -81,18 +113,22 @@ async function loadTimers() {
                             style="background:#f8f9fa; padding:1rem 1.5rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;"
                         >
                             <div style="font-weight:600; font-size:1.1rem; color:#333;">
-                                ${asset.name} <span style="color:var(--text-muted); font-weight:400; font-size:0.9rem;">(${Object.keys(timerAttributes).length} Timers)</span>
+                                ${asset.name} <span style="color:var(--text-muted); font-weight:400; font-size:0.9rem;">(${totalCount} Timers)</span>
                             </div>
                             <span id="icon-${assetIdClean}" style="transition:transform 0.2s; transform: ${isOpen ? 'rotate(0deg)' : 'rotate(-90deg)'};">▼</span>
                         </div>
                         <div id="${assetIdClean}" class="timer-content-area" style="display:${isOpen ? 'block' : 'none'}; padding:1rem; background:white;">
-                             <div style="display:flex; flex-wrap:wrap; gap:1rem; min-width:0;">
+                             ${selectBarHtml}
+                             <div style="display:flex; flex-wrap:wrap; gap:1rem; min-width:0;" id="timer-grid-${assetIdClean}">
                                 ${timersHtml}
                              </div>
                         </div>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', html);
+
+                // Apply the current filter (show/hide cards)
+                applyFilter(assetIdClean, activeFilters[assetIdClean]);
             }
         }
 
@@ -100,11 +136,389 @@ async function loadTimers() {
             container.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted)">No timers found on any devices.</div>';
         }
 
+        // Update batch bar in case selections persisted across reload
+        updateBatchBar();
+
     } catch (e) {
         console.error(e);
         toast('Failed to load timers');
     }
 }
+
+// ── Select Bar Renderer (Filter Tabs + Select All + Pin Dropdown) ──
+function renderSelectBar(assetIdClean, assetId, total, activeCount) {
+    return `
+        <div class="timer-select-bar">
+            <div class="timer-filter-tabs" id="filter-tabs-${assetIdClean}">
+                ${renderFilterTabsInner(assetIdClean, total, activeCount, total - activeCount)}
+            </div>
+            <div class="timer-select-actions" style="display:flex; align-items:center; gap:8px;">
+                <label class="timer-select-all-label">
+                    <input type="checkbox" id="select-all-${assetIdClean}"
+                        onchange="toggleSelectAll('${assetIdClean}', '${assetId}')">
+                    Select All
+                </label>
+                <div class="timer-pin-dropdown" id="pin-dropdown-${assetIdClean}">
+                    <button class="timer-pin-btn" onclick="event.stopPropagation(); togglePinDropdown('${assetIdClean}')">
+                        Pin ▾
+                    </button>
+                    <div class="timer-pin-menu" id="pin-menu-${assetIdClean}">
+                        <button class="timer-pin-menu-item" onclick="batchPin('active', '${assetId}', '${assetIdClean}')">
+                            Pin Active (<span id="pin-active-count-${assetIdClean}">${activeCount}</span>)
+                        </button>
+                        <button class="timer-pin-menu-item" onclick="batchPin('all', '${assetId}', '${assetIdClean}')">
+                            Pin All (${total})
+                        </button>
+                        <button class="timer-pin-menu-item" onclick="batchPin('selected', '${assetId}', '${assetIdClean}')">
+                            Pin Selected (<span id="pin-selected-count-${assetIdClean}">0</span>)
+                        </button>
+                        <div class="timer-pin-menu-divider"></div>
+                        <button class="timer-pin-menu-item" onclick="batchUnpin('${assetId}', '${assetIdClean}')">
+                            Unpin All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderFilterTabsInner(assetIdClean, total, activeCount, inactiveCount) {
+    const current = activeFilters[assetIdClean] || 'all';
+    return `
+        <button class="timer-filter-tab ${current === 'all' ? 'active' : ''}"
+            onclick="event.stopPropagation(); setFilter('${assetIdClean}', 'all')">
+            All (${total})
+        </button>
+        <button class="timer-filter-tab ${current === 'active' ? 'active' : ''}"
+            onclick="event.stopPropagation(); setFilter('${assetIdClean}', 'active')">
+            🟢 Active (${activeCount})
+        </button>
+        <button class="timer-filter-tab ${current === 'inactive' ? 'active' : ''}"
+            onclick="event.stopPropagation(); setFilter('${assetIdClean}', 'inactive')">
+            ⚪ Inactive (${inactiveCount})
+        </button>
+    `;
+}
+
+// ── Filter Logic ──
+function setFilter(assetIdClean, filter) {
+    activeFilters[assetIdClean] = filter;
+    applyFilter(assetIdClean, filter);
+
+    // Update tab active states
+    const tabContainer = document.getElementById(`filter-tabs-${assetIdClean}`);
+    if (tabContainer) {
+        tabContainer.querySelectorAll('.timer-filter-tab').forEach(btn => {
+            btn.classList.remove('active');
+            // Match by filter name in onclick
+            if (btn.onclick && btn.onclick.toString().includes(`'${filter}'`)) {
+                btn.classList.add('active');
+            }
+        });
+        // Simpler approach: re-check by text content
+        tabContainer.querySelectorAll('.timer-filter-tab').forEach(btn => {
+            const text = btn.textContent.trim().toLowerCase();
+            btn.classList.remove('active');
+            if (filter === 'all' && text.startsWith('all')) btn.classList.add('active');
+            else if (filter === 'active' && text.includes('active')) btn.classList.add('active');
+            else if (filter === 'inactive' && text.includes('inactive')) btn.classList.add('active');
+        });
+    }
+}
+
+function applyFilter(assetIdClean, filter) {
+    const grid = document.getElementById(`timer-grid-${assetIdClean}`);
+    if (!grid) return;
+
+    const cards = grid.querySelectorAll('[data-timer-status]');
+    cards.forEach(card => {
+        const status = card.getAttribute('data-timer-status');
+        if (filter === 'all') {
+            card.style.display = '';
+        } else if (filter === 'active') {
+            card.style.display = (status === 'active') ? '' : 'none';
+        } else if (filter === 'inactive') {
+            card.style.display = (status === 'inactive') ? '' : 'none';
+        }
+    });
+}
+
+// ── Selection Logic ──
+function toggleTimerSelect(assetId, attrName) {
+    const key = `${assetId}__${attrName}`;
+    const cb = document.getElementById(`check-${assetId}-${attrName}`);
+
+    if (selectedTimers.has(key)) {
+        selectedTimers.delete(key);
+        if (cb) cb.checked = false;
+    } else {
+        selectedTimers.add(key);
+        if (cb) cb.checked = true;
+    }
+
+    updateBatchBar();
+    updateSelectedCounts();
+}
+
+function toggleSelectAll(assetIdClean, assetId) {
+    const cb = document.getElementById(`select-all-${assetIdClean}`);
+    const grid = document.getElementById(`timer-grid-${assetIdClean}`);
+    if (!grid) return;
+
+    const visibleCards = grid.querySelectorAll('[data-timer-status]:not([style*="display: none"])');
+
+    if (cb && cb.checked) {
+        // Select all visible
+        visibleCards.forEach(card => {
+            const attrName = card.getAttribute('data-attr-name');
+            if (attrName) {
+                const key = `${assetId}__${attrName}`;
+                selectedTimers.add(key);
+                const itemCb = document.getElementById(`check-${assetId}-${attrName}`);
+                if (itemCb) itemCb.checked = true;
+            }
+        });
+    } else {
+        // Deselect all for this device
+        visibleCards.forEach(card => {
+            const attrName = card.getAttribute('data-attr-name');
+            if (attrName) {
+                const key = `${assetId}__${attrName}`;
+                selectedTimers.delete(key);
+                const itemCb = document.getElementById(`check-${assetId}-${attrName}`);
+                if (itemCb) itemCb.checked = false;
+            }
+        });
+    }
+
+    updateBatchBar();
+    updateSelectedCounts();
+}
+
+function updateSelectedCounts() {
+    // Update "Pin Selected (N)" counts in all pin dropdowns
+    document.querySelectorAll('[id^="pin-selected-count-"]').forEach(el => {
+        const assetIdClean = el.id.replace('pin-selected-count-', '');
+        // Count selected items that belong to this device
+        let count = 0;
+        selectedTimers.forEach(key => {
+            // Find the card element to check which device group it belongs to
+            const [aid, attr] = key.split('__');
+            const card = document.getElementById(`timer-card-${aid}-${attr}`);
+            if (card) {
+                const grid = card.closest(`[id="timer-grid-${assetIdClean}"]`);
+                if (grid) count++;
+            }
+        });
+        el.textContent = count;
+    });
+}
+
+// ── Batch Bar ──
+function updateBatchBar() {
+    const bar = document.getElementById('timerBatchBar');
+    if (!bar) return;
+
+    if (selectedTimers.size > 0) {
+        bar.innerHTML = `
+            <span class="timer-batch-bar-text">${selectedTimers.size} timer${selectedTimers.size > 1 ? 's' : ''} selected</span>
+            <button class="timer-batch-bar-btn primary" onclick="batchPinSelected()">Pin Selected</button>
+            <button class="timer-batch-bar-btn ghost" onclick="clearSelection()">Clear</button>
+        `;
+        bar.classList.add('show');
+    } else {
+        bar.classList.remove('show');
+    }
+}
+
+function clearSelection() {
+    selectedTimers.clear();
+    document.querySelectorAll('.timer-card-check').forEach(cb => cb.checked = false);
+    document.querySelectorAll('[id^="select-all-"]').forEach(cb => cb.checked = false);
+    updateBatchBar();
+    updateSelectedCounts();
+}
+
+// ── Batch Pin Logic ──
+async function batchPin(mode, assetId, assetIdClean) {
+    closePinDropdowns();
+
+    const meta = deviceTimerMeta[assetId] || [];
+    let itemsToPin = [];
+
+    if (mode === 'active') {
+        itemsToPin = meta.filter(m => m.status === 'active');
+    } else if (mode === 'all') {
+        itemsToPin = [...meta];
+    } else if (mode === 'selected') {
+        itemsToPin = meta.filter(m => selectedTimers.has(`${assetId}__${m.attrName}`));
+    }
+
+    if (itemsToPin.length === 0) {
+        toast('No timers to pin');
+        return;
+    }
+
+    // Fetch current pinned to skip already-pinned
+    let currentPinned = [];
+    try {
+        const prefsRes = await fetch(`${APP_PREFIX}/api/user/preferences`);
+        const prefs = await prefsRes.json();
+        currentPinned = prefs.pinned || [];
+    } catch (e) { /* proceed anyway */ }
+
+    let pinned = 0;
+    for (const item of itemsToPin) {
+        const alreadyPinned = currentPinned.some(
+            p => p.assetId === assetId && p.attributeName === item.attrName
+        );
+        if (alreadyPinned) continue;
+
+        try {
+            const payload = {
+                assetId: assetId,
+                attributeName: item.attrName,
+                displayName: item.friendlyName
+            };
+            const res = await fetch(`${APP_PREFIX}/api/user/preferences/pin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'success' && data.pinned) pinned++;
+        } catch (e) {
+            console.error('[BatchPin]', e);
+        }
+    }
+
+    if (pinned > 0) {
+        toast(`Pinned ${pinned} timer${pinned > 1 ? 's' : ''} to dashboard`);
+        // Refresh stars
+        loadTimers();
+    } else {
+        toast('All selected timers are already pinned');
+    }
+}
+
+async function batchPinSelected() {
+    // Group selected timers by asset
+    const byAsset = {};
+    selectedTimers.forEach(key => {
+        const [assetId, attrName] = key.split('__');
+        if (!byAsset[assetId]) byAsset[assetId] = [];
+        byAsset[assetId].push(attrName);
+    });
+
+    let totalPinned = 0;
+
+    // Fetch current pinned once
+    let currentPinned = [];
+    try {
+        const prefsRes = await fetch(`${APP_PREFIX}/api/user/preferences`);
+        const prefs = await prefsRes.json();
+        currentPinned = prefs.pinned || [];
+    } catch (e) { /* proceed */ }
+
+    for (const [assetId, attrNames] of Object.entries(byAsset)) {
+        const meta = deviceTimerMeta[assetId] || [];
+        for (const attrName of attrNames) {
+            const alreadyPinned = currentPinned.some(
+                p => p.assetId === assetId && p.attributeName === attrName
+            );
+            if (alreadyPinned) continue;
+
+            const m = meta.find(x => x.attrName === attrName);
+            const displayName = m ? m.friendlyName : attrName;
+
+            try {
+                const payload = { assetId, attributeName: attrName, displayName };
+                const res = await fetch(`${APP_PREFIX}/api/user/preferences/pin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.status === 'success' && data.pinned) totalPinned++;
+            } catch (e) {
+                console.error('[BatchPinSelected]', e);
+            }
+        }
+    }
+
+    if (totalPinned > 0) {
+        toast(`Pinned ${totalPinned} timer${totalPinned > 1 ? 's' : ''} to dashboard`);
+        clearSelection();
+        loadTimers();
+    } else {
+        toast('All selected timers are already pinned');
+    }
+}
+
+async function batchUnpin(assetId, assetIdClean) {
+    closePinDropdowns();
+
+    const meta = deviceTimerMeta[assetId] || [];
+    let unpinned = 0;
+
+    for (const item of meta) {
+        try {
+            // The pin endpoint is a toggle — calling it for a pinned item unpins it
+            // First check if it's pinned
+            const prefsRes = await fetch(`${APP_PREFIX}/api/user/preferences`);
+            const prefs = await prefsRes.json();
+            const currentPinned = prefs.pinned || [];
+            const isPinned = currentPinned.some(
+                p => p.assetId === assetId && p.attributeName === item.attrName
+            );
+
+            if (isPinned) {
+                const payload = { assetId, attributeName: item.attrName };
+                await fetch(`${APP_PREFIX}/api/user/preferences/pin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                unpinned++;
+            }
+        } catch (e) {
+            console.error('[BatchUnpin]', e);
+        }
+    }
+
+    if (unpinned > 0) {
+        toast(`Unpinned ${unpinned} timer${unpinned > 1 ? 's' : ''}`);
+        loadTimers();
+    } else {
+        toast('No pinned timers to remove');
+    }
+}
+
+// ── Pin Dropdown Toggle ──
+function togglePinDropdown(assetIdClean) {
+    const menu = document.getElementById(`pin-menu-${assetIdClean}`);
+    if (!menu) return;
+
+    // Close all other open dropdowns first
+    document.querySelectorAll('.timer-pin-menu.show').forEach(m => {
+        if (m.id !== `pin-menu-${assetIdClean}`) m.classList.remove('show');
+    });
+
+    menu.classList.toggle('show');
+}
+
+function closePinDropdowns() {
+    document.querySelectorAll('.timer-pin-menu.show').forEach(m => m.classList.remove('show'));
+}
+
+// Close pin dropdowns on outside click
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.timer-pin-dropdown')) {
+        closePinDropdowns();
+    }
+});
+
 
 function renderEditableTimer(assetId, key, val, pinnedItems = []) {
     let friendlyName = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(key, true) : key.replace(/(\d+)/, ' $1');
@@ -118,6 +532,11 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
     const status = items['Status'] || 'OFF';
     const isActive = String(status).toUpperCase() === 'ON' || String(status).toUpperCase() === 'ACTIVE';
     const activeColor = isActive ? 'var(--primary)' : 'var(--text-muted)';
+    const timerStatus = isActive ? 'active' : 'inactive';
+
+    // Check if this timer is currently selected
+    const selKey = `${assetId}__${key}`;
+    const isSelected = selectedTimers.has(selKey);
 
     let innerHtml = '';
 
@@ -180,12 +599,20 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
     const isDirty = dirtyTimers.has(dirtyKey);
 
     return `
-        <div class="timer-card-mobile-fix" id="timer-card-${assetId}-${key}" style="flex: 1 1 250px; min-width:0; border:1px solid #e0e0e0; border-radius:6px; padding:1rem; background:#fafafa; max-width: 100%;">
-            <div style="font-weight:700; margin-bottom:0.75rem; color:#333; font-size:1rem; border-bottom:1px solid #ddd; padding-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
-                <span>${friendlyName}</span>
+        <div class="timer-card-mobile-fix" id="timer-card-${assetId}-${key}"
+             data-timer-status="${timerStatus}" data-attr-name="${key}" data-asset-id="${assetId}"
+             style="flex: 1 1 250px; min-width:0; border:1px solid #e0e0e0; border-radius:6px; padding:1rem; background:#fafafa; max-width: 100%;">
+            <div style="font-weight:700; margin-bottom:0.75rem; color:#333; font-size:1rem; border-bottom:1px solid #ddd; padding-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                    <input type="checkbox" class="timer-card-check" id="check-${assetId}-${key}"
+                        ${isSelected ? 'checked' : ''}
+                        onchange="toggleTimerSelect('${assetId}', '${key}')">
+                    <span class="timer-status-dot ${timerStatus}"></span>
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${friendlyName}</span>
+                </div>
                 <span onclick="event.stopPropagation(); pinWidget('${assetId}', '${key}', null, '${friendlyName}')" 
                       title="Pin to Dashboard"
-                      style="cursor:pointer; font-size:1.1rem; color:${pinnedItems.some(p => p.assetId === assetId && p.attributeName === key) ? '#f1c40f' : '#ccc'}; transition:color 0.2s;">
+                      style="cursor:pointer; font-size:1.1rem; color:${pinnedItems.some(p => p.assetId === assetId && p.attributeName === key) ? '#f1c40f' : '#ccc'}; transition:color 0.2s; flex-shrink:0;">
                     ${pinnedItems.some(p => p.assetId === assetId && p.attributeName === key) ? '★' : '☆'}
                 </span>
             </div>
@@ -339,6 +766,21 @@ function bufferNestedChange(event, assetId, attrName, nestedKey, newValue) {
             label.textContent = newValue ? 'ON' : 'OFF';
             label.style.color = newValue ? 'var(--primary)' : 'var(--text-muted)';
         }
+
+        // Update the card's data-timer-status attribute and status dot
+        const card = document.getElementById(`timer-card-${assetId}-${attrName}`);
+        if (card) {
+            const newStatus = newValue ? 'active' : 'inactive';
+            card.setAttribute('data-timer-status', newStatus);
+            const dot = card.querySelector('.timer-status-dot');
+            if (dot) {
+                dot.classList.remove('active', 'inactive');
+                dot.classList.add(newStatus);
+            }
+        }
+
+        // Update filter tab counts for the parent device
+        updateFilterCounts(assetId);
     }
 
     // Update buffer
@@ -352,6 +794,42 @@ function bufferNestedChange(event, assetId, attrName, nestedKey, newValue) {
     }
 
     markDirty(assetId, attrName);
+}
+
+// Dynamically update filter tab counts when a status toggle changes
+function updateFilterCounts(assetId) {
+    const assetIdClean = assetId.replace(/[^a-zA-Z0-9]/g, '');
+    const grid = document.getElementById(`timer-grid-${assetIdClean}`);
+    if (!grid) return;
+
+    const allCards = grid.querySelectorAll('[data-timer-status]');
+    let activeCount = 0;
+    let inactiveCount = 0;
+
+    allCards.forEach(card => {
+        if (card.getAttribute('data-timer-status') === 'active') activeCount++;
+        else inactiveCount++;
+    });
+
+    const total = allCards.length;
+
+    // Update the deviceTimerMeta too
+    if (deviceTimerMeta[assetId]) {
+        deviceTimerMeta[assetId].forEach(m => {
+            const card = document.getElementById(`timer-card-${assetId}-${m.attrName}`);
+            if (card) m.status = card.getAttribute('data-timer-status');
+        });
+    }
+
+    // Re-render filter tab buttons
+    const tabContainer = document.getElementById(`filter-tabs-${assetIdClean}`);
+    if (tabContainer) {
+        tabContainer.innerHTML = renderFilterTabsInner(assetIdClean, total, activeCount, inactiveCount);
+    }
+
+    // Update pin active count
+    const pinActiveEl = document.getElementById(`pin-active-count-${assetIdClean}`);
+    if (pinActiveEl) pinActiveEl.textContent = activeCount;
 }
 
 // Buffer a wheel picker value change locally

@@ -158,7 +158,6 @@ configs:
       FN4MZTpTMaWz8MtikcaaMX8GY4IkkVyG9JfQcs13/L9WuEsu3HpEi+Zgvtr19EUi
       lmnnr24KU5QV4B230/iuyvUE3Qn8sw==
       -----END PRIVATE KEY-----
-
   mqtt-ca-cert:
     content: |
       -----BEGIN CERTIFICATE-----
@@ -227,7 +226,6 @@ configs:
       RW6mZZ19AXF4mHIbrvENm1wG2/TzrzFX9sSieHTGYCevCFQl4vEUCm/BlrNa2wQQ
       BToysTyoUSKF9R3DdCVEYhlW8sgvAcE=
       -----END CERTIFICATE-----
-
 volumes:
   proxy-data:
   manager-data:

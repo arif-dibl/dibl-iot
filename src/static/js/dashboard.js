@@ -1,6 +1,18 @@
 const recentToggles = {};
 const clearedAssets = new Set();
-const collapsedDeviceGroups = new Set(); // Tracks collapsed state of timer device groups
+// Load collapsed state from localStorage so it survives page reloads
+let initialCollapsed = [];
+try {
+    const stored = localStorage.getItem('collapsedTimerGroups');
+    if (stored) initialCollapsed = JSON.parse(stored);
+} catch (e) { console.error('Failed to parse collapsed groups', e); }
+const collapsedDeviceGroups = new Set(initialCollapsed);
+
+function saveCollapsedState() {
+    try {
+        localStorage.setItem('collapsedTimerGroups', JSON.stringify(Array.from(collapsedDeviceGroups)));
+    } catch (e) { console.error('Failed to save collapsed groups', e); }
+}
 
 async function loadDashboard() {
     try {
@@ -878,6 +890,7 @@ function toggleTimerDeviceGroup(cleanId) {
         } else {
             collapsedDeviceGroups.delete(cleanId);
         }
+        saveCollapsedState();
     }
 }
 

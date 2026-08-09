@@ -51,11 +51,22 @@
     </div>
 </section>
 
-<!-- Timers Section (User Pinnable) -->
+<!-- Timers Section (User Pinnable, Grouped by Device) -->
 <section id="timersSection" class="dashboard-section">
     <h2 class="dashboard-section-header">Timers</h2>
-    <div id="timersContainer" class="widget-grid-4">
-        <div class="empty-placeholder">No timers pinned</div>
+    <div id="timersContainer">
+        <!-- Highlights sub-section -->
+        <div id="timerHighlightsSection" style="display:none;">
+            <div class="timer-hl-header">
+                <span class="timer-hl-title">Highlights</span>
+                <span class="timer-hl-subtitle">Your selected timers across all devices</span>
+            </div>
+            <div id="timerHighlightsGrid" class="widget-grid-4"></div>
+        </div>
+        <!-- Device groups rendered by JS below -->
+        <div id="timerDeviceGroups"></div>
+        <!-- Shown when no timers pinned at all -->
+        <div id="timerEmptyState" class="empty-placeholder" style="display:none;">No timers pinned. Go to Timers page to pin some!</div>
     </div>
 </section>
 

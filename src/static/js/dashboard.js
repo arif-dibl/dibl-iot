@@ -355,15 +355,77 @@ async function loadWidgets(assets = []) {
             }).join('');
         }
 
+        // ── Timers Rendering (Highlights + Device Groups) ──
+        const timerHighlightsSection = document.getElementById('timerHighlightsSection');
+        const timerHighlightsGrid = document.getElementById('timerHighlightsGrid');
+        const timerDeviceGroups = document.getElementById('timerDeviceGroups');
+        const timerEmptyState = document.getElementById('timerEmptyState');
+        
         if (timers.length === 0) {
-            timersContainer.innerHTML = '<div class="empty-placeholder">No timers pinned. Go to Device Details to pin some!</div>';
+            timerHighlightsSection.style.display = 'none';
+            timerDeviceGroups.innerHTML = '';
+            timerEmptyState.style.display = 'block';
         } else {
-            timersContainer.innerHTML = timers.map(w => {
+            timerEmptyState.style.display = 'none';
+            
+            // Fetch highlighted timer keys
+            let highlightedKeys = [];
+            try {
+                const hlRes = await fetch(`${APP_PREFIX}/api/user/preferences/highlights`);
+                highlightedKeys = await hlRes.json();
+            } catch (e) { console.error('Failed to load highlights', e); }
+
+            // Split into Highlights and Groups
+            const highlightHtmls = [];
+            const deviceGroups = {}; // { assetId: { name: '', htmls: [] } }
+
+            timers.forEach(w => {
                 const asset = assets.find(a => a.id === w.assetId);
-                const assetName = asset ? asset.name : (w.assetName || '');
+                const assetName = asset ? asset.name : (w.assetName || 'Unknown Device');
                 const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
-                return renderTimerCard(w, assetName, isOffline);
-            }).join('');
+                
+                const hlKey = `${w.assetId}__${w.attributeName}`;
+                const isHighlighted = highlightedKeys.includes(hlKey);
+                
+                // Render for device group (no device name in title)
+                if (!deviceGroups[w.assetId]) {
+                    deviceGroups[w.assetId] = { name: assetName, htmls: [] };
+                }
+                deviceGroups[w.assetId].htmls.push(renderTimerCard(w, assetName, isOffline, false, isHighlighted));
+
+                // If highlighted, render again for Highlights section (with device name in title)
+                if (isHighlighted) {
+                    highlightHtmls.push(renderTimerCard(w, assetName, isOffline, true, isHighlighted));
+                }
+            });
+
+            // Populate Highlights Section
+            if (highlightHtmls.length > 0) {
+                timerHighlightsGrid.innerHTML = highlightHtmls.join('');
+                timerHighlightsSection.style.display = 'block';
+            } else {
+                timerHighlightsSection.style.display = 'none';
+                timerHighlightsGrid.innerHTML = '';
+            }
+
+            // Populate Device Groups
+            let groupsHtml = '';
+            for (const [assetId, group] of Object.entries(deviceGroups)) {
+                // Remove non-alphanumeric chars for valid IDs
+                const cleanId = assetId.replace(/[^a-zA-Z0-9]/g, '');
+                groupsHtml += `
+                    <div class="timer-device-group">
+                        <div class="timer-device-divider" onclick="toggleTimerDeviceGroup('${cleanId}')">
+                            <span class="timer-device-name">${group.name}</span>
+                            <span class="timer-device-toggle" id="timer-toggle-${cleanId}">▼</span>
+                        </div>
+                        <div class="timer-device-grid widget-grid-4" id="timer-grid-${cleanId}">
+                            ${group.htmls.join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            timerDeviceGroups.innerHTML = groupsHtml;
         }
 
         if (rulesContainer) {
@@ -679,7 +741,7 @@ function renderMoistureCard(w, isOffline = false) {
     return wrapWidgetCard(w, w.displayName || 'Moisture Levels', content, isOffline);
 }
 
-function renderTimerCard(w, assetName, isOffline = false) {
+function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true, isHighlighted = false) {
     if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
     let status = isOffline ? 'OFFLINE' : (w.value['Status'] || 'Unknown');
@@ -736,10 +798,10 @@ function renderTimerCard(w, assetName, isOffline = false) {
     content += '</div>';
 
     let timerTitle = w.displayName || 'Timer';
-    if (assetName) {
+    if (showDeviceName && assetName) {
         timerTitle = `${timerTitle} - ${assetName}`;
     }
-    return wrapWidgetCard(w, timerTitle, content, isOffline);
+    return wrapWidgetCard(w, timerTitle, content, isOffline, true, isHighlighted);
 }
 
 function renderGenericCard(w, isOffline = false) {
@@ -755,22 +817,62 @@ function renderGenericCard(w, isOffline = false) {
     return wrapWidgetCard(w, w.displayName || w.attributeName, content, isOffline);
 }
 
-function wrapWidgetCard(w, title, contentHtml, isOffline = false) {
+function wrapWidgetCard(w, title, contentHtml, isOffline = false, isTimer = false, isHighlighted = false) {
     const isFixed = !w.id;
     const isRuleParams = w.attributeName && w.attributeName === 'RuleTargets';
+    const isStandardTimer = isTimer || (w.attributeName && w.attributeName.toLowerCase().startsWith('timer'));
+
+    let starBtnHtml = '';
+    if (isStandardTimer) {
+        starBtnHtml = `<button class="timer-hl-star ${isHighlighted ? 'highlighted' : ''}" 
+                        onclick="toggleHighlightTimer('${w.assetId}', '${w.attributeName}')" 
+                        title="${isHighlighted ? 'Remove from Highlights' : 'Add to Highlights'}">
+                        ${isHighlighted ? '★' : '☆'}
+                       </button>`;
+    }
 
     return `
         <div class="widget-card ${isOffline ? 'idle' : ''}">
             <div class="widget-card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>${title}</span>
-                <div style="display:flex; gap:8px;">
-                    ${!isRuleParams && !w.attributeName.toLowerCase().startsWith('timer') ? `<span onclick="renameWidget('${w.id}', '${title.replace(/'/g, "\\'")}')" style="cursor:pointer; color:#777; font-size:0.8rem; font-weight:600;">RENAME</span>` : ''}
-                    <span onclick="unpinWidget('${w.assetId}', '${w.attributeName}', '${w.key || ''}')" style="cursor:pointer; color:#999; font-weight:bold;">✕</span>
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:8px;">${title}</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    ${starBtnHtml}
+                    ${!isRuleParams && !isStandardTimer ? `<span onclick="renameWidget('${w.id}', '${title.replace(/'/g, "\\'")}')" style="cursor:pointer; color:#777; font-size:0.8rem; font-weight:600;">RENAME</span>` : ''}
+                    <span onclick="unpinWidget('${w.assetId}', '${w.attributeName}', '${w.key || ''}')" style="cursor:pointer; color:#999; font-weight:bold; font-size:1.1rem; line-height:1;">✕</span>
                 </div>
             </div>
             ${contentHtml}
         </div>
     `;
+}
+
+// ── Dashboard Timer Highlight Logic ──
+async function toggleHighlightTimer(assetId, attributeName) {
+    try {
+        const res = await fetch(`${APP_PREFIX}/api/user/preferences/highlight`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assetId, attributeName })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            loadDashboard(); // Refresh to update grids immediately
+        } else {
+            toast('Failed to update highlight');
+        }
+    } catch (e) {
+        console.error(e);
+        toast('Connection error');
+    }
+}
+
+function toggleTimerDeviceGroup(cleanId) {
+    const grid = document.getElementById(`timer-grid-${cleanId}`);
+    const icon = document.getElementById(`timer-toggle-${cleanId}`);
+    if (grid) {
+        grid.classList.toggle('collapsed');
+        icon.classList.toggle('collapsed');
+    }
 }
 
 async function unpinWidget(assetId, attributeName, key) {

@@ -89,6 +89,40 @@ async def rename_pin(username: str, request: Request, payload: dict):
             return {"status": "success"}
     return {"status": "error", "message": "Pin not found"}
 
+@router.post("/user/preferences/highlight")
+async def toggle_highlight(username: str, request: Request, payload: dict):
+    """Toggle a pinned timer's 'highlighted' state for the dashboard Highlights section."""
+    user_id = request.session.get("user_id")
+    if not user_id: return {"status": "error", "message": "Not logged in"}
+    
+    asset_id = payload.get("assetId")
+    attr_name = payload.get("attributeName")
+    if not asset_id or not attr_name: return {"status": "error", "message": "Missing fields"}
+    
+    prefs = load_preferences()
+    if user_id not in prefs: prefs[user_id] = {}
+    if "highlighted_timers" not in prefs[user_id]: prefs[user_id]["highlighted_timers"] = []
+    
+    hl_list = prefs[user_id]["highlighted_timers"]
+    hl_key = f"{asset_id}__{attr_name}"
+    
+    if hl_key in hl_list:
+        hl_list.remove(hl_key)
+        save_preferences(prefs)
+        return {"status": "success", "highlighted": False}
+    else:
+        hl_list.append(hl_key)
+        save_preferences(prefs)
+        return {"status": "success", "highlighted": True}
+
+@router.get("/user/preferences/highlights")
+async def get_highlights(username: str, request: Request):
+    """Get the list of highlighted timer keys for the current user."""
+    user_id = request.session.get("user_id")
+    if not user_id: return []
+    prefs = load_preferences()
+    return prefs.get(user_id, {}).get("highlighted_timers", [])
+
 @router.get("/user/dashboard/widgets")
 async def get_dashboard_widgets(username: str, request: Request):
     realm = request.session.get("realm", DEFAULT_REALM)

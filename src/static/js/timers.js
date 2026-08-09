@@ -186,15 +186,15 @@ function renderSelectBar(assetIdClean, assetId, total, activeCount) {
 function renderFilterTabsInner(assetIdClean, total, activeCount, inactiveCount) {
     const current = activeFilters[assetIdClean] || 'all';
     return `
-        <button class="timer-filter-tab ${current === 'all' ? 'active' : ''}"
+        <button class="timer-filter-tab ${current === 'all' ? 'active' : ''}" data-filter="all"
             onclick="event.stopPropagation(); setFilter('${assetIdClean}', 'all')">
             All (${total})
         </button>
-        <button class="timer-filter-tab ${current === 'active' ? 'active' : ''}"
+        <button class="timer-filter-tab ${current === 'active' ? 'active' : ''}" data-filter="active"
             onclick="event.stopPropagation(); setFilter('${assetIdClean}', 'active')">
             🟢 Active (${activeCount})
         </button>
-        <button class="timer-filter-tab ${current === 'inactive' ? 'active' : ''}"
+        <button class="timer-filter-tab ${current === 'inactive' ? 'active' : ''}" data-filter="inactive"
             onclick="event.stopPropagation(); setFilter('${assetIdClean}', 'inactive')">
             ⚪ Inactive (${inactiveCount})
         </button>
@@ -211,18 +211,9 @@ function setFilter(assetIdClean, filter) {
     if (tabContainer) {
         tabContainer.querySelectorAll('.timer-filter-tab').forEach(btn => {
             btn.classList.remove('active');
-            // Match by filter name in onclick
-            if (btn.onclick && btn.onclick.toString().includes(`'${filter}'`)) {
+            if (btn.getAttribute('data-filter') === filter) {
                 btn.classList.add('active');
             }
-        });
-        // Simpler approach: re-check by text content
-        tabContainer.querySelectorAll('.timer-filter-tab').forEach(btn => {
-            const text = btn.textContent.trim().toLowerCase();
-            btn.classList.remove('active');
-            if (filter === 'all' && text.startsWith('all')) btn.classList.add('active');
-            else if (filter === 'active' && text.includes('active')) btn.classList.add('active');
-            else if (filter === 'inactive' && text.includes('inactive')) btn.classList.add('active');
         });
     }
 }

@@ -1,5 +1,6 @@
 const recentToggles = {};
 const clearedAssets = new Set();
+const collapsedDeviceGroups = new Set(); // Tracks collapsed state of timer device groups
 
 async function loadDashboard() {
     try {
@@ -413,13 +414,15 @@ async function loadWidgets(assets = []) {
             for (const [assetId, group] of Object.entries(deviceGroups)) {
                 // Remove non-alphanumeric chars for valid IDs
                 const cleanId = assetId.replace(/[^a-zA-Z0-9]/g, '');
+                const isCollapsed = collapsedDeviceGroups.has(cleanId);
+                const colClass = isCollapsed ? 'collapsed' : '';
                 groupsHtml += `
                     <div class="timer-device-group">
                         <div class="timer-device-divider" onclick="toggleTimerDeviceGroup('${cleanId}')">
                             <span class="timer-device-name">${group.name}</span>
-                            <span class="timer-device-toggle" id="timer-toggle-${cleanId}">▼</span>
+                            <span class="timer-device-toggle ${colClass}" id="timer-toggle-${cleanId}">▼</span>
                         </div>
-                        <div class="timer-device-grid widget-grid-4" id="timer-grid-${cleanId}">
+                        <div class="timer-device-grid widget-grid-4 ${colClass}" id="timer-grid-${cleanId}">
                             ${group.htmls.join('')}
                         </div>
                     </div>
@@ -774,8 +777,6 @@ function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true,
         `;
     }
 
-    content += '</div>';
-
     if (w.value['Days']) {
         content += `
             <div style="padding:0 1rem 1rem 1rem;">
@@ -870,8 +871,13 @@ function toggleTimerDeviceGroup(cleanId) {
     const grid = document.getElementById(`timer-grid-${cleanId}`);
     const icon = document.getElementById(`timer-toggle-${cleanId}`);
     if (grid) {
-        grid.classList.toggle('collapsed');
+        const isCollapsed = grid.classList.toggle('collapsed');
         icon.classList.toggle('collapsed');
+        if (isCollapsed) {
+            collapsedDeviceGroups.add(cleanId);
+        } else {
+            collapsedDeviceGroups.delete(cleanId);
+        }
     }
 }
 

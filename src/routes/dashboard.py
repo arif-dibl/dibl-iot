@@ -93,11 +93,6 @@ async def test_page(request: Request, username: str, _=Depends(auth_test_api)):
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("test_api.html", {"request": request, "realm": realm, "host": OR_HOSTNAME, "page": "test", "prefix": APP_PREFIX, "username": username})
 
-@router.get("/setup-device", response_class=HTMLResponse)
-async def setup_device_page(request: Request, username: str):
-    realm = request.session.get("realm", DEFAULT_REALM)
-    return templates.TemplateResponse("setup_device.html", {"request": request, "realm": realm, "page": "setup_device", "prefix": APP_PREFIX, "username": username})
-
 @router.get("/history-logs", response_class=HTMLResponse)
 async def history_logs_page(request: Request, username: str):
     realm = request.session.get("realm", DEFAULT_REALM)

@@ -46,10 +46,6 @@
                     class="nav-item {% if page == 'timers' %}active{% endif %}">
                     Timers
                 </a>
-                <a href="{{ prefix }}/{{ request.session.username }}/setup-device"
-                    class="nav-item {% if page == 'setup_device' %}active{% endif %}">
-                    Setup
-                </a>
                 <div style="flex:1"></div> <!-- Spacer -->
 
                 <!-- Collapsible "More" Menu -->
@@ -77,17 +73,9 @@
                                 class="nav-item {% if page == 'timers' %}active{% endif %}">
                                 Timers
                             </a>
-                            <a href="{{ prefix }}/{{ request.session.username }}/setup-device"
-                                class="nav-item {% if page == 'setup_device' %}active{% endif %}">
-                                Setup New Device
-                            </a>
                             <div class="dropdown-divider"></div>
                         </div>
 
-                    <a href="{{ prefix }}/{{ request.session.username }}/setup-device"
-                        class="nav-item {% if page == 'setup_device' %}active{% endif %}">
-                        Setup New Device
-                    </a>
                     <a href="{{ prefix }}/{{ request.session.username }}/settings"
                             class="nav-item {% if page == 'settings' %}active{% endif %}">
                             User Settings

@@ -36,7 +36,6 @@ async function loadAsset(assetId) {
     }
 
     currentAssetId = assetId;
-    currentAssetId = assetId;
     document.getElementById('addRuleBtn').disabled = false;
     document.getElementById('pinRulesBtn').disabled = false;
 
@@ -48,84 +47,111 @@ async function loadAsset(assetId) {
         let rTargets = asset.attributes['RuleTargets'];
         rulesTimestamp = null;
 
+        // Parse server RuleTargets
+        if (typeof rTargets === 'string') {
+            try { rTargets = JSON.parse(rTargets); } catch (e) { rTargets = {}; }
+        }
+        if (!rTargets) rTargets = {};
+
+        // Parse localStorage
+        let localRules = [];
         const stored = localStorage.getItem(`rules_${assetId}`);
         if (stored) {
-            rules = JSON.parse(stored);
-            rules.forEach(r => { if (r.enabled === undefined) r.enabled = true; });
-            ruleIdCounter = Math.max(...rules.map(r => parseInt(r.id.split('_')[1]) || 0), 0) + 1;
-        } else {
-            rules = [];
-
-            if (typeof rTargets === 'string') {
-                try { rTargets = JSON.parse(rTargets); } catch (e) { rTargets = {}; }
-            }
-
-            if (rTargets && typeof rTargets === 'object') {
-                console.log('Recovering rules from RuleTargets...', rTargets);
-
-                Object.entries(rTargets).forEach(([key, valStr]) => {
-                    try {
-                        if (key.startsWith('_')) return; // skip metadata keys
-                        let ruleId = `rule_${ruleIdCounter++}`;
-                        const keyParts = key.split('_rule_');
-                        let sensorKey = keyParts[0];
-
-                        if (keyParts.length > 1) {
-                            ruleId = `rule_${keyParts[1]}`;
-                            const numId = parseInt(keyParts[1]);
-                            if (!isNaN(numId) && numId >= ruleIdCounter) ruleIdCounter = numId + 1;
-                        }
-
-                        const parts = valStr.split(':');
-                        if (parts.length >= 4) {
-                            let op = parts[0];
-                            if (op === '==') op = '=';
-
-                            const rName = parts.length > 4 ? parts[4] : `Rule ${ruleIdCounter}`;
-                            const rVal = parts[3] === '1';
-
-                            // Parse whenDeviceId (field 5)
-                            const rawWhenId = parts.length > 5 ? parts[5] : null;
-                            const whenDeviceId = (rawWhenId && rawWhenId.length > 0) ? rawWhenId : null;
-
-                            // Parse schedule limit fields (fields 6, 7, 8)
-                            const timeType = parts.length > 6 ? parts[6] : 'N';
-                            const rawStart = parts.length > 7 ? parts[7] : '';
-                            const rawEnd = parts.length > 8 ? parts[8] : '';
-                            const timeStart = rawStart ? rawStart.substring(0,2) + ':' + rawStart.substring(2) : '';
-                            const timeEnd = rawEnd ? rawEnd.substring(0,2) + ':' + rawEnd.substring(2) : '';
-
-                            let sensorPath = '';
-                            if (asset.attributes.EnvData && asset.attributes.EnvData[sensorKey] !== undefined) sensorPath = `EnvData.${sensorKey}`;
-                            else if (asset.attributes.MoistureData && asset.attributes.MoistureData[sensorKey] !== undefined) sensorPath = `MoistureData.${sensorKey}`;
-                            else if (asset.attributes.NPKData && asset.attributes.NPKData[sensorKey] !== undefined) sensorPath = `NPKData.${sensorKey}`;
-
-                            if (sensorPath) {
-                                rules.push({
-                                    id: ruleId,
-                                    name: rName,
-                                    sensor: sensorPath,
-                                    operator: op,
-                                    value: parseFloat(parts[1]),
-                                    relay: `RelayData.${parts[2]}`,
-                                    relayState: rVal,
-                                    enabled: true,
-                                    whenDeviceId: whenDeviceId,
-                                    timeType: timeType !== 'N' ? timeType : 'N',
-                                    timeStart: timeStart,
-                                    timeEnd: timeEnd
-                                });
-                            }
-                        }
-                    } catch (e) { console.error('Error parsing rule recovery:', e); }
-                });
-
-                if (rules.length > 0) {
-                    localStorage.setItem(`rules_${assetId}`, JSON.stringify(rules));
-                    toast('Restored rules from device');
-                }
-            }
+            try { localRules = JSON.parse(stored); } catch (e) {}
         }
+
+        rules = [];
+        let maxRuleIdNum = 0;
+        let serverRuleIds = new Set();
+
+        // 1. Recover rules from server RuleTargets
+        if (typeof rTargets === 'object') {
+            Object.entries(rTargets).forEach(([key, valStr]) => {
+                try {
+                    if (key.startsWith('_')) return; // skip metadata keys
+                    let ruleId = `rule_${ruleIdCounter++}`;
+                    const keyParts = key.split('_rule_');
+                    let sensorKey = keyParts[0];
+
+                    if (keyParts.length > 1) {
+                        ruleId = `rule_${keyParts[1]}`;
+                    }
+                    const numId = parseInt(ruleId.split('_')[1]);
+                    if (!isNaN(numId) && numId > maxRuleIdNum) maxRuleIdNum = numId;
+
+                    serverRuleIds.add(ruleId);
+
+                    const parts = valStr.split(':');
+                    if (parts.length >= 4) {
+                        let op = parts[0];
+                        if (op === '==') op = '=';
+
+                        const rName = parts.length > 4 ? parts[4] : `Rule ${numId || ruleIdCounter}`;
+                        const rVal = parts[3] === '1';
+
+                        // Parse whenDeviceId (field 5)
+                        const rawWhenId = parts.length > 5 ? parts[5] : null;
+                        const whenDeviceId = (rawWhenId && rawWhenId.length > 0) ? rawWhenId : null;
+
+                        // Parse schedule limit fields (fields 6, 7, 8)
+                        const timeType = parts.length > 6 ? parts[6] : 'N';
+                        const rawStart = parts.length > 7 ? parts[7] : '';
+                        const rawEnd = parts.length > 8 ? parts[8] : '';
+                        const timeStart = rawStart ? rawStart.substring(0,2) + ':' + rawStart.substring(2) : '';
+                        const timeEnd = rawEnd ? rawEnd.substring(0,2) + ':' + rawEnd.substring(2) : '';
+
+                        // Fix sensorPath lookup for cross-device rules
+                        let targetAsset = asset;
+                        if (whenDeviceId && whenDeviceId !== currentAssetId) {
+                            targetAsset = allUserAssets.find(a => a.id === whenDeviceId) || asset;
+                        }
+
+                        let sensorPath = '';
+                        if (targetAsset.attributes?.EnvData && targetAsset.attributes.EnvData[sensorKey] !== undefined) sensorPath = `EnvData.${sensorKey}`;
+                        else if (targetAsset.attributes?.MoistureData && targetAsset.attributes.MoistureData[sensorKey] !== undefined) sensorPath = `MoistureData.${sensorKey}`;
+                        else if (targetAsset.attributes?.NPKData && targetAsset.attributes.NPKData[sensorKey] !== undefined) sensorPath = `NPKData.${sensorKey}`;
+                        else {
+                            // Fallback based on prefix
+                            if (sensorKey.startsWith('m')) sensorPath = `MoistureData.${sensorKey}`;
+                            else if (['n', 'p', 'k', 'ec', 'ph'].some(prefix => sensorKey.startsWith(prefix))) sensorPath = `NPKData.${sensorKey}`;
+                            else sensorPath = `EnvData.${sensorKey}`;
+                        }
+
+                        if (sensorPath) {
+                            rules.push({
+                                id: ruleId,
+                                name: rName,
+                                sensor: sensorPath,
+                                operator: op,
+                                value: parseFloat(parts[1]),
+                                relay: `RelayData.${parts[2]}`,
+                                relayState: rVal,
+                                enabled: true,
+                                whenDeviceId: whenDeviceId,
+                                timeType: timeType !== 'N' ? timeType : 'N',
+                                timeStart: timeStart,
+                                timeEnd: timeEnd
+                            });
+                        }
+                    }
+                } catch (e) { console.error('Error parsing rule recovery:', e); }
+            });
+        }
+
+        // 2. Add local rules that aren't on the server (disabled or unsaved)
+        localRules.forEach(lr => {
+            const numId = parseInt(lr.id.split('_')[1]);
+            if (!isNaN(numId) && numId > maxRuleIdNum) maxRuleIdNum = numId;
+
+            if (!serverRuleIds.has(lr.id)) {
+                lr.enabled = false;
+                if (!lr.sensor) lr.enabled = true; // New, unsaved rule
+                rules.push(lr);
+            }
+        });
+
+        ruleIdCounter = maxRuleIdNum + 1;
+        localStorage.setItem(`rules_${assetId}`, JSON.stringify(rules));
 
         renderRules();
         checkPinStatus();

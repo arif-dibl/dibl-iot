@@ -57,6 +57,7 @@ async function loadDetail() {
             // Group attributes
             const grouped = {};
             for (const [key, val] of Object.entries(asset.attributes)) {
+                if (key === 'CustomNames') continue;
                 // Hide Thresholds
                 if (key.toLowerCase().includes('threshold')) continue;
 

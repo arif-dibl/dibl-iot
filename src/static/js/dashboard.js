@@ -118,13 +118,23 @@ async function loadSwitches(assets) {
     for (const asset of assets) {
         const relayData = asset.attributes?.RelayData;
         const valveState = asset.attributes?.ValveState;
+        const customNames = asset.attributes?.CustomNames;
+        let parsedCustomNames = {};
+        if (customNames) {
+            if (typeof customNames === 'string') {
+                try { parsedCustomNames = JSON.parse(customNames); } catch(e) {}
+            } else if (typeof customNames === 'object') {
+                parsedCustomNames = customNames;
+            }
+        }
+
         if (relayData && typeof relayData === 'object') {
             const status = getAssetStatus(asset.lastActivityTimestamp);
-            html += renderSwitchCard(asset.name, asset.id, relayData, status.isOffline);
+            html += renderSwitchCard(asset.name, asset.id, relayData, status.isOffline, parsedCustomNames);
         }
         if (valveState !== undefined) {
             const status = getAssetStatus(asset.lastActivityTimestamp);
-            html += renderValveCard(asset.name, asset.id, valveState, status.isOffline);
+            html += renderValveCard(asset.name, asset.id, valveState, status.isOffline, parsedCustomNames);
         }
     }
 
@@ -135,7 +145,7 @@ async function loadSwitches(assets) {
     }
 }
 
-function renderSwitchCard(assetName, assetId, relayData, isIdle = false) {
+function renderSwitchCard(assetName, assetId, relayData, isIdle = false, customNames = {}) {
     const keys = Object.keys(relayData).sort();
     let switchesHtml = '<div class="switch-grid">';
 
@@ -143,7 +153,7 @@ function renderSwitchCard(assetName, assetId, relayData, isIdle = false) {
         const toggleKey = `${assetId}_${k}`;
         const isRecent = recentToggles[toggleKey] && (Date.now() - recentToggles[toggleKey] < 5000);
         const boolVal = isRecent ? recentToggles[`${toggleKey}_val`] : toBool(relayData[k]);
-        const storedName = localStorage.getItem(`switch_name_${assetId}_${k}`) || getFriendlyLabel(k);
+        const storedName = customNames[k] || localStorage.getItem(`switch_name_${assetId}_${k}`) || getFriendlyLabel(k);
         const safeAssetId = assetId.replace(/'/g, "\\'");
         const safeKey = k.replace(/'/g, "\\'");
 
@@ -240,21 +250,65 @@ async function toggleSwitch(assetId, key, newValue) {
     }
 }
 
-function renameSwitch(assetId, key) {
-    const currentName = localStorage.getItem(`switch_name_${assetId}_${key}`) || getFriendlyLabel(key);
+async function renameSwitch(assetId, key) {
+    let currentName = localStorage.getItem(`switch_name_${assetId}_${key}`) || getFriendlyLabel(key);
+    
+    // Check if CustomNames has it
+    try {
+        const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
+        if (res.ok) {
+            const asset = await res.json();
+            let cNames = asset.attributes?.CustomNames;
+            if (typeof cNames === 'string') {
+                try { cNames = JSON.parse(cNames); } catch(e) { cNames = {}; }
+            }
+            if (cNames && typeof cNames === 'object' && cNames[key]) {
+                currentName = cNames[key];
+            }
+        }
+    } catch(e) {}
+
     const newName = prompt('Enter new name for this switch:', currentName);
     if (newName && newName.trim()) {
-        localStorage.setItem(`switch_name_${assetId}_${key}`, newName.trim());
+        const finalName = newName.trim();
+        localStorage.setItem(`switch_name_${assetId}_${key}`, finalName);
+        
+        try {
+            const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
+            if (res.ok) {
+                const asset = await res.json();
+                let customNames = asset.attributes?.CustomNames;
+                
+                // If CustomNames attribute exists, update it on the server
+                if (customNames !== undefined) {
+                    if (typeof customNames === 'string') {
+                        try { customNames = JSON.parse(customNames); } catch(e) { customNames = {}; }
+                    }
+                    if (typeof customNames !== 'object' || customNames === null) customNames = {};
+                    
+                    customNames[key] = finalName;
+                    
+                    await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/CustomNames`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ value: customNames })
+                    });
+                }
+            }
+        } catch(e) {
+            console.error('[Dashboard] Failed to save custom name to server:', e);
+        }
+
         toast('Switch renamed');
         loadDashboard();
     }
 }
 
-function renderValveCard(assetName, assetId, valveState, isIdle = false) {
+function renderValveCard(assetName, assetId, valveState, isIdle = false, customNames = {}) {
     const toggleKey = `${assetId}_ValveState`;
     const isRecent = recentToggles[toggleKey] && (Date.now() - recentToggles[toggleKey] < 5000);
     const boolVal = isRecent ? recentToggles[`${toggleKey}_val`] : toBool(valveState);
-    const storedName = localStorage.getItem(`switch_name_${assetId}_ValveState`) || 'Valve';
+    const storedName = customNames['ValveState'] || localStorage.getItem(`switch_name_${assetId}_ValveState`) || 'Valve';
     const safeAssetId = assetId.replace(/'/g, "\\'");
 
     return `

@@ -248,7 +248,7 @@ services:
       retries: 5
 
   keycloak:
-    image: openremote/keycloak:${KEYCLOAK_VERSION:-latest}
+    image: openremote/keycloak:${KEYCLOAK_VERSION:-23.0.7.6}
     restart: always
     depends_on:
       postgresql:
@@ -258,7 +258,7 @@ services:
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\nhost: localhost\\n' >&3 && cat <&3 | grep -m 1 'UP' || exit 1"]
+      test: [ "CMD-SHELL", "(exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\nhost: localhost\\n' >&3 && cat <&3 | grep -m 1 'UP') || (exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /auth/health/ready HTTP/1.1\\nhost: localhost\\n' >&3 && cat <&3 | grep -m 1 'UP') || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 30

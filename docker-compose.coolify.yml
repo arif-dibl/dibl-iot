@@ -258,11 +258,11 @@ services:
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
     healthcheck:
-      test: [ "CMD-SHELL", "(exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\nhost: localhost\\n' >&3 && cat <&3 | grep -m 1 'UP') || (exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /auth/health/ready HTTP/1.1\\nhost: localhost\\n' >&3 && cat <&3 | grep -m 1 'UP') || exit 1" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/auth/health/ready || curl -f http://localhost:8080/health/ready || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 30
-      start_period: 120s
+      start_period: 60s
     environment:
       KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}

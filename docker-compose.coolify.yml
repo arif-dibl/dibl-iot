@@ -248,7 +248,7 @@ services:
       retries: 5
 
   keycloak:
-    image: openremote/keycloak:${KEYCLOAK_VERSION:-23.0.7.6}
+    image: openremote/keycloak:${KEYCLOAK_VERSION:-latest}
     restart: always
     depends_on:
       postgresql:
@@ -258,14 +258,14 @@ services:
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8080/auth/health/ready || curl -f http://localhost:8080/health/ready || exit 1" ]
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /auth/health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3 && timeout 1 cat <&3 | grep -q '200 OK' || exit 1" ]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 30
-      start_period: 60s
+      start_period: 120s
     environment:
-      KEYCLOAK_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
-      KC_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
+      KC_HOSTNAME: https://${OR_HOSTNAME:?Hostname required}/auth
       KC_HEALTH_ENABLED: "true"
       KC_LOG_LEVEL: "INFO"
       KC_HOSTNAME_PORT: ${OR_SSL_PORT:--1}
@@ -273,20 +273,19 @@ services:
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
-      KEYCLOAK_ISSUER_BASE_URI: https://${OR_HOSTNAME}/auth
 
   manager:
-    image: openremote/manager:${MANAGER_VERSION:-1.29.0}
+    image: openremote/manager:${MANAGER_VERSION:-latest}
     restart: always
     depends_on:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "curl -sf -o /dev/null http://localhost:8080/ || exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET / HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3 && timeout 1 cat <&3 | grep -q '200\|301\|302' || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
     extra_hosts:
       - "${OR_HOSTNAME}:host-gateway"
     volumes:

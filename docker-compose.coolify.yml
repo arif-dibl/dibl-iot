@@ -276,7 +276,7 @@ services:
       KEYCLOAK_ISSUER_BASE_URI: https://${OR_HOSTNAME}/auth
 
   manager:
-    image: openremote/manager:${MANAGER_VERSION:-latest}
+    image: openremote/manager:${MANAGER_VERSION:-1.29.0}
     restart: always
     depends_on:
       keycloak:

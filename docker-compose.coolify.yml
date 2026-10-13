@@ -308,6 +308,8 @@ services:
     depends_on:
       manager:
         condition: service_healthy
+    expose:
+      - "80"
     ports:
       - "8883:8883"
     configs:

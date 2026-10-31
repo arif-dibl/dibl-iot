@@ -550,7 +550,7 @@ function renderNPKCard(w, isOffline = false) {
     const zones = {};
 
     keys.forEach(k => {
-        const match = k.match(/([a-zA-Z]+)(\d+)/);
+        const match = k.match(/([a-zA-Z-]+?)(\d+)$/);
         if (match) {
             const idx = match[2];
             if (!zones[idx]) zones[idx] = [];
@@ -564,13 +564,27 @@ function renderNPKCard(w, isOffline = false) {
     const sortedZones = Object.keys(zones).sort();
     let content = '<div class="npk-zones">';
 
+    const normKey = (str) => {
+        const base = str.replace(/[0-9]/g, '').toLowerCase();
+        if (base === 'm' || base === 'moisture') return 'm';
+        if (base === 't' || base === 'temp' || base === 'temperature') return 't';
+        if (base === 'ec') return 'ec';
+        if (base === 'ph') return 'ph';
+        if (base === 'n' || base === 'nitrogen' || base === 'n-nitrogen') return 'n';
+        if (base === 'p' || base === 'phosphorus' || base === 'p-phosphorus') return 'p';
+        if (base === 'k' || base === 'potassium' || base === 'k-potassium') return 'k';
+        return base;
+    };
+
     sortedZones.forEach(zone => {
         const sortOrder = ['m', 't', 'ec', 'ph', 'n', 'p', 'k'];
         const items = zones[zone];
         items.sort((a, b) => {
-            const pA = a.k.replace(/[0-9]/g, '').toLowerCase();
-            const pB = b.k.replace(/[0-9]/g, '').toLowerCase();
-            return sortOrder.indexOf(pA) - sortOrder.indexOf(pB);
+            const pA = normKey(a.k);
+            const pB = normKey(b.k);
+            const idxA = sortOrder.indexOf(pA);
+            const idxB = sortOrder.indexOf(pB);
+            return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
         });
 
         const zoneLabel = zone === 'Other' ? 'General' : `Zone ${parseInt(zone)}`;
@@ -586,6 +600,8 @@ function renderNPKCard(w, isOffline = false) {
             if (label.toLowerCase().includes('nitrogen')) label = 'N';
             if (label.toLowerCase().includes('phosphorus')) label = 'P';
             if (label.toLowerCase().includes('potassium')) label = 'K';
+            if (label.toLowerCase().includes('ec')) label = 'EC';
+            if (label.toLowerCase().includes('ph')) label = 'pH';
 
             content += `<div class="npk-metric">
                 <div class="metric-label">${label}</div>

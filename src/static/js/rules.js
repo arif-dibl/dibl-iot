@@ -111,10 +111,14 @@ async function loadAsset(assetId) {
                         else if (targetAsset.attributes?.MoistureData && targetAsset.attributes.MoistureData[sensorKey] !== undefined) sensorPath = `MoistureData.${sensorKey}`;
                         else if (targetAsset.attributes?.NPKData && targetAsset.attributes.NPKData[sensorKey] !== undefined) sensorPath = `NPKData.${sensorKey}`;
                         else {
-                            // Fallback based on prefix
-                            if (sensorKey.startsWith('m')) sensorPath = `MoistureData.${sensorKey}`;
-                            else if (['n', 'p', 'k', 'ec', 'ph'].some(prefix => sensorKey.startsWith(prefix))) sensorPath = `NPKData.${sensorKey}`;
-                            else sensorPath = `EnvData.${sensorKey}`;
+                            // Fallback based on prefix/pattern
+                            if (/0[1-4]$/.test(sensorKey) || ['n', 'p', 'k', 'ec', 'ph', 'n-nitrogen', 'p-phosphorus', 'k-potassium'].some(prefix => sensorKey.startsWith(prefix))) {
+                                sensorPath = `NPKData.${sensorKey}`;
+                            } else if (sensorKey.startsWith('m') || sensorKey.startsWith('moisture')) {
+                                sensorPath = `MoistureData.${sensorKey}`;
+                            } else {
+                                sensorPath = `EnvData.${sensorKey}`;
+                            }
                         }
 
                         if (sensorPath) {

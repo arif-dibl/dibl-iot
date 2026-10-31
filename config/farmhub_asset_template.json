@@ -1,0 +1,408 @@
+{
+  "version": 1,
+  "name": "Dibl-iot %UNIQUE_ID%",
+  "accessPublicRead": false,
+  "realm": "dibl-iot",
+  "type": "farmhub",
+  "attributes": {
+    "SystemData": {
+      "name": "SystemData",
+      "type": "textMap",
+      "value": {
+        "Name": "",
+        "Heartbeat": "",
+        "NetworkStrength": "",
+        "Uptime": ""
+      },
+      "meta": {
+        "readOnly": true,
+        "showOnDashboard": true,
+        "ruleState": false,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "EnvData": {
+      "name": "EnvData",
+      "type": "textMap",
+      "value": {
+        "light": "--",
+        "temperature0": "--",
+        "humidity0": "--",
+        "temperature1": "--",
+        "humidity1": "--",
+        "temperature2": "--",
+        "humidity2": "--",
+        "temperature3": "--",
+        "humidity3": "--",
+        "temperature4": "--",
+        "humidity4": "--"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": true
+      }
+    },
+    "MoistureData": {
+      "name": "MoistureData",
+      "type": "textMap",
+      "value": {
+        "moisture1": "--",
+        "moisture2": "--",
+        "moisture3": "--",
+        "moisture4": "--"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": true
+      }
+    },
+    "NPKData": {
+      "name": "NPKData",
+      "type": "textMap",
+      "value": {
+        "moisture01": "--",
+        "temperature01": "--",
+        "ec01": "--",
+        "ph01": "--",
+        "n-nitrogen01": "--",
+        "p-phosphorus01": "--",
+        "k-potassium01": "--",
+        "moisture02": "--",
+        "temperature02": "--",
+        "ec02": "--",
+        "ph02": "--",
+        "n-nitrogen02": "--",
+        "p-phosphorus02": "--",
+        "k-potassium02": "--",
+        "moisture03": "--",
+        "temperature03": "--",
+        "ec03": "--",
+        "ph03": "--",
+        "n-nitrogen03": "--",
+        "p-phosphorus03": "--",
+        "k-potassium03": "--",
+        "moisture04": "--",
+        "temperature04": "--",
+        "ec04": "--",
+        "ph04": "--",
+        "n-nitrogen04": "--",
+        "p-phosphorus04": "--",
+        "k-potassium04": "--"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": true
+      }
+    },
+    "RelayData": {
+      "name": "RelayData",
+      "type": "textMap",
+      "value": {
+        "switch1": "--",
+        "switch2": "--",
+        "switch3": "--",
+        "switch4": "--"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": true
+      }
+    },
+    "RuleTargets": {
+      "name": "RuleTargets",
+      "type": "textMap",
+      "value": {},
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "CustomNames": {
+      "name": "CustomNames",
+      "type": "textMap",
+      "value": {},
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": false,
+        "ruleState": false,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer01": {
+      "name": "Timer01",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer02": {
+      "name": "Timer02",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer03": {
+      "name": "Timer03",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer04": {
+      "name": "Timer04",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer05": {
+      "name": "Timer05",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer06": {
+      "name": "Timer06",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer07": {
+      "name": "Timer07",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer08": {
+      "name": "Timer08",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer09": {
+      "name": "Timer09",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer10": {
+      "name": "Timer10",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer11": {
+      "name": "Timer11",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    },
+    "Timer12": {
+      "name": "Timer12",
+      "type": "textMap",
+      "value": {
+        "Status": "OFF",
+        "Days": "NONE",
+        "Outputs": "",
+        "OnHour": "00",
+        "OnMinute": "00",
+        "OffHour": "00",
+        "OffMinute": "00"
+      },
+      "meta": {
+        "readOnly": false,
+        "showOnDashboard": true,
+        "ruleState": true,
+        "accessRestrictedRead": true,
+        "accessRestrictedWrite": true,
+        "storeDataPoints": false
+      }
+    }
+  }
+}

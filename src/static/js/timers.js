@@ -659,10 +659,12 @@ function renderOutputsSelector(assetId, attrName, nestedKey, val) {
         if (isValve) {
             return currentOutputs.includes('valve');
         }
-        const num = rLabel.replace('r', '');
+        const num = rLabel.replace(/[^0-9]/g, '');
         const target = `out 0${num}`;
         if (currentOutputs.includes(target) || currentOutputs.includes(rLabel)) return true;
-        return currentOutputs.includes(`out ${num}`) || currentOutputs.includes(`out 0${num}`);
+        if (currentOutputs.includes(`out ${num}`) || currentOutputs.includes(`out 0${num}`)) return true;
+        if (currentOutputs.includes(`switch${num}`) || currentOutputs.includes(`switch 0${num}`)) return true;
+        return false;
     };
 
     let html = '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
@@ -898,6 +900,10 @@ function bufferOutputToggle(event, assetId, attrName, nestedKey, relay) {
             return parts.map(p => {
                 if (p.startsWith('OUT')) {
                     const num = parseInt(p.replace('OUT', '').trim());
+                    return `r${num}`;
+                }
+                if (p.startsWith('SWITCH')) {
+                    const num = parseInt(p.replace('SWITCH', '').trim());
                     return `r${num}`;
                 }
                 return p.toLowerCase();

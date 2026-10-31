@@ -59,16 +59,23 @@ function getFriendlyLabel(key, isAttribute = false) {
     const found = Object.keys(map).find(k => k.toLowerCase() === lowerKey);
     if (found) return map[found];
 
-    if (/^t(\d+)?$/i.test(key)) return key.replace(/t/i, 'Temperature');
-    if (/^h(\d+)?$/i.test(key)) return key.replace(/h/i, 'Humidity');
-    if (/^m(\d+)?$/i.test(key)) return key.replace(/m/i, 'Moisture');
-    if (/^r(\d+)?$/i.test(key)) return key.replace(/r/i, 'Switch');
+    if (/^t(\d+)?$/i.test(key)) return key.replace(/t/i, 'Temperature ');
+    if (/^h(\d+)?$/i.test(key)) return key.replace(/h/i, 'Humidity ');
+    if (/^m(\d+)?$/i.test(key)) return key.replace(/m/i, 'Moisture ');
+    if (/^r(\d+)?$/i.test(key)) return key.replace(/r/i, 'Switch ');
+    if (/^switch(\d+)?$/i.test(key)) return key.replace(/switch/i, 'Switch ');
+    if (/^temperature(\d+)?$/i.test(key)) return key.replace(/temperature/i, 'Temperature ');
+    if (/^humidity(\d+)?$/i.test(key)) return key.replace(/humidity/i, 'Humidity ');
+    if (/^moisture(\d+)?$/i.test(key)) return key.replace(/moisture/i, 'Moisture ');
+    if (/^n-nitrogen(\d+)?$/i.test(key)) return key.replace(/n-nitrogen/i, 'Nitrogen ');
+    if (/^p-phosphorus(\d+)?$/i.test(key)) return key.replace(/p-phosphorus/i, 'Phosphorus ');
+    if (/^k-potassium(\d+)?$/i.test(key)) return key.replace(/k-potassium/i, 'Potassium ');
     return key;
 }
 
 /**
  * Returns the measurement unit for a sensor key based on its parent attribute.
- * @param {string} key - The sensor key (e.g. 't1', 'h', 'm2', 'n1', 'ec1', 'ph1')
+ * @param {string} key - The sensor key (e.g. 't1', 'temperature1', 'h', 'm2', 'n-nitrogen01')
  * @param {string} attributeName - Parent attribute name (EnvData, MoistureData, NPKData)
  * @returns {string} The unit string, or '' if unknown
  */
@@ -88,7 +95,9 @@ function getSensorUnit(key, attributeName) {
         if (k === 't' || k === 'temp' || k === 'temperature') return '°C';
         if (k === 'ec') return 'µS/cm';
         if (k === 'ph') return '';
-        if (k === 'n' || k === 'nitrogen' || k === 'p' || k === 'phosphorus' || k === 'k' || k === 'potassium') return 'mg/kg';
+        if (k === 'n' || k === 'nitrogen' || k === 'n-nitrogen' ||
+            k === 'p' || k === 'phosphorus' || k === 'p-phosphorus' ||
+            k === 'k' || k === 'potassium' || k === 'k-potassium') return 'mg/kg';
     }
 
     // Fallback: try to guess from key alone
@@ -97,7 +106,9 @@ function getSensorUnit(key, attributeName) {
     if (k === 'l' || k === 'light') return '%';
     if (k === 'm' || k === 'moisture') return '%RH';
     if (k === 'ec') return 'µS/cm';
-    if (k === 'n' || k === 'nitrogen' || k === 'p' || k === 'phosphorus' || k === 'k' || k === 'potassium') return 'mg/kg';
+    if (k === 'n' || k === 'nitrogen' || k === 'n-nitrogen' ||
+        k === 'p' || k === 'phosphorus' || k === 'p-phosphorus' ||
+        k === 'k' || k === 'potassium' || k === 'k-potassium') return 'mg/kg';
 
     return '';
 }

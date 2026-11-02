@@ -6,9 +6,21 @@ function shouldShowPin(key, itemKey) {
     if (key === 'RelayData') return false;
     if (key === 'ValveState') return false;
     if (key === 'SystemData') return false;
+    if (key === 'CustomNames') return false;
     if (key && key.includes('RelayNode')) return false;
-    if (itemKey && itemKey.startsWith('r') && key === 'RelayData') return false;
+    if (itemKey && (itemKey.startsWith('r') || itemKey.startsWith('switch')) && key === 'RelayData') return false;
     return true;
+}
+
+function resolveItemLabel(attrName, itemKey) {
+    if (window.currentAssetCustomNames && window.currentAssetCustomNames[itemKey]) {
+        return window.currentAssetCustomNames[itemKey];
+    }
+    const isSwitch = itemKey.startsWith('r') || itemKey.startsWith('switch');
+    const localKey = isSwitch ? `switch_name_${ASSET_ID}_${itemKey}` : `sensor_name_${ASSET_ID}_${itemKey}`;
+    const local = localStorage.getItem(localKey);
+    if (local) return local;
+    return typeof getFriendlyLabel === 'function' ? getFriendlyLabel(itemKey) : itemKey;
 }
 
 async function loadDetail() {
@@ -28,6 +40,16 @@ async function loadDetail() {
             document.getElementById('detailCard').innerHTML = '<div style="padding:2rem; text-align:center; color:var(--danger)">IoT Device not found or access denied.</div>';
             return;
         }
+
+        let customNames = {};
+        if (asset.attributes && asset.attributes.CustomNames) {
+            let cn = asset.attributes.CustomNames;
+            if (typeof cn === 'string') {
+                try { cn = JSON.parse(cn); } catch (e) { cn = {}; }
+            }
+            if (cn && typeof cn === 'object') customNames = cn;
+        }
+        window.currentAssetCustomNames = customNames;
 
         document.getElementById('assetName').textContent = asset.name;
 
@@ -56,10 +78,15 @@ async function loadDetail() {
 
             // Group attributes
             const grouped = {};
-            for (const [key, val] of Object.entries(asset.attributes)) {
+            for (const [key, rawVal] of Object.entries(asset.attributes)) {
                 if (key === 'CustomNames') continue;
                 // Hide Thresholds
                 if (key.toLowerCase().includes('threshold')) continue;
+
+                let val = rawVal;
+                if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+                    try { val = JSON.parse(val); } catch (e) {}
+                }
 
                 const rule = groupingRules.find(r => r.pattern.test(key));
                 const groupName = rule ? rule.name : "Sensors";
@@ -186,7 +213,19 @@ async function loadDetail() {
                                         ${val['Outputs'] ? `
                                         <div style="padding-top:0.75rem;">
                                             <div style="font-size:0.7rem; color:#999; margin-bottom:2px;">SWITCHES</div>
-                                            <div style="font-size:0.85rem; color:#333; font-weight:600;">${val['Outputs'].replace(/OUT\s0?/g, '')}</div>
+                                            <div style="font-size:0.85rem; color:#333; font-weight:600;">${
+                                                val['Outputs'].split(',').map(outStr => {
+                                                    const raw = outStr.trim();
+                                                    const match = raw.match(/(\d+)/);
+                                                    if (!match) return raw;
+                                                    const num = match[1];
+                                                    const switchKey = `switch${parseInt(num, 10)}`;
+                                                    const rKey = `r${parseInt(num, 10)}`;
+                                                    if (window.currentAssetCustomNames && window.currentAssetCustomNames[switchKey]) return window.currentAssetCustomNames[switchKey];
+                                                    if (window.currentAssetCustomNames && window.currentAssetCustomNames[rKey]) return window.currentAssetCustomNames[rKey];
+                                                    return raw.replace(/OUT\s0?/g, 'Switch ');
+                                                }).join(', ')
+                                            }</div>
                                         </div>` : ''}
 
                                          <div style="margin-top:0.75rem; text-align:center; font-size:0.8rem; color:var(--primary); cursor:pointer; font-weight:600;" onclick="location.href='${APP_PREFIX}/timers'">
@@ -195,8 +234,227 @@ async function loadDetail() {
                                     </div>
                                 </div>
                              `;
+                        } else if (key.toLowerCase().includes('npk')) {
+                            // Dedicated NPK Grouping by Zone/Probe
+                            const zoneMap = { 1: [], 2: [], 3: [], 4: [] };
+                            const standaloneNPK = [];
+                            Object.keys(val).forEach(k => {
+                                const m = k.match(/(0?[1-4])$/);
+                                if (m) {
+                                    const zNum = parseInt(m[1], 10);
+                                    if (zoneMap[zNum]) {
+                                        zoneMap[zNum].push({ k, v: val[k] });
+                                    } else {
+                                        standaloneNPK.push({ k, v: val[k] });
+                                    }
+                                } else {
+                                    standaloneNPK.push({ k, v: val[k] });
+                                }
+                            });
+
+                            const metricPriority = (k) => {
+                                const lower = k.toLowerCase();
+                                if (lower.includes('moisture') || (lower.startsWith('m') && !lower.startsWith('moisture0'))) return 1;
+                                if (lower.includes('temp') || lower.startsWith('t')) return 2;
+                                if (lower.includes('conduct') || lower.includes('ec') || lower.startsWith('c')) return 3;
+                                if (lower.includes('ph')) return 4;
+                                if (lower.includes('nitro') || lower.startsWith('n')) return 5;
+                                if (lower.includes('phosph') || lower.startsWith('p')) return 6;
+                                if (lower.includes('potass') || lower.startsWith('k')) return 7;
+                                return 8;
+                            };
+
+                            displayVal = '<div style="display:flex; flex-direction:column; gap:0.75rem;">';
+                            [1, 2, 3, 4].forEach(zNum => {
+                                const items = zoneMap[zNum];
+                                if (!items || items.length === 0) return;
+                                items.sort((a, b) => metricPriority(a.k) - metricPriority(b.k));
+                                const zoneTitle = resolveItemLabel(key, `zone${zNum}`) !== `zone${zNum}` ? resolveItemLabel(key, `zone${zNum}`) : `Zone ${zNum} (Probe ${zNum})`;
+
+                                displayVal += `
+                                    <div style="background:#f8f9fa; border:1px solid #e1e4e8; border-radius:6px; padding:0.75rem;">
+                                        <div style="font-weight:700; color:#333; font-size:0.9rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+                                            <span>${zoneTitle}</span>
+                                        </div>
+                                        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:0.5rem;">
+                                `;
+                                items.forEach(item => {
+                                    const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === item.k);
+                                    const starColor = isPinned ? '#f1c40f' : '#ccc';
+                                    const starIcon = isPinned ? '★' : '☆';
+                                    const itemLabel = resolveItemLabel(key, item.k);
+                                    const editBtn = `<button onclick="renameDetailItem('${key}', '${item.k}', '${itemLabel.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:0.75rem; padding:0 3px;" title="Rename">✎</button>`;
+                                    const pinBtn = shouldShowPin(key, item.k) ? `<button onclick="togglePin('${key}', '${item.k}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1rem; padding:0; line-height:1;">${starIcon}</button>` : '';
+
+                                    displayVal += `
+                                        <div style="background:#fff; border:1px solid #dee2e6; border-radius:4px; padding:0.4rem 0.6rem; display:flex; flex-direction:column; justify-content:space-between;">
+                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                                <span style="font-size:0.72rem; font-weight:700; color:#666; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${itemLabel}">${itemLabel}</span>
+                                                <div style="display:flex; align-items:center; gap:2px;">
+                                                    ${editBtn}
+                                                    ${pinBtn}
+                                                </div>
+                                            </div>
+                                            <div style="font-weight:700; color:#222; font-size:0.95rem;">${formatSensorValue(item.v, item.k, key)}</div>
+                                        </div>
+                                    `;
+                                });
+                                displayVal += `</div></div>`;
+                            });
+
+                            if (standaloneNPK.length > 0) {
+                                displayVal += `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:0.5rem; margin-top:0.5rem;">`;
+                                standaloneNPK.forEach(item => {
+                                    const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === item.k);
+                                    const starColor = isPinned ? '#f1c40f' : '#ccc';
+                                    const starIcon = isPinned ? '★' : '☆';
+                                    const itemLabel = resolveItemLabel(key, item.k);
+                                    const editBtn = `<button onclick="renameDetailItem('${key}', '${item.k}', '${itemLabel.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:0.75rem; padding:0 3px;" title="Rename">✎</button>`;
+                                    const pinBtn = shouldShowPin(key, item.k) ? `<button onclick="togglePin('${key}', '${item.k}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1rem; padding:0; line-height:1;">${starIcon}</button>` : '';
+
+                                    displayVal += `
+                                        <div style="background:#fff; border:1px solid #dee2e6; border-radius:4px; padding:0.4rem 0.6rem;">
+                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                                <span style="font-size:0.72rem; font-weight:700; color:#666; text-transform:uppercase;" title="${itemLabel}">${itemLabel}</span>
+                                                <div style="display:flex; align-items:center; gap:2px;">
+                                                    ${editBtn}
+                                                    ${pinBtn}
+                                                </div>
+                                            </div>
+                                            <div style="font-weight:700; color:#222; font-size:0.95rem;">${formatSensorValue(item.v, item.k, key)}</div>
+                                        </div>
+                                    `;
+                                });
+                                displayVal += `</div>`;
+                            }
+                            displayVal += '</div>';
+                        } else if (key === 'EnvData') {
+                            displayVal = '<div style="display:flex; flex-direction:column; gap:0.75rem;">';
+                            if (val['light'] !== undefined) {
+                                const item = { k: 'light', v: val['light'] };
+                                const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === item.k);
+                                const starColor = isPinned ? '#f1c40f' : '#ccc';
+                                const starIcon = isPinned ? '★' : '☆';
+                                const itemLabel = resolveItemLabel(key, item.k);
+                                const editBtn = `<button onclick="renameDetailItem('${key}', '${item.k}', '${itemLabel.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:0.75rem; padding:0 3px;" title="Rename">✎</button>`;
+                                const pinBtn = shouldShowPin(key, item.k) ? `<button onclick="togglePin('${key}', '${item.k}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1rem; padding:0; line-height:1;">${starIcon}</button>` : '';
+
+                                displayVal += `
+                                    <div style="background:#f8f9fa; border:1px solid #e1e4e8; border-radius:6px; padding:0.6rem 0.8rem; display:flex; justify-content:space-between; align-items:center;">
+                                        <div style="display:flex; align-items:center; gap:6px;">
+                                            <span style="font-size:0.85rem; font-weight:700; color:#444;">${itemLabel}</span>
+                                            ${editBtn}
+                                        </div>
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <span style="font-weight:700; color:var(--primary); font-size:1rem;">${formatSensorValue(item.v, item.k, key)}</span>
+                                            ${pinBtn}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+
+                            const portTitles = {
+                                0: 'Main Board (Port 0)',
+                                1: 'Port 1 (Ext)',
+                                2: 'Port 2 (Ext)',
+                                3: 'Port 3 (Ext)',
+                                4: 'Port 4 (Ext)'
+                            };
+
+                            [0, 1, 2, 3, 4].forEach(pNum => {
+                                const tempKey = val[`temperature${pNum}`] !== undefined ? `temperature${pNum}` : (val[`t${pNum}`] !== undefined ? `t${pNum}` : null);
+                                const humKey = val[`humidity${pNum}`] !== undefined ? `humidity${pNum}` : (val[`h${pNum}`] !== undefined ? `h${pNum}` : null);
+                                if (!tempKey && !humKey) return;
+
+                                const portItems = [];
+                                if (tempKey) portItems.push({ k: tempKey, v: val[tempKey] });
+                                if (humKey) portItems.push({ k: humKey, v: val[humKey] });
+
+                                displayVal += `
+                                    <div style="background:#fff; border:1px solid #dee2e6; border-radius:6px; padding:0.6rem 0.8rem;">
+                                        <div style="font-size:0.75rem; font-weight:700; color:#888; text-transform:uppercase; margin-bottom:0.4rem;">${portTitles[pNum]}</div>
+                                        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:0.5rem;">
+                                `;
+
+                                portItems.forEach(item => {
+                                    const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === item.k);
+                                    const starColor = isPinned ? '#f1c40f' : '#ccc';
+                                    const starIcon = isPinned ? '★' : '☆';
+                                    const itemLabel = resolveItemLabel(key, item.k);
+                                    const editBtn = `<button onclick="renameDetailItem('${key}', '${item.k}', '${itemLabel.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:0.75rem; padding:0 3px;" title="Rename">✎</button>`;
+                                    const pinBtn = shouldShowPin(key, item.k) ? `<button onclick="togglePin('${key}', '${item.k}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1rem; padding:0; line-height:1;">${starIcon}</button>` : '';
+
+                                    displayVal += `
+                                        <div style="background:#f8f9fa; border:1px solid #eee; border-radius:4px; padding:0.4rem 0.6rem; display:flex; flex-direction:column;">
+                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                                                <span style="font-size:0.72rem; font-weight:600; color:#555;" title="${itemLabel}">${itemLabel}</span>
+                                                <div style="display:flex; align-items:center; gap:2px;">
+                                                    ${editBtn}
+                                                    ${pinBtn}
+                                                </div>
+                                            </div>
+                                            <div style="font-weight:700; color:#222; font-size:0.95rem;">${formatSensorValue(item.v, item.k, key)}</div>
+                                        </div>
+                                    `;
+                                });
+                                displayVal += `</div></div>`;
+                            });
+                            displayVal += '</div>';
+                        } else if (key === 'RelayData') {
+                            displayVal = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.6rem;">';
+                            const relayKeys = Object.keys(val).sort(customSort);
+                            relayKeys.forEach(relayKey => {
+                                const itemVal = val[relayKey];
+                                const isRecent = recentToggles[`${ASSET_ID}_${key}_${relayKey}`] && (Date.now() - recentToggles[`${ASSET_ID}_${key}_${relayKey}`] < 5000);
+                                const boolVal = isRecent ? recentToggles[`${ASSET_ID}_${key}_${relayKey}_val`] : toBool(itemVal);
+                                const itemLabel = resolveItemLabel(key, relayKey);
+                                const editBtn = `<button onclick="renameDetailItem('${key}', '${relayKey}', '${itemLabel.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:0.75rem; padding:0 3px;" title="Rename">✎</button>`;
+
+                                displayVal += `
+                                    <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:0.6rem 0.8rem; display:flex; justify-content:space-between; align-items:center;">
+                                        <div style="display:flex; align-items:center; gap:4px; max-width:65%;">
+                                            <span style="font-weight:600; color:#333; font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${itemLabel}">${itemLabel}</span>
+                                            ${editBtn}
+                                        </div>
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <label class="toggle-switch" style="transform:scale(0.8);">
+                                                <input type="checkbox" ${boolVal ? 'checked' : ''} onchange="toggleNestedAttribute('${key}', '${relayKey}', this.checked)">
+                                                <span class="slider"></span>
+                                            </label>
+                                            <span style="font-weight:700; color:${boolVal ? 'var(--primary)' : 'var(--text-muted)'}; font-size:0.85rem; min-width:28px;">${boolVal ? 'ON' : 'OFF'}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            displayVal += '</div>';
+                        } else if (key === 'MoistureData') {
+                            displayVal = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:0.6rem;">';
+                            const mKeys = Object.keys(val).sort(customSort);
+                            mKeys.forEach(mKey => {
+                                const itemVal = val[mKey];
+                                const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === mKey);
+                                const starColor = isPinned ? '#f1c40f' : '#ccc';
+                                const starIcon = isPinned ? '★' : '☆';
+                                const itemLabel = resolveItemLabel(key, mKey);
+                                const editBtn = `<button onclick="renameDetailItem('${key}', '${mKey}', '${itemLabel.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:0.75rem; padding:0 3px;" title="Rename">✎</button>`;
+                                const pinBtn = shouldShowPin(key, mKey) ? `<button onclick="togglePin('${key}', '${mKey}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1rem; padding:0; line-height:1;">${starIcon}</button>` : '';
+
+                                displayVal += `
+                                    <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:0.6rem 0.8rem; display:flex; flex-direction:column; justify-content:space-between;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                            <div style="display:flex; align-items:center; gap:4px; max-width:80%;">
+                                                <span style="font-size:0.75rem; font-weight:700; color:#555; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${itemLabel}">${itemLabel}</span>
+                                                ${editBtn}
+                                            </div>
+                                            ${pinBtn}
+                                        </div>
+                                        <div style="font-weight:700; color:var(--primary); font-size:1.05rem;">${formatSensorValue(itemVal, mKey, key)}</div>
+                                    </div>
+                                `;
+                            });
+                            displayVal += '</div>';
                         } else {
-                            // Standard Grouping Logic for other JSON attributes (e.g. NPK)
+                            // Standard Grouping Logic for other JSON attributes
                             const keys = Object.keys(val).sort(customSort);
                             const prefixes = {};
                             keys.forEach(k => {
@@ -224,6 +482,7 @@ async function loadDetail() {
                                 const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === item.k);
                                 const starIcon = isPinned ? '★' : '☆';
                                 const starColor = isPinned ? '#f1c40f' : '#ccc';
+                                const itemLabel = resolveItemLabel(key, item.k);
 
                                 let valueHtml;
                                 if (isBooleanLike(item.v) && key.toLowerCase() !== 'systemdata') {
@@ -275,7 +534,6 @@ async function loadDetail() {
                                     valueHtml = daysHtml;
                                 } else if (item.k === 'Outputs') {
                                     // Multi-output bubble selector
-                                    // Detect if this asset has ValveState or RelayData
                                     const hasValve = asset.attributes?.ValveState !== undefined;
                                     const outputOptions = hasValve ? ['valve'] : ['r1', 'r2', 'r3', 'r4'];
                                     const currentOutputs = (item.v || '').toLowerCase();
@@ -305,7 +563,7 @@ async function loadDetail() {
                                 displayVal += `
                                 <div style="display:flex; border-bottom:1px solid #e1e4e8; padding:0.25rem 0.5rem; justify-content:space-between; align-items:center;">
                                     <div style="display:flex; gap:10px; width:100%; align-items:center;">
-                                        <div style="font-weight:600; color:#555; min-width:80px;">${getFriendlyLabel(item.k)}</div>
+                                        <div style="font-weight:600; color:#555; min-width:80px;">${itemLabel}</div>
                                         ${valueHtml}
                                     </div>
                                     ${shouldShowPin(key, item.k) ? `<button onclick="togglePin('${key}', '${item.k}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1.1rem; padding:0;">${starIcon}</button>` : ''}
@@ -319,6 +577,7 @@ async function loadDetail() {
                                 items.forEach((item, idx) => {
                                     const isPinned = pinnedAttributes.some(p => p.assetId === ASSET_ID && p.attributeName === key && p.key === item.k);
                                     const starColor = isPinned ? '#f1c40f' : '#ccc';
+                                    const itemLabel = resolveItemLabel(key, item.k);
 
                                     let valueHtml;
                                     if (isBooleanLike(item.v) && key.toLowerCase() !== 'systemdata') {
@@ -342,7 +601,7 @@ async function loadDetail() {
                                     displayVal += `
                                         <div style="flex:1; min-width:120px; display:flex; flex-direction:column; ${idx < items.length - 1 ? 'border-right:1px solid #eee;' : ''} padding:0 0.5rem; position:relative;">
                                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                                 <div style="font-size:0.75rem; font-weight:700; color:#999; text-transform:uppercase; margin-bottom:2px;">${getFriendlyLabel(item.k)}</div>
+                                                 <div style="font-size:0.75rem; font-weight:700; color:#999; text-transform:uppercase; margin-bottom:2px;">${itemLabel}</div>
                                                  ${shouldShowPin(key, item.k) ? `<button onclick="togglePin('${key}', '${item.k}')" style="background:none; border:none; color:${starColor}; cursor:pointer; font-size:1rem; padding:0; line-height:1;">★</button>` : ''}
                                             </div>
                                             ${valueHtml}
@@ -705,7 +964,7 @@ async function togglePin(attrName, key) {
                 if (attrName === 'RuleTargets') payload.displayName = 'My Rules';
                 else payload.displayName = key; // Use key (friendly name equivalent for now)
             } else {
-                const defaultName = key ? `${attrName} → ${key}` : attrName;
+                const defaultName = key ? resolveItemLabel(attrName, key) : (getFriendlyLabel(attrName, true));
                 const customName = prompt('Enter a display name for this pin:', defaultName);
                 if (customName === null) return; // Cancelled
                 if (customName && customName.trim() !== '') {
@@ -851,9 +1110,11 @@ function copyIdToClipboard() {
 async function renamePin(attrName, key) {
     const newName = prompt('Enter a new display name:');
     if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed) return;
 
     try {
-        const payload = { assetId: ASSET_ID, attributeName: attrName, displayName: newName };
+        const payload = { assetId: ASSET_ID, attributeName: attrName, displayName: trimmed };
         if (key) payload.key = key;
 
         const res = await fetch(`${APP_PREFIX}/api/user/preferences/pin/rename`, {
@@ -871,6 +1132,41 @@ async function renamePin(attrName, key) {
     } catch (e) {
         toast('Failed to rename');
     }
+}
+
+async function renameDetailItem(attrName, itemKey, currentName) {
+    const newName = prompt(`Enter custom name for "${currentName}":`, currentName);
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    const isSwitch = itemKey.startsWith('r') || itemKey.startsWith('switch');
+    const localKey = isSwitch ? `switch_name_${ASSET_ID}_${itemKey}` : `sensor_name_${ASSET_ID}_${itemKey}`;
+    localStorage.setItem(localKey, trimmed);
+
+    try {
+        const assetRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
+        const asset = await assetRes.json();
+        let customNames = {};
+        if (asset && asset.attributes && asset.attributes.CustomNames) {
+            let cn = asset.attributes.CustomNames;
+            if (typeof cn === 'string') {
+                try { cn = JSON.parse(cn); } catch (e) { cn = {}; }
+            }
+            if (cn && typeof cn === 'object') customNames = cn;
+        }
+        customNames[itemKey] = trimmed;
+        await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/CustomNames`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: customNames })
+        });
+        toast(`Renamed to "${trimmed}"`);
+    } catch (e) {
+        console.warn("Could not save CustomNames to server attribute:", e);
+        toast(`Renamed locally to "${trimmed}"`);
+    }
+    loadDetail();
 }
 
 // Init

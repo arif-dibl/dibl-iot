@@ -14,6 +14,22 @@ function saveCollapsedState() {
     } catch (e) { console.error('Failed to save collapsed groups', e); }
 }
 
+function getAssetCustomNames(asset) {
+    if (!asset || !asset.attributes) return {};
+    let c = asset.attributes.CustomNames;
+    if (typeof c === 'string') {
+        try { c = JSON.parse(c); } catch(e) { c = {}; }
+    }
+    return (c && typeof c === 'object' && c !== null) ? c : {};
+}
+
+function parseJsonValue(val) {
+    if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+        try { return JSON.parse(val); } catch(e) { return val; }
+    }
+    return val;
+}
+
 async function loadDashboard() {
     try {
         const res = await fetch(`${APP_PREFIX}/api/user/assets?t=${Date.now()}`);
@@ -418,7 +434,8 @@ async function loadWidgets(assets = []) {
             sensorsContainer.innerHTML = sensors.map(w => {
                 const asset = assets.find(a => a.id === w.assetId);
                 const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
-                return renderSensorCard(w, isOffline, assets);
+                const customNames = getAssetCustomNames(asset);
+                return renderSensorCard(w, isOffline, assets, customNames, asset);
             }).join('');
         }
 
@@ -450,6 +467,7 @@ async function loadWidgets(assets = []) {
                 const asset = assets.find(a => a.id === w.assetId);
                 const assetName = asset ? asset.name : (w.assetName || 'Unknown Device');
                 const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
+                const customNames = getAssetCustomNames(asset);
                 
                 const hlKey = `${w.assetId}__${w.attributeName}`;
                 const isHighlighted = highlightedKeys.includes(hlKey);
@@ -458,11 +476,11 @@ async function loadWidgets(assets = []) {
                 if (!deviceGroups[w.assetId]) {
                     deviceGroups[w.assetId] = { name: assetName, htmls: [] };
                 }
-                deviceGroups[w.assetId].htmls.push(renderTimerCard(w, assetName, isOffline, false, isHighlighted));
+                deviceGroups[w.assetId].htmls.push(renderTimerCard(w, assetName, isOffline, false, isHighlighted, customNames));
 
                 // If highlighted, render again for Highlights section (with device name in title)
                 if (isHighlighted) {
-                    highlightHtmls.push(renderTimerCard(w, assetName, isOffline, true, isHighlighted));
+                    highlightHtmls.push(renderTimerCard(w, assetName, isOffline, true, isHighlighted, customNames));
                 }
             });
 
@@ -505,7 +523,8 @@ async function loadWidgets(assets = []) {
                     const asset = assets.find(a => a.id === w.assetId);
                     const assetName = asset ? asset.name : (w.assetName || '');
                     const isOffline = asset ? getAssetStatus(asset.lastActivityTimestamp).isOffline : false;
-                    return renderRuleCard(w, asset ? asset.attributes : null, assetName, isOffline, assets);
+                    const customNames = getAssetCustomNames(asset);
+                    return renderRuleCard(w, asset ? asset.attributes : null, assetName, isOffline, assets, customNames);
                 }).join('');
             }
         }
@@ -518,12 +537,31 @@ async function loadWidgets(assets = []) {
     }
 }
 
-function renderSensorCard(w, isOffline = false, allAssets = []) {
+function renderSensorCard(w, isOffline = false, allAssets = [], customNames = {}, asset = null) {
+    if (!asset && w.assetId) {
+        asset = allAssets.find(a => a.id === w.assetId);
+    }
+    if (!customNames || Object.keys(customNames).length === 0) {
+        customNames = getAssetCustomNames(asset);
+    }
+
+    // Ensure w.value is parsed if it arrived as a JSON string
+    w.value = parseJsonValue(w.value);
+
     // If a specific key is pinned, render it with a high-visibility layout
     if (w.key) {
-        const val = w.value;
+        let val = w.value;
+        if (typeof val === 'object' && val !== null && w.key in val) {
+            val = val[w.key];
+        }
         const valueDisplay = formatSensorValue(val, w.key, w.attributeName);
-        const label = w.displayName || getFriendlyLabel(w.key);
+        const storedCustomName = customNames[w.key] || localStorage.getItem(`sensor_name_${w.assetId}_${w.key}`);
+        const label = storedCustomName || w.displayName || getFriendlyLabel(w.key);
+        let cardTitle = label;
+        const devName = asset ? asset.name : (w.assetName || '');
+        if (devName && !cardTitle.includes(devName)) {
+            cardTitle = `${cardTitle} - ${devName}`;
+        }
 
         const content = `
             <div class="sensor-grid" style="grid-template-columns: 1fr; padding: 0.5rem 1rem 1rem 1rem;">
@@ -532,18 +570,19 @@ function renderSensorCard(w, isOffline = false, allAssets = []) {
                 </div>
             </div>
         `;
-        return wrapWidgetCard(w, label, content, isOffline);
+        return wrapWidgetCard(w, cardTitle, content, isOffline);
     }
 
-    const attr = w.attributeName.toLowerCase();
-    if (attr === 'npkdata') return renderNPKCard(w, isOffline);
-    if (attr === 'envdata') return renderEnvCard(w, isOffline);
-    if (attr === 'moisturedata') return renderMoistureCard(w, isOffline);
-    if (attr === 'ruletargets') return renderRuleCard(w, null, '', isOffline, allAssets);
+    const attr = (w.attributeName || '').toLowerCase();
+    if (attr === 'npkdata') return renderNPKCard(w, isOffline, customNames, asset);
+    if (attr === 'envdata') return renderEnvCard(w, isOffline, customNames, asset);
+    if (attr === 'moisturedata') return renderMoistureCard(w, isOffline, customNames, asset);
+    if (attr === 'ruletargets') return renderRuleCard(w, asset ? asset.attributes : null, asset ? asset.name : '', isOffline, allAssets, customNames);
     return renderGenericCard(w, isOffline);
 }
 
-function renderNPKCard(w, isOffline = false) {
+function renderNPKCard(w, isOffline = false, customNames = {}, asset = null) {
+    w.value = parseJsonValue(w.value);
     if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
     const keys = Object.keys(w.value);
@@ -587,21 +626,26 @@ function renderNPKCard(w, isOffline = false) {
             return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
         });
 
-        const zoneLabel = zone === 'Other' ? 'General' : `Zone ${parseInt(zone)}`;
+        const zoneNum = parseInt(zone, 10);
+        const customZoneTitle = customNames[`Zone ${zoneNum}`] || customNames[`zone${zoneNum}`] || customNames[`Zone${zoneNum}`];
+        const zoneLabel = customZoneTitle || (zone === 'Other' ? 'General' : `Zone ${zoneNum}`);
 
         content += `<div class="npk-zone">
             <div class="npk-zone-label">${zoneLabel}</div>
             <div class="npk-metrics">`;
 
         items.forEach(item => {
-            let label = getFriendlyLabel(item.k).replace(/NPK\s+/i, '').replace(/\s+\d+$/, '');
-            if (label.toLowerCase().includes('moisture')) label = 'Moist';
-            if (label.toLowerCase().includes('temp')) label = 'Temp';
-            if (label.toLowerCase().includes('nitrogen')) label = 'N';
-            if (label.toLowerCase().includes('phosphorus')) label = 'P';
-            if (label.toLowerCase().includes('potassium')) label = 'K';
-            if (label.toLowerCase().includes('ec')) label = 'EC';
-            if (label.toLowerCase().includes('ph')) label = 'pH';
+            let label = customNames[item.k];
+            if (!label) {
+                label = getFriendlyLabel(item.k).replace(/NPK\s+/i, '').replace(/\s+\d+$/, '');
+                if (label.toLowerCase().includes('moisture')) label = 'Moist';
+                if (label.toLowerCase().includes('temp')) label = 'Temp';
+                if (label.toLowerCase().includes('nitrogen')) label = 'N';
+                if (label.toLowerCase().includes('phosphorus')) label = 'P';
+                if (label.toLowerCase().includes('potassium')) label = 'K';
+                if (label.toLowerCase().includes('ec')) label = 'EC';
+                if (label.toLowerCase().includes('ph')) label = 'pH';
+            }
 
             content += `<div class="npk-metric">
                 <div class="metric-label">${label}</div>
@@ -613,10 +657,12 @@ function renderNPKCard(w, isOffline = false) {
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, w.displayName || 'NPK Sensor Data', content, isOffline);
+    const cardTitle = w.displayName || (asset ? `${asset.name} - NPK Sensor Data` : 'NPK Sensor Data');
+    return wrapWidgetCard(w, cardTitle, content, isOffline);
 }
 
-function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = false, allAssets = []) {
+function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = false, allAssets = [], customNames = {}) {
+    w.value = parseJsonValue(w.value);
     let rulesList = [];
     if (w.value && typeof w.value === 'object') {
         rulesList = Object.entries(w.value).filter(([key]) => !key.startsWith('_'));
@@ -636,11 +682,16 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
                 const parts = ruleRaw.split(':');
                 if (parts.length >= 4) {
                     const opMap = { '<': 'Less Than', '>': 'Greater Than', '==': 'Equal To', '!=': 'Not' };
+                    const targetRaw = parts[2];
+                    const targetAsset = allAssets.find(a => a.id === w.assetId);
+                    const targetCustomNames = (customNames && Object.keys(customNames).length > 0) ? customNames : getAssetCustomNames(targetAsset);
+                    const targetName = targetCustomNames[targetRaw] || localStorage.getItem(`switch_name_${w.assetId}_${targetRaw}`) || getFriendlyLabel(targetRaw);
+
                     parsed = {
                         op: opMap[parts[0]] || parts[0],
                         codeOp: parts[0],
                         threshold: parseFloat(parts[1]),
-                        targetName: getFriendlyLabel(parts[2]),
+                        targetName: targetName,
                         targetVal: parts[3] === '1' ? 'ON' : 'OFF',
                         ruleName: parts.length > 4 ? parts[4] : null,
                         whenDeviceId: (parts.length > 5 && parts[5].length > 0) ? parts[5] : null,
@@ -653,12 +704,13 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
 
             if (parsed) {
                 const sensorKey = ruleKey.split('_')[0];
-                let sensorName = getFriendlyLabel(sensorKey);
+                const whenAsset = allAssets.find(a => a.id === (parsed.whenDeviceId || w.assetId));
+                const whenCustomNames = getAssetCustomNames(whenAsset);
+                let sensorName = whenCustomNames[sensorKey] || localStorage.getItem(`sensor_name_${parsed.whenDeviceId || w.assetId}_${sensorKey}`) || getFriendlyLabel(sensorKey);
                 
                 if (parsed.whenDeviceId && parsed.whenDeviceId !== w.assetId) {
-                    const sensorDevice = allAssets.find(a => a.id === parsed.whenDeviceId);
-                    if (sensorDevice && sensorDevice.name) {
-                        sensorName = `[${sensorDevice.name}] ${sensorName}`;
+                    if (whenAsset && whenAsset.name) {
+                        sensorName = `[${whenAsset.name}] ${sensorName}`;
                     }
                 }
 
@@ -667,9 +719,10 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
                 if (assetAttributes) {
                     const sensorBags = ['EnvData', 'MoistureData', 'NPKData'];
                     for (const bag of sensorBags) {
-                        if (assetAttributes[bag] && typeof assetAttributes[bag] === 'object') {
-                            if (assetAttributes[bag][sensorKey] !== undefined) {
-                                currentVal = parseFloat(assetAttributes[bag][sensorKey]);
+                        const bagData = parseJsonValue(assetAttributes[bag]);
+                        if (bagData && typeof bagData === 'object') {
+                            if (bagData[sensorKey] !== undefined) {
+                                currentVal = parseFloat(bagData[sensorKey]);
                                 break;
                             }
                         }
@@ -789,44 +842,80 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
     return wrapWidgetCard(w, ruleTitle, content, isOffline);
 }
 
-
-function renderEnvCard(w, isOffline = false) {
+function renderEnvCard(w, isOffline = false, customNames = {}, asset = null) {
+    w.value = parseJsonValue(w.value);
     if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
-    const keys = Object.keys(w.value).sort();
+    const keys = Object.keys(w.value);
+    
+    // Sort logic: Light first, then group by port (0: board, 1..4: ports), with Temperature before Humidity
+    const envSort = (a, b) => {
+        const isLightA = a.toLowerCase().includes('light') || a === 'l';
+        const isLightB = b.toLowerCase().includes('light') || b === 'l';
+        if (isLightA) return -1;
+        if (isLightB) return 1;
+
+        const matchA = a.match(/\d+$/);
+        const matchB = b.match(/\d+$/);
+        const numA = matchA ? parseInt(matchA[0], 10) : 99;
+        const numB = matchB ? parseInt(matchB[0], 10) : 99;
+
+        if (numA !== numB) return numA - numB;
+
+        // Same port: Temperature first, then Humidity
+        const isTempA = a.toLowerCase().startsWith('t');
+        const isTempB = b.toLowerCase().startsWith('t');
+        if (isTempA && !isTempB) return -1;
+        if (!isTempA && isTempB) return 1;
+        return a.localeCompare(b);
+    };
+
+    keys.sort(envSort);
     let content = '<div class="sensor-grid">';
 
     keys.forEach(k => {
         const val = w.value[k];
+        const label = customNames[k] || localStorage.getItem(`sensor_name_${w.assetId}_${k}`) || getFriendlyLabel(k);
         content += `<div class="sensor-item">
-            <span class="sensor-label">${getFriendlyLabel(k)}</span>
+            <span class="sensor-label">${label}</span>
             <span class="sensor-value">${formatSensorValue(val, k, 'EnvData')}</span>
         </div>`;
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, w.displayName || 'Environment', content, isOffline);
+    const cardTitle = w.displayName || (asset ? `${asset.name} - Environment` : 'Environment');
+    return wrapWidgetCard(w, cardTitle, content, isOffline);
 }
 
-function renderMoistureCard(w, isOffline = false) {
+function renderMoistureCard(w, isOffline = false, customNames = {}, asset = null) {
+    w.value = parseJsonValue(w.value);
     if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
-    const keys = Object.keys(w.value).sort();
+    const keys = Object.keys(w.value);
+    keys.sort((a, b) => {
+        const numA = parseInt((a.match(/\d+$/) || [99])[0], 10);
+        const numB = parseInt((b.match(/\d+$/) || [99])[0], 10);
+        return numA - numB;
+    });
+
     let content = '<div class="sensor-grid">';
 
     keys.forEach(k => {
         const val = w.value[k];
+        const label = customNames[k] || localStorage.getItem(`sensor_name_${w.assetId}_${k}`) || getFriendlyLabel(k);
         content += `<div class="sensor-item">
-            <span class="sensor-label">${getFriendlyLabel(k)}</span>
+            <span class="sensor-label">${label}</span>
             <span class="sensor-value">${formatSensorValue(val, k, 'MoistureData')}</span>
         </div>`;
     });
 
     content += '</div>';
-    return wrapWidgetCard(w, w.displayName || 'Moisture Levels', content, isOffline);
+    const cardTitle = w.displayName || (asset ? `${asset.name} - Moisture Levels` : 'Moisture Levels');
+    return wrapWidgetCard(w, cardTitle, content, isOffline);
 }
 
-function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true, isHighlighted = false) {
+function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true, isHighlighted = false, customNames = {}) {
+    w.value = parseJsonValue(w.value);
     if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
     let status = isOffline ? 'OFFLINE' : (w.value['Status'] || 'Unknown');
@@ -869,7 +958,15 @@ function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true,
     }
 
     if (w.value['Outputs']) {
-        let outStr = w.value['Outputs'].replace(/OUT\s0?/g, '');
+        const rawOutputs = String(w.value['Outputs']);
+        const tokens = rawOutputs.split(',').map(s => s.trim()).filter(Boolean);
+        const resolvedNames = tokens.map(tok => {
+            const num = tok.replace(/[^0-9]/g, '');
+            if (!num) return tok;
+            const n = parseInt(num, 10);
+            return customNames[`switch${n}`] || customNames[`r${n}`] || localStorage.getItem(`switch_name_${w.assetId}_switch${n}`) || localStorage.getItem(`switch_name_${w.assetId}_r${n}`) || `Switch ${n}`;
+        });
+        const outStr = resolvedNames.join(', ');
         content += `
             <div style="padding:0 1rem 1rem 1rem;">
                 <div style="font-size:0.7rem; color:#999; margin-bottom:2px;">SWITCHES</div>
@@ -889,6 +986,7 @@ function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true,
 
 function renderGenericCard(w, isOffline = false) {
     let content = '<div class="generic-content" style="padding: 1rem;">';
+    w.value = parseJsonValue(w.value);
     if (typeof w.value === 'object' && w.value !== null) {
         content += '<pre style="background:#f4f4f4; padding:0.5rem; border-radius:4px; font-size:0.8rem; overflow-x:auto;">' + JSON.stringify(w.value, null, 2) + '</pre>';
     } else {
@@ -901,7 +999,6 @@ function renderGenericCard(w, isOffline = false) {
 }
 
 function wrapWidgetCard(w, title, contentHtml, isOffline = false, isTimer = false, isHighlighted = false) {
-    const isFixed = !w.id;
     const isRuleParams = w.attributeName && w.attributeName === 'RuleTargets';
     const isStandardTimer = isTimer || (w.attributeName && w.attributeName.toLowerCase().startsWith('timer'));
 
@@ -920,7 +1017,7 @@ function wrapWidgetCard(w, title, contentHtml, isOffline = false, isTimer = fals
                 <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:8px;">${title}</span>
                 <div style="display:flex; gap:8px; align-items:center;">
                     ${starBtnHtml}
-                    ${!isRuleParams && !isStandardTimer ? `<span onclick="renameWidget('${w.id}', '${title.replace(/'/g, "\\'")}')" style="cursor:pointer; color:#777; font-size:0.8rem; font-weight:600;">RENAME</span>` : ''}
+                    ${!isRuleParams && !isStandardTimer ? `<span onclick="renameWidget('${w.id}', '${title.replace(/'/g, "\\'")}', '${w.assetId || ''}', '${w.key || ''}')" style="cursor:pointer; color:#777; font-size:0.8rem; font-weight:600;">RENAME</span>` : ''}
                     <span onclick="unpinWidget('${w.assetId}', '${w.attributeName}', '${w.key || ''}')" style="cursor:pointer; color:#999; font-weight:bold; font-size:1.1rem; line-height:1;">✕</span>
                 </div>
             </div>
@@ -992,15 +1089,41 @@ async function unpinWidget(assetId, attributeName, key) {
     }
 }
 
-async function renameWidget(widgetId, currentName) {
-    const newName = prompt('Enter new name for widget:', currentName);
+async function renameWidget(widgetId, currentName, assetId = null, key = null) {
+    const newName = prompt('Enter new display name for this widget:', currentName);
     if (newName && newName.trim()) {
+        const finalName = newName.trim();
         try {
+            localStorage.setItem(`widget_name_${widgetId}`, finalName);
 
-            localStorage.setItem(`widget_name_${widgetId}`, newName.trim());
+            if (assetId && key) {
+                localStorage.setItem(`sensor_name_${assetId}_${key}`, finalName);
+                localStorage.setItem(`switch_name_${assetId}_${key}`, finalName);
+
+                try {
+                    const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
+                    if (res.ok) {
+                        const asset = await res.json();
+                        let customNames = asset.attributes?.CustomNames;
+                        if (typeof customNames === 'string') {
+                            try { customNames = JSON.parse(customNames); } catch(e) { customNames = {}; }
+                        }
+                        if (typeof customNames !== 'object' || customNames === null) customNames = {};
+                        customNames[key] = finalName;
+
+                        await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/CustomNames`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ value: customNames })
+                        });
+                    }
+                } catch(e) {
+                    console.error('[Dashboard] Failed to save custom name to server:', e);
+                }
+            }
 
             toast('Widget renamed');
-            loadWidgets();
+            loadDashboard();
         } catch (e) {
             console.error(e);
         }

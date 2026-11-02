@@ -47,8 +47,11 @@ async function fetchFriendlyNames() {
     }
 }
 
-function getFriendlyLabel(key, isAttribute = false) {
+function getFriendlyLabel(key, isAttribute = false, customNames = null) {
     if (!key) return '';
+    if (customNames && typeof customNames === 'object' && customNames[key]) {
+        return customNames[key];
+    }
     const map = isAttribute
         ? (friendlyNames && friendlyNames.attributes ? friendlyNames.attributes : {})
         : (friendlyNames && friendlyNames.keys ? friendlyNames.keys : {});
@@ -71,6 +74,21 @@ function getFriendlyLabel(key, isAttribute = false) {
     if (/^p-phosphorus(\d+)?$/i.test(key)) return key.replace(/p-phosphorus/i, 'Phosphorus ');
     if (/^k-potassium(\d+)?$/i.test(key)) return key.replace(/k-potassium/i, 'Potassium ');
     return key;
+}
+
+/**
+ * Resolves display label checking CustomNames attribute first, then localStorage, then friendly label.
+ */
+function resolveCustomOrFriendlyLabel(key, customNames = null, assetId = null, isAttribute = false) {
+    if (!key) return '';
+    if (customNames && typeof customNames === 'object' && customNames[key]) {
+        return customNames[key];
+    }
+    if (assetId) {
+        const local = localStorage.getItem(`switch_name_${assetId}_${key}`) || localStorage.getItem(`sensor_name_${assetId}_${key}`);
+        if (local) return local;
+    }
+    return getFriendlyLabel(key, isAttribute);
 }
 
 /**
@@ -123,6 +141,28 @@ function getSensorUnit(key, attributeName) {
  */
 function formatSensorValue(value, key, attributeName) {
     if (value === '' || value === '--' || value === null || value === undefined) return '--';
+    
+    // If value is still an object or parsed textMap, extract scalar for this key
+    if (typeof value === 'object' && value !== null) {
+        if (key && key in value) {
+            value = value[key];
+        } else {
+            return '--';
+        }
+    }
+    
+    // If value is a JSON string, try to parse
+    if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+        try {
+            const parsed = JSON.parse(value);
+            if (typeof parsed === 'object' && parsed !== null && key && key in parsed) {
+                value = parsed[key];
+            }
+        } catch(e) {}
+    }
+
+    if (value === '' || value === '--' || value === null || value === undefined) return '--';
+
     const unit = getSensorUnit(key, attributeName);
     if (!unit) return String(value);
     // Only append unit if the value looks numeric

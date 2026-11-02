@@ -275,6 +275,31 @@ function getKeysFromAsset(assetId, attrName) {
     return [];
 }
 
+function getAssetCustomNames(assetOrId) {
+    let customNames = {};
+    let asset = null;
+    if (typeof assetOrId === 'object' && assetOrId) {
+        asset = assetOrId;
+    } else if (typeof assetOrId === 'string') {
+        asset = allUserAssets.find(a => a.id === assetOrId);
+    }
+    let raw = (asset && asset.attributes && asset.attributes.CustomNames) || (assetOrId === currentAssetId && allAttributes.CustomNames);
+    if (typeof raw === 'string') {
+        try { raw = JSON.parse(raw); } catch (e) { raw = {}; }
+    }
+    if (raw && typeof raw === 'object') customNames = raw;
+    return customNames;
+}
+
+function resolveAssetItemLabel(assetId, key, isSwitch) {
+    const customNames = getAssetCustomNames(assetId);
+    if (customNames && customNames[key]) return customNames[key];
+    const localKey = isSwitch ? `switch_name_${assetId}_${key}` : `sensor_name_${assetId}_${key}`;
+    const localName = localStorage.getItem(localKey);
+    if (localName) return localName;
+    return typeof getFriendlyLabel === 'function' ? getFriendlyLabel(key) : key;
+}
+
 function getSensorOptions(assetId) {
     const sensors = [];
 
@@ -285,17 +310,17 @@ function getSensorOptions(assetId) {
     };
 
     getKeysFromAsset(assetId, 'EnvData').forEach(k => {
-        const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
+        const keyLabel = resolveAssetItemLabel(assetId, k, false);
         sensors.push({ value: `EnvData.${k}`, label: `${groupNames['EnvData']} → ${keyLabel}` });
     });
 
     getKeysFromAsset(assetId, 'MoistureData').forEach(k => {
-        const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
+        const keyLabel = resolveAssetItemLabel(assetId, k, false);
         sensors.push({ value: `MoistureData.${k}`, label: `${groupNames['MoistureData']} → ${keyLabel}` });
     });
 
     getKeysFromAsset(assetId, 'NPKData').forEach(k => {
-        const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
+        const keyLabel = resolveAssetItemLabel(assetId, k, false);
         sensors.push({ value: `NPKData.${k}`, label: `${groupNames['NPKData']} → ${keyLabel}` });
     });
 
@@ -309,7 +334,7 @@ function getKeysFromAttribute(attrName) {
 function getRelayOptions() {
     const relays = [];
     getKeysFromAttribute('RelayData').forEach(k => {
-        const keyLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel(k) : k;
+        const keyLabel = resolveAssetItemLabel(currentAssetId, k, true);
         relays.push({ value: `RelayData.${k}`, label: keyLabel });
     });
 

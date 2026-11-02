@@ -6,6 +6,7 @@ const pendingTimerData = {};
 const dirtyTimers = new Set(); // keys like "assetId__attrName"
 // Track output type per asset: 'valve' or 'relay'
 const assetOutputType = {};
+const deviceCustomNames = {};
 
 // ── New: Filter & Selection State ──
 const selectedTimers = new Set();       // keys: "assetId__attrName"
@@ -53,6 +54,17 @@ async function loadTimers() {
                 hasTimers = true;
                 const assetIdClean = asset.id.replace(/[^a-zA-Z0-9]/g, '');
                 const isOpen = openGroups.has(assetIdClean);
+
+                // Extract CustomNames for switch titles
+                let customNames = {};
+                if (asset.attributes && asset.attributes.CustomNames) {
+                    let cn = asset.attributes.CustomNames;
+                    if (typeof cn === 'string') {
+                        try { cn = JSON.parse(cn); } catch (e) { cn = {}; }
+                    }
+                    if (cn && typeof cn === 'object') customNames = cn;
+                }
+                deviceCustomNames[asset.id] = customNames;
 
                 // Detect output type for this asset
                 if (asset.attributes?.ValveState !== undefined) {
@@ -670,8 +682,17 @@ function renderOutputsSelector(assetId, attrName, nestedKey, val) {
     let html = '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
     outputOptions.forEach(r => {
         const active = isActive(r);
-        const label = isValve ? 'V' : r.replace('r', '');
-        const title = isValve ? 'Valve' : `Switch ${label}`;
+        const num = r.replace(/[^0-9]/g, '');
+        const label = isValve ? 'V' : num;
+        let title = isValve ? 'Valve' : `Switch ${num}`;
+        const cn = deviceCustomNames[assetId] || {};
+        if (cn[r]) title = cn[r];
+        else if (cn[`switch${num}`]) title = cn[`switch${num}`];
+        else {
+            const localName = localStorage.getItem(`switch_name_${assetId}_${r}`) || localStorage.getItem(`switch_name_${assetId}_switch${num}`);
+            if (localName) title = localName;
+        }
+
         html += `
             <div onclick="bufferOutputToggle(event, '${assetId}', '${attrName}', '${nestedKey}', '${r}')"
                 title="${title}"

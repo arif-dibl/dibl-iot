@@ -173,8 +173,19 @@ async def get_dashboard_widgets(username: str, request: Request):
                 if "attributes" in asset and aname in asset["attributes"]:
                     attr_obj = asset["attributes"][aname]
                     raw_val = attr_obj.get("value", "N/A")
+                    if isinstance(raw_val, str) and (raw_val.startswith("{") or raw_val.startswith("[")):
+                        try:
+                            parsed_raw = json.loads(raw_val)
+                            if isinstance(parsed_raw, (dict, list)):
+                                raw_val = parsed_raw
+                        except Exception:
+                            pass
+
                     target_key = p.get("key")
-                    val = raw_val.get(target_key, "N/A") if target_key and isinstance(raw_val, dict) else raw_val
+                    if target_key:
+                        val = raw_val.get(target_key, "N/A") if isinstance(raw_val, dict) else "N/A"
+                    else:
+                        val = raw_val
                 
                 widgets.append({
                     "assetId": aid,
@@ -221,24 +232,24 @@ async def get_user_assets(username: str, request: Request):
                         val = v["value"]
                         ts = v.get("timestamp")
                         
+                        # Parse JSON string values for all textMap attributes
+                        if isinstance(val, str) and (val.startswith("{") or val.startswith("[")):
+                            try:
+                                parsed = json.loads(val)
+                                if isinstance(parsed, (dict, list)):
+                                    val = parsed
+                            except Exception:
+                                pass
+
                         # Inject timestamp for Timers only
-                        if k.startswith("Timer"):
-                            if isinstance(val, str):
-                                try:
-                                    parsed = json.loads(val)
-                                    if isinstance(parsed, dict):
-                                        val = parsed
-                                except:
-                                    pass
-                            
-                            if isinstance(val, dict) and ts:
-                                val["_timestamp"] = ts
+                        if k.startswith("Timer") and isinstance(val, dict) and ts:
+                            val["_timestamp"] = ts
 
                         flat_attrs[k] = val
                         
-                        # Activity Detection: use the latest timestamp from EnvData or SystemData
+                        # Activity Detection: use the latest timestamp from EnvData, MoistureData, NPKData, or SystemData
                         # AND ensure it's not just placeholder data (all '--')
-                        if ts and k in ("EnvData", "SystemData"):
+                        if ts and k in ("EnvData", "MoistureData", "NPKData", "SystemData"):
                             has_real_data = False
                             if isinstance(val, dict):
                                 for sub_val in val.values():
@@ -298,24 +309,24 @@ async def get_single_asset(username: str, request: Request, id: str):
                     val = v["value"]
                     ts = v.get("timestamp")
 
+                    # Parse JSON string values for all textMap attributes
+                    if isinstance(val, str) and (val.startswith("{") or val.startswith("[")):
+                        try:
+                            parsed = json.loads(val)
+                            if isinstance(parsed, (dict, list)):
+                                val = parsed
+                        except Exception:
+                            pass
+
                     # Inject timestamp for Timers only
-                    if k.startswith("Timer"):
-                        if isinstance(val, str):
-                            try:
-                                parsed = json.loads(val)
-                                if isinstance(parsed, dict):
-                                    val = parsed
-                            except:
-                                pass
-                        
-                        if isinstance(val, dict) and ts:
-                            val["_timestamp"] = ts
+                    if k.startswith("Timer") and isinstance(val, dict) and ts:
+                        val["_timestamp"] = ts
 
                     flat_attrs[k] = val
 
-                    # Activity Detection: use the latest timestamp from EnvData or SystemData
+                    # Activity Detection: use the latest timestamp from EnvData, MoistureData, NPKData, or SystemData
                     # AND ensure it's not just placeholder data (all '--')
-                    if ts and k in ("EnvData", "SystemData"):
+                    if ts and k in ("EnvData", "MoistureData", "NPKData", "SystemData"):
                         has_real_data = False
                         if isinstance(val, dict):
                             for sub_val in val.values():

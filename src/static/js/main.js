@@ -131,16 +131,23 @@ function getSensorUnit(key, attributeName) {
     return '';
 }
 
+function isUnrecognizedOrPlaceholder(val) {
+    if (val === '' || val === null || val === undefined) return true;
+    const str = String(val).trim();
+    const upper = str.toUpperCase();
+    return upper === '--' || upper === '-' || upper === 'N/A' || upper === 'NA' || upper === 'NONE' || upper === 'NULL' || upper === 'UNDEFINED' || upper === 'NAN';
+}
+
 /**
  * Formats a sensor value with its unit.
- * Returns '--' for empty/placeholder values, appends unit for numeric values.
+ * Returns '--' for empty, placeholder, or unrecognized values, appends unit for numeric values.
  * @param {*} value - The raw sensor value
  * @param {string} key - The sensor key
  * @param {string} attributeName - Parent attribute name
  * @returns {string} Formatted value string
  */
 function formatSensorValue(value, key, attributeName) {
-    if (value === '' || value === '--' || value === null || value === undefined) return '--';
+    if (isUnrecognizedOrPlaceholder(value)) return '--';
     
     // If value is still an object or parsed textMap, extract scalar for this key
     if (typeof value === 'object' && value !== null) {
@@ -161,15 +168,19 @@ function formatSensorValue(value, key, attributeName) {
         } catch(e) {}
     }
 
-    if (value === '' || value === '--' || value === null || value === undefined) return '--';
+    if (isUnrecognizedOrPlaceholder(value)) return '--';
 
     const unit = getSensorUnit(key, attributeName);
-    if (!unit) return String(value);
-    // Only append unit if the value looks numeric
     const num = Number(value);
     if (!isNaN(num) && String(value).trim() !== '') {
-        return `${value} ${unit}`;
+        return unit ? `${value} ${unit}` : String(value);
     }
+
+    // If a sensor reading with a unit is not numeric or is unrecognized, return '--'
+    if (unit || isNaN(num)) {
+        return '--';
+    }
+
     return String(value);
 }
 

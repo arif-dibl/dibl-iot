@@ -169,10 +169,10 @@ async def get_dashboard_widgets(username: str, request: Request):
             aname = p["attributeName"]
             if aid in assets_cache:
                 asset = assets_cache[aid]
-                val = "N/A"
+                val = "--"
                 if "attributes" in asset and aname in asset["attributes"]:
                     attr_obj = asset["attributes"][aname]
-                    raw_val = attr_obj.get("value", "N/A")
+                    raw_val = attr_obj.get("value", "--")
                     if isinstance(raw_val, str) and (raw_val.startswith("{") or raw_val.startswith("[")):
                         try:
                             parsed_raw = json.loads(raw_val)
@@ -183,7 +183,7 @@ async def get_dashboard_widgets(username: str, request: Request):
 
                     target_key = p.get("key")
                     if target_key:
-                        val = raw_val.get(target_key, "N/A") if isinstance(raw_val, dict) else "N/A"
+                        val = raw_val.get(target_key, "--") if isinstance(raw_val, dict) else "--"
                     else:
                         val = raw_val
                 

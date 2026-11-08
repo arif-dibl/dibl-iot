@@ -136,7 +136,7 @@ async def verify_email_post(request: Request, email: str = Form(...), otp: str =
         if user_id and admin_token:
             headers = {"Authorization": f"Bearer {admin_token}", "Content-Type": "application/json"}
             url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users/{user_id}"
-            requests.put(url, json={"emailVerified": True}, headers=headers)
+            requests.put(url, json={"emailVerified": True, "requiredActions": []}, headers=headers)
         return templates.TemplateResponse("login.html", {"request": request, "success": "Email verified successfully! You can now log in.", "prefix": APP_PREFIX})
     return templates.TemplateResponse("verify_email.html", {"request": request, "error": "Invalid or expired OTP", "email": email, "prefix": APP_PREFIX})
 

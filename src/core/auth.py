@@ -71,7 +71,7 @@ def get_admin_token(realm):
     }
     headers = {"Host": OR_HOSTNAME}
     try:
-        resp = requests.post(url, data=data, headers=headers)
+        resp = requests.post(url, data=data, headers=headers, verify=False, timeout=10)
         resp.raise_for_status()
         return resp.json().get("access_token")
     except Exception as e:
@@ -195,7 +195,7 @@ def get_user_token(realm, username, password):
     }
     headers = {"Host": OR_HOSTNAME}
     try:
-        res = requests.post(url, data=payload, headers=headers, verify=False)
+        res = requests.post(url, data=payload, headers=headers, verify=False, timeout=10)
         if res.status_code == 200:
             return res.json()
     except Exception as e:
@@ -211,7 +211,7 @@ def refresh_user_token(realm, refresh_token):
     }
     headers = {"Host": OR_HOSTNAME}
     try:
-        res = requests.post(url, data=payload, headers=headers, verify=False)
+        res = requests.post(url, data=payload, headers=headers, verify=False, timeout=10)
         if res.status_code == 200:
             return res.json()
     except Exception as e:
@@ -251,93 +251,98 @@ def get_valid_token(request: Request):
         return None
     return access_token
 
+def _extract_sub_from_jwt(access_token: str):
+    """Extracts the 'sub' (user_id) claim from a JWT access token."""
+    if not access_token:
+        return None
+    try:
+        parts = access_token.split(".")
+        if len(parts) > 1:
+            payload_b64 = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
+            return json.loads(base64.urlsafe_b64decode(payload_b64).decode()).get("sub")
+    except Exception:
+        pass
+    return None
+
 def perform_auto_login_logic(request: Request, realm: str, username: str, password: str):
     """
-    Helper function to perform the auto-login dance.
+    Authenticates the user directly via Keycloak OIDC Token API (Direct Access Grants)
+    and populates the FastAPI session.
     Returns (success, response_or_error_msg)
     """
     try:
-        session = requests.Session()
-        auth_url = f"{KEYCLOAK_URL}/realms/{realm}/protocol/openid-connect/auth"
-        params = {
+        token_url = f"{KEYCLOAK_URL}/realms/{realm}/protocol/openid-connect/token"
+        payload = {
             "client_id": "openremote",
-            "redirect_uri": f"https://{OR_HOSTNAME}/manager/",
-            "response_type": "code",
-            "scope": "openid"
+            "username": username,
+            "password": password,
+            "grant_type": "password"
         }
         headers = {"Host": OR_HOSTNAME}
-        resp = session.get(auth_url, params=params, headers=headers, verify=False)
-        resp.raise_for_status()
-        
-        match = re.search(r'action="([^"]+)"', resp.text)
-        if not match:
-            print("[LOGIN] Could not find login form action in Keycloak response")
-            return False, "Authentication service is temporarily unavailable. Please try again later."
-            
-        action_url = match.group(1).replace("&amp;", "&")
-        
-        # Robust URL Rewriting:
-        # Keycloak returns the public URL (e.g. https://<domain>/auth/...) or a relative one.
-        # We MUST force this request to go to the internal container (KEYCLOAK_URL) 
-        # so that the cookies in 'session' (which are associated with the internal host) are sent.
-        if "://" in action_url:
-            # Absolute URL: Strip scheme://host and prepend KEYCLOAK_URL
-            # This regex captures everything after the third slash: https://host/path -> path
-            path_match = re.search(r'^https?://[^/]+(/.*)$', action_url)
-            if path_match:
-                path = path_match.group(1)
-                # Fix double /auth/auth issue
-                if KEYCLOAK_URL.endswith('/auth') and path.startswith('/auth/'):
-                    path = path[5:]
-                target_url = KEYCLOAK_URL.rstrip('/') + path
-            else:
-                 # Fallback if regex fails (unlikely for valid absolute URLs)
-                target_url = action_url
-        else:
-            # Relative URL: Just prepend KEYCLOAK_URL
-             path = action_url
-             # Fix double /auth/auth issue
-             if KEYCLOAK_URL.endswith('/auth') and path.startswith('/auth/'):
-                 path = path[5:]
-             target_url = KEYCLOAK_URL.rstrip('/') + path
+        token_resp = requests.post(token_url, data=payload, headers=headers, verify=False, timeout=10)
 
-        # Ensure we don't double-slash or miss a slash if needed
-        # (The logic above handles standard absolute/relative paths correctly)
-        
-        # print(f"[DEBUG] Login Action Rewrite: {action_url} -> {target_url}")
+        # If Keycloak says "Account is not fully set up", check if email is verified
+        # or if Keycloak 26's User Profile requires firstName/lastName/clearing requiredActions
+        if token_resp.status_code == 400:
+            try:
+                err_data = token_resp.json()
+                err_desc = err_data.get("error_description", "").lower()
+            except Exception:
+                err_desc = ""
 
-        # CRITICAL FIX: Downgrade 'Secure' cookies for internal HTTP transport
-        # 'requests' will drop Secure cookies when sending to http://keycloak:8080.
-        # Since we are inside the internal Docker network, we must strip the Secure flag
-        # to ensure the session cookies are actually sent to Keycloak.
-        for cookie in session.cookies:
-            if cookie.secure:
-                cookie.secure = False
+            if "not fully set up" in err_desc:
+                admin_token = get_admin_token(realm)
+                user_id = get_user_id_by_username(realm, username, admin_token) if admin_token else None
+                if admin_token and user_id:
+                    admin_headers = {
+                        "Authorization": f"Bearer {admin_token}",
+                        "Content-Type": "application/json"
+                    }
+                    user_url = f"{KEYCLOAK_URL}/admin/realms/{realm}/users/{user_id}"
+                    u_res = requests.get(user_url, headers=admin_headers, verify=False, timeout=10)
+                    if u_res.status_code == 200:
+                        u_obj = u_res.json()
+                        if not u_obj.get("emailVerified", False):
+                            return False, "Please verify your email address to activate your account before logging in."
+                        # Email is verified, clear any blocking profile/requiredActions in Keycloak 26 and retry
+                        u_obj["firstName"] = u_obj.get("firstName") or username
+                        u_obj["lastName"] = u_obj.get("lastName") or username
+                        u_obj["requiredActions"] = []
+                        requests.put(user_url, json=u_obj, headers=admin_headers, verify=False, timeout=10)
+                        token_resp = requests.post(token_url, data=payload, headers=headers, verify=False, timeout=10)
+                else:
+                    return False, "Please verify your email address to activate your account before logging in."
 
-        payload = {"username": username, "password": password, "credentialId": ""}
-        post_resp = session.post(target_url, data=payload, headers=headers, allow_redirects=False, verify=False)
-        
-        if post_resp.status_code == 302:
+        if token_resp.status_code == 200:
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
+            refresh_token = token_data.get("refresh_token")
+
             request.session["realm"] = realm
             request.session["username"] = username
-            token_data = get_user_token(realm, username, password)
-            if token_data:
-                request.session["access_token"] = token_data.get("access_token")
-                request.session["refresh_token"] = token_data.get("refresh_token")
-            
-            admin_token = get_admin_token(realm)
-            if admin_token:
-                user_id = get_user_id_by_username(realm, username, admin_token)
-                request.session["user_id"] = user_id
-            
-            return True, session.cookies
-        else:
-            print(f"[DEBUG LOGIN] Keycloak returned status {post_resp.status_code}. Response text preview: {post_resp.text[:500]}")
-            if post_resp.status_code == 200 and "verify your email" in post_resp.text.lower():
+            request.session["access_token"] = access_token
+            request.session["refresh_token"] = refresh_token
+
+            user_id = _extract_sub_from_jwt(access_token)
+            if not user_id:
+                admin_token = get_admin_token(realm)
+                if admin_token:
+                    user_id = get_user_id_by_username(realm, username, admin_token)
+            request.session["user_id"] = user_id
+
+            return True, "Success"
+
+        print(f"[DEBUG LOGIN] Keycloak token status {token_resp.status_code}: {token_resp.text[:300]}")
+        try:
+            err_desc = token_resp.json().get("error_description", "").lower()
+            if "disabled" in err_desc:
+                return False, "Your account has been disabled."
+            if "not fully set up" in err_desc:
                 return False, "Please verify your email address to activate your account before logging in."
-            elif post_resp.status_code == 200 and "update account information" in post_resp.text.lower():
-                return False, "Please update your account information before logging in."
-            return False, "Invalid email or password"
+        except Exception:
+            pass
+
+        return False, "Invalid email or password"
     except Exception as e:
         print(f"[LOGIN] Auto-login logic error: {e}")
         return False, "Authentication service is temporarily unavailable. Please try again later."

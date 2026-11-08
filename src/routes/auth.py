@@ -84,10 +84,18 @@ async def signup_post(request: Request, username: str = Form(...), email: str = 
                     
             return RedirectResponse(url=get_prefixed_path(f"/verify-email?email={email}"), status_code=303)
         else:
-            error_msg = res.json().get("errorMessage", "Registration failed")
+            print(f"[SIGNUP] Keycloak user creation failed ({res.status_code}): {res.text[:300]}")
+            error_msg = "Registration failed. Please check your details and try again."
+            try:
+                kc_err = res.json().get("errorMessage", "")
+                if "username" in kc_err.lower() or "email" in kc_err.lower() or "exists" in kc_err.lower():
+                    error_msg = kc_err
+            except Exception:
+                pass
             return templates.TemplateResponse("signup.html", {"request": request, "error": error_msg, "prefix": APP_PREFIX})
     except Exception as e:
-        return templates.TemplateResponse("signup.html", {"request": request, "error": str(e), "prefix": APP_PREFIX})
+        print(f"[SIGNUP] Error: {e}")
+        return templates.TemplateResponse("signup.html", {"request": request, "error": "Registration service is temporarily unavailable. Please try again later.", "prefix": APP_PREFIX})
 
 @router.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_get(request: Request):

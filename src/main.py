@@ -5,7 +5,10 @@ from routes import auth as auth_routes, dashboard as dashboard_routes
 from api import assets as assets_api, rules as rules_api, user as user_api, debug as debug_api
 from core.config import APP_PREFIX
 from core.auth import verify_username_match, NotAuthenticatedException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="templates")
 
 # Create FastAPI app
 docs_url = f"{APP_PREFIX}/docs" if APP_PREFIX else "/docs"
@@ -30,6 +33,28 @@ def get_prefixed_path(path: str) -> str:
 async def auth_exception_handler(request: Request, exc: NotAuthenticatedException):
     target_url = get_prefixed_path(exc.redirect_url if hasattr(exc, 'redirect_url') else "/")
     return RedirectResponse(url=target_url, status_code=303)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"[UNHANDLED ERROR] {request.url.path}: {exc}")
+    if "/api/" in request.url.path:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "error": "Service temporarily unavailable. Please try again later.",
+                "message": "Service temporarily unavailable. Please try again later."
+            }
+        )
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request,
+            "error": "Service is temporarily unavailable. Please try again shortly.",
+            "prefix": APP_PREFIX
+        },
+        status_code=503
+    )
 
 # Public API: friendly-names (no auth needed — static config, no sensitive data)
 from core.utils import get_friendly_names

@@ -271,7 +271,8 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
         
         match = re.search(r'action="([^"]+)"', resp.text)
         if not match:
-            return False, "Could not find login form action"
+            print("[LOGIN] Could not find login form action in Keycloak response")
+            return False, "Authentication service is temporarily unavailable. Please try again later."
             
         action_url = match.group(1).replace("&amp;", "&")
         
@@ -335,8 +336,8 @@ def perform_auto_login_logic(request: Request, realm: str, username: str, passwo
             if post_resp.status_code == 200 and "verify your email" in post_resp.text.lower():
                 return False, "Please verify your email address to activate your account before logging in."
             elif post_resp.status_code == 200 and "update account information" in post_resp.text.lower():
-                return False, "Keycloak requires you to update your account information (e.g., missing email)."
-            return False, "Invalid username or password (or Keycloak is requiring an action we can't handle in Custom UI)"
+                return False, "Please update your account information before logging in."
+            return False, "Invalid email or password"
     except Exception as e:
         print(f"[LOGIN] Auto-login logic error: {e}")
-        return False, str(e)
+        return False, "Authentication service is temporarily unavailable. Please try again later."

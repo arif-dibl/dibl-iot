@@ -219,7 +219,9 @@ async def get_user_assets(username: str, request: Request):
 
         url = f"{OR_MANAGER_URL}/api/{realm}/asset/user/current"
         res = requests.get(url, headers=headers)
-        if res.status_code != 200: return {"assets": [], "error": f"Error: {res.status_code}"}
+        if res.status_code != 200:
+            print(f"[API] Failed to fetch user assets: {res.status_code}")
+            return {"assets": [], "error": "Unable to load devices"}
             
         all_assets = res.json()
         final_assets = []
@@ -289,7 +291,7 @@ async def get_user_assets(username: str, request: Request):
         return {"assets": final_assets}
     except Exception as e:
         print(f"[API] Error: {e}")
-        return {"assets": [], "error": str(e)}
+        return {"assets": [], "error": "Unable to load devices"}
 
 @router.get("/asset/{id}")
 async def get_single_asset(username: str, request: Request, id: str):
@@ -298,7 +300,11 @@ async def get_single_asset(username: str, request: Request, id: str):
     if not access_token: return {}
     headers = {"Authorization": f"Bearer {access_token}"}
     url = f"{OR_MANAGER_URL}/api/{realm}/asset/{id}"
-    res = requests.get(url, headers=headers)
+    try:
+        res = requests.get(url, headers=headers)
+    except Exception as e:
+        print(f"[API] Error fetching single asset {id}: {e}")
+        return {}
     if res.status_code == 200:
         a = res.json()
         flat_attrs = {}
@@ -361,9 +367,13 @@ async def update_asset_attribute_api(username: str, request: Request, asset_id: 
     url = f"{OR_MANAGER_URL}/api/{realm}/asset/{asset_id}/attribute/{attr_name}"
     try:
         res = requests.put(url, json=value, headers=headers, verify=False)
-        return {"status": "success"} if res.status_code in [200, 204] else {"status": "error", "message": res.text}
+        if res.status_code in [200, 204]:
+            return {"status": "success"}
+        print(f"[API] Failed to update attribute {attr_name} on {asset_id}: {res.status_code} {res.text[:200]}")
+        return {"status": "error", "message": "Failed to update attribute"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        print(f"[API] Error updating attribute {attr_name} on {asset_id}: {e}")
+        return {"status": "error", "message": "Service temporarily unavailable"}
 
 @router.post("/user/assets")
 async def link_user_asset_api(username: str, request: Request, payload: dict):
@@ -401,9 +411,11 @@ async def link_user_asset_api(username: str, request: Request, payload: dict):
                     print(f"[HAWKBIT] Link sync error: {e}")
             threading.Thread(target=_sync_linked_asset, daemon=True).start()
             return {"status": "success"}
-        return {"status": "error", "message": f"OR API Error: {res.status_code}"}
+        print(f"[API] Link asset failed for {asset_id}: {res.status_code} {res.text[:200]}")
+        return {"status": "error", "message": "Unable to link device. Please check the ID and try again."}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        print(f"[API] Link asset error for {asset_id}: {e}")
+        return {"status": "error", "message": "Service temporarily unavailable"}
 
 @router.put("/user/assets/{asset_id}")
 async def update_user_asset_api(username: str, request: Request, asset_id: str, payload: dict):
@@ -419,7 +431,8 @@ async def update_user_asset_api(username: str, request: Request, asset_id: str, 
         put_res = requests.put(f"{OR_MANAGER_URL}/api/{realm}/asset/{asset_id}", json=asset_data, headers=headers, verify=False)
         return {"status": "success"} if put_res.status_code in [200, 204] else {"status": "error", "message": "Update failed"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        print(f"[API] Update asset error for {asset_id}: {e}")
+        return {"status": "error", "message": "Service temporarily unavailable"}
 
 @router.delete("/user/assets/{asset_id}")
 async def unlink_user_asset_api(username: str, request: Request, asset_id: str):
@@ -440,9 +453,13 @@ async def unlink_user_asset_api(username: str, request: Request, asset_id: str):
             if len(prefs[user_id]["pinned"]) < original_count:
                 save_preferences(prefs)
                 
-        return {"status": "success"} if res.status_code in [200, 204] else {"status": "error", "message": f"OR API Error: {res.status_code}"}
+        if res.status_code in [200, 204]:
+            return {"status": "success"}
+        print(f"[API] Unlink asset failed for {asset_id}: {res.status_code}")
+        return {"status": "error", "message": "Unable to unlink device"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        print(f"[API] Unlink asset error for {asset_id}: {e}")
+        return {"status": "error", "message": "Service temporarily unavailable"}
 
 @router.post("/user/provision-device")
 async def provision_device(username: str, request: Request, payload: dict):
@@ -513,7 +530,8 @@ async def provision_device(username: str, request: Request, payload: dict):
         create_url = f"{OR_MANAGER_URL}/api/{realm}/asset"
         create_res = requests.post(create_url, json=asset_data, headers=headers, verify=False)
         if create_res.status_code not in [200, 201]:
-            return {"status": "error", "message": f"Failed to create asset: {create_res.status_code} {create_res.text}"}
+            print(f"[PROVISION] Failed to create asset: {create_res.status_code} {create_res.text[:200]}")
+            return {"status": "error", "message": "Failed to provision device. Please try again."}
 
         created_asset = create_res.json()
         asset_id = created_asset.get("id")
@@ -550,4 +568,4 @@ async def provision_device(username: str, request: Request, payload: dict):
 
     except Exception as e:
         print(f"[PROVISION] Error: {e}")
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": "Service temporarily unavailable. Please try again."}

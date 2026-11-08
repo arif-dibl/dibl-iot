@@ -18,10 +18,11 @@ async def get_user_profile(username: str, request: Request):
         res = requests.get(url, headers=headers, verify=False)
         if res.status_code == 200:
             return res.json()
-        return {"error": f"Failed to fetch profile: {res.status_code}"}
+        print(f"[USER] Failed to fetch profile ({res.status_code}): {res.text[:200]}")
+        return {"error": "Unable to load profile"}
     except Exception as e:
         print(f"[USER] Profile fetch error: {e}")
-        return {"error": str(e)}
+        return {"error": "Service temporarily unavailable"}
 
 @router.put("/profile")
 async def update_user_profile(username: str, request: Request):
@@ -40,10 +41,11 @@ async def update_user_profile(username: str, request: Request):
         res = requests.put(url, json=body, headers=headers, verify=False)
         if res.status_code in [200, 204]:
             return {"status": "success"}
-        return {"error": f"Update failed: {res.status_code}", "details": res.text}
+        print(f"[USER] Profile update failed ({res.status_code}): {res.text[:200]}")
+        return {"error": "Failed to update profile"}
     except Exception as e:
         print(f"[USER] Profile update error: {e}")
-        return {"error": str(e)}
+        return {"error": "Service temporarily unavailable"}
 
 @router.put("/change-password")
 async def change_user_password(username: str, request: Request):
@@ -80,10 +82,11 @@ async def change_user_password(username: str, request: Request):
         res = requests.put(url, json={"password": new_password}, headers=headers, verify=False)
         if res.status_code in [200, 204]:
             return {"status": "success"}
-        return {"error": f"Password change failed: {res.status_code}", "details": res.text}
+        print(f"[USER] Password change failed ({res.status_code}): {res.text[:200]}")
+        return {"error": "Password change failed. Please try again."}
     except Exception as e:
         print(f"[USER] Password change error: {e}")
-        return {"error": str(e)}
+        return {"error": "Service temporarily unavailable"}
 
 @router.get("/asset-partners")
 async def get_asset_partners(username: str, request: Request):

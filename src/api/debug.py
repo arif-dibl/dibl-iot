@@ -62,6 +62,10 @@ async def debug_proxy(username: str, request: Request, payload: dict):
                 "Content-Disposition": f'attachment; filename="{filename}"'
             })
 
+        if res.status_code >= 400:
+            print(f"[DEBUG PROXY] Upstream error {res.status_code} on {endpoint}: {res.text[:200]}")
+            return {"status": res.status_code, "data": "Unable to complete request."}
+
         try:
             data = res.json()
         except:
@@ -69,4 +73,5 @@ async def debug_proxy(username: str, request: Request, payload: dict):
             
         return {"status": res.status_code, "data": data}
     except Exception as e:
-        return {"status": 500, "data": str(e)}
+        print(f"[DEBUG PROXY] Error on {endpoint}: {e}")
+        return {"status": 500, "data": "Service temporarily unavailable."}

@@ -73,7 +73,7 @@ async function loadAssets() {
         const data = await res.json();
 
         if (data.error) {
-            select.innerHTML = `<option value="">Error: ${data.error}</option>`;
+            select.innerHTML = '<option value="">Unable to load devices</option>';
             return;
         }
 
@@ -456,7 +456,7 @@ async function fetchDatapoints() {
 
         // Check for error in proxy envelope
         if (data.status >= 400) {
-            currentData = data.data || "Error fetching data";
+            currentData = "Unable to fetch history data. Please try again later.";
         } else {
             // Success
             // API usually returns plain array: [{"x": ts, "y": val}, ...]
@@ -489,7 +489,7 @@ async function fetchDatapoints() {
         }
 
     } catch (e) {
-        currentData = 'Request failed: ' + e.message;
+        currentData = 'Unable to connect to server. Please try again later.';
     }
 
 
@@ -533,7 +533,7 @@ async function exportDatapoints() {
             if (contentType && contentType.includes("application/json")) {
                 const data = await res.json();
                 if (data.status >= 400) {
-                    alert("Export failed: " + JSON.stringify(data.data));
+                    alert("Export failed. Please try again later.");
                 } else {
                     // Unexpected JSON success?
                     console.log("Unexpected JSON", data);
@@ -557,7 +557,7 @@ async function exportDatapoints() {
         }
     } catch (e) {
         console.error(e);
-        alert("Export error: " + e.message);
+        alert("Export failed. Please check your connection and try again.");
     } finally {
         btn.textContent = originalText;
         btn.disabled = false;

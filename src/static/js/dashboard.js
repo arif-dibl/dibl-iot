@@ -15,12 +15,7 @@ function saveCollapsedState() {
 }
 
 function getAssetCustomNames(asset) {
-    if (!asset || !asset.attributes) return {};
-    let c = asset.attributes.CustomNames;
-    if (typeof c === 'string') {
-        try { c = JSON.parse(c); } catch(e) { c = {}; }
-    }
-    return (c && typeof c === 'object' && c !== null) ? c : {};
+    return parseCustomNames(asset);
 }
 
 function parseJsonValue(val) {
@@ -133,24 +128,16 @@ async function loadSwitches(assets) {
 
     for (const asset of assets) {
         const relayData = asset.attributes?.RelayData;
-        const valveState = asset.attributes?.ValveState;
-        const customNames = asset.attributes?.CustomNames;
-        let parsedCustomNames = {};
-        if (customNames) {
-            if (typeof customNames === 'string') {
-                try { parsedCustomNames = JSON.parse(customNames); } catch(e) {}
-            } else if (typeof customNames === 'object') {
-                parsedCustomNames = customNames;
-            }
-        }
+        const valveKeys = getValveStateKeys(asset.attributes);
+        const parsedCustomNames = parseCustomNames(asset);
 
         if (relayData && typeof relayData === 'object') {
             const status = getAssetStatus(asset.lastActivityTimestamp);
             html += renderSwitchCard(asset.name, asset.id, relayData, status.isOffline, parsedCustomNames);
         }
-        if (valveState !== undefined) {
+        if (valveKeys.length > 0) {
             const status = getAssetStatus(asset.lastActivityTimestamp);
-            html += renderValveCard(asset.name, asset.id, valveState, status.isOffline, parsedCustomNames);
+            html += renderValveCard(asset.name, asset.id, asset.attributes, valveKeys, status.isOffline, parsedCustomNames);
         }
     }
 
@@ -161,69 +148,76 @@ async function loadSwitches(assets) {
     }
 }
 
-function renderSwitchCard(assetName, assetId, relayData, isIdle = false, customNames = {}) {
-    const keys = Object.keys(relayData).sort();
-    let switchesHtml = '<div class="switch-grid">';
-
-    keys.forEach(k => {
-        const toggleKey = `${assetId}_${k}`;
-        const isRecent = recentToggles[toggleKey] && (Date.now() - recentToggles[toggleKey] < 5000);
-        const boolVal = isRecent ? recentToggles[`${toggleKey}_val`] : toBool(relayData[k]);
-        const storedName = customNames[k] || localStorage.getItem(`switch_name_${assetId}_${k}`) || getFriendlyLabel(k);
-        const safeAssetId = assetId.replace(/'/g, "\\'");
-        const safeKey = k.replace(/'/g, "\\'");
-
-        switchesHtml += `
-            <div class="switch-item ${boolVal ? 'switch-on' : 'switch-off'} ${isIdle ? 'idle' : ''}">
-                <div class="switch-info-col">
-                    <div class="switch-label">${storedName}</div>
-                    <span class="switch-rename-btn" onclick="renameSwitch('${safeAssetId}', '${safeKey}')">RENAME</span>
-                </div>
-                <div class="switch-toggle-col">
-                    <label class="toggle-switch">
-                        <input type="checkbox" ${boolVal ? 'checked' : ''} ${isIdle ? 'disabled' : ''} onchange="toggleSwitch('${safeAssetId}', '${safeKey}', this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-        `;
-    });
-
-    switchesHtml += '</div>';
+function renderToggleItemHtml(assetId, key, rawVal, storedName, isIdle, toggleFnName) {
+    const toggleKey = `${assetId}_${key}`;
+    const isRecent = recentToggles[toggleKey] && (Date.now() - recentToggles[toggleKey] < 5000);
+    const boolVal = isRecent ? recentToggles[`${toggleKey}_val`] : toBool(rawVal);
+    const safeAssetId = assetId.replace(/'/g, "\\'");
+    const safeKey = key.replace(/'/g, "\\'");
 
     return `
-        <div class="switch-card-wrapper" data-asset-id="${assetId}">
-            <div class="switch-loading-layer"></div>
-            <div class="widget-card" style="width:100%;">
-                 <div class="widget-card-header" style="font-size:1rem; border-bottom:1px solid #f0f0f0; margin-bottom:1rem; padding-bottom:0.5rem;">${assetName}</div>
-                ${switchesHtml}
+        <div class="switch-item ${boolVal ? 'switch-on' : 'switch-off'} ${isIdle ? 'idle' : ''}">
+            <div class="switch-info-col">
+                <div class="switch-label">${escapeHtml(storedName)}</div>
+                <span class="switch-rename-btn" onclick="renameSwitch('${safeAssetId}', '${safeKey}')">RENAME</span>
+            </div>
+            <div class="switch-toggle-col">
+                <label class="toggle-switch">
+                    <input type="checkbox" data-toggle-key="${escapeHtml(key)}" ${boolVal ? 'checked' : ''} ${isIdle ? 'disabled' : ''} onchange="${toggleFnName}('${safeAssetId}', '${safeKey}', this.checked)">
+                    <span class="slider"></span>
+                </label>
             </div>
         </div>
     `;
 }
 
+function renderToggleCardWrapper(assetName, assetId, itemsHtml) {
+    return `
+        <div class="switch-card-wrapper" data-asset-id="${escapeHtml(assetId)}">
+            <div class="switch-loading-layer"></div>
+            <div class="widget-card" style="width:100%;">
+                <div class="widget-card-header" style="font-size:1rem; border-bottom:1px solid #f0f0f0; margin-bottom:1rem; padding-bottom:0.5rem;">${escapeHtml(assetName)}</div>
+                <div class="switch-grid">
+                    ${itemsHtml}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderSwitchCard(assetName, assetId, relayData, isIdle = false, customNames = {}) {
+    const keys = Object.keys(relayData).sort();
+    const itemsHtml = keys.map(k => {
+        const storedName = resolveCustomOrFriendlyLabel(k, customNames, assetId, false);
+        return renderToggleItemHtml(assetId, k, relayData[k], storedName, isIdle, 'toggleSwitch');
+    }).join('');
+
+    return renderToggleCardWrapper(assetName, assetId, itemsHtml);
+}
+
+function tryAcquireCardLock(assetId, toggleKey, revertVal) {
+    const wrapper = document.querySelector(`.switch-card-wrapper[data-asset-id="${assetId}"]`);
+    if (!wrapper) return true;
+    if (wrapper.classList.contains('locked')) {
+        const cb = wrapper.querySelector(`input[data-toggle-key="${toggleKey}"]`);
+        if (cb) cb.checked = revertVal;
+        return false;
+    }
+    wrapper.classList.add('locked');
+    const layer = wrapper.querySelector('.switch-loading-layer');
+    if (layer) {
+        layer.style.animation = 'none';
+        void layer.offsetWidth; // force reflow
+        layer.style.animation = '';
+    }
+    setTimeout(() => { wrapper.classList.remove('locked'); }, 1500);
+    return true;
+}
+
 async function toggleSwitch(assetId, key, newValue) {
     console.log(`[Dashboard] Toggling switch: ${assetId} / ${key} -> ${newValue}`);
 
-    // Frosted-overlay lock: prevent spamming
-    const wrapper = document.querySelector(`.switch-card-wrapper[data-asset-id="${assetId}"]`);
-    if (wrapper) {
-        if (wrapper.classList.contains('locked')) {
-            // Card is still locked, revert the checkbox and bail out
-            const cb = wrapper.querySelector(`input[onchange*="'${key}'"]`);
-            if (cb) cb.checked = !newValue;
-            return;
-        }
-        // Lock the card and (re)start the overlay animation
-        wrapper.classList.add('locked');
-        const layer = wrapper.querySelector('.switch-loading-layer');
-        if (layer) {
-            layer.style.animation = 'none';
-            void layer.offsetWidth;          // force reflow
-            layer.style.animation = '';
-        }
-        setTimeout(() => { wrapper.classList.remove('locked'); }, 1500);
-    }
+    if (!tryAcquireCardLock(assetId, key, !newValue)) return;
 
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
@@ -267,24 +261,22 @@ async function toggleSwitch(assetId, key, newValue) {
 }
 
 async function renameSwitch(assetId, key) {
-    let currentName = localStorage.getItem(`switch_name_${assetId}_${key}`) || getFriendlyLabel(key);
+    const isValve = /^valvestate/i.test(key);
+    let currentName = localStorage.getItem(`switch_name_${assetId}_${key}`) || getFriendlyLabel(key, isValve);
     
     // Check if CustomNames has it
     try {
         const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         if (res.ok) {
             const asset = await res.json();
-            let cNames = asset.attributes?.CustomNames;
-            if (typeof cNames === 'string') {
-                try { cNames = JSON.parse(cNames); } catch(e) { cNames = {}; }
-            }
-            if (cNames && typeof cNames === 'object' && cNames[key]) {
+            const cNames = parseCustomNames(asset);
+            if (cNames[key]) {
                 currentName = cNames[key];
             }
         }
     } catch(e) {}
 
-    const newName = prompt('Enter new name for this switch:', currentName);
+    const newName = prompt(`Enter new name for this ${isValve ? 'valve' : 'switch'}:`, currentName);
     if (newName && newName.trim()) {
         const finalName = newName.trim();
         localStorage.setItem(`switch_name_${assetId}_${key}`, finalName);
@@ -297,11 +289,7 @@ async function renameSwitch(assetId, key) {
                 
                 // If CustomNames attribute exists, update it on the server
                 if (customNames !== undefined) {
-                    if (typeof customNames === 'string') {
-                        try { customNames = JSON.parse(customNames); } catch(e) { customNames = {}; }
-                    }
-                    if (typeof customNames !== 'object' || customNames === null) customNames = {};
-                    
+                    customNames = parseCustomNames(asset);
                     customNames[key] = finalName;
                     
                     await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/CustomNames`, {
@@ -315,71 +303,35 @@ async function renameSwitch(assetId, key) {
             console.error('[Dashboard] Failed to save custom name to server:', e);
         }
 
-        toast('Switch renamed');
+        toast(isValve ? 'Valve renamed' : 'Switch renamed');
         loadDashboard();
     }
 }
 
-function renderValveCard(assetName, assetId, valveState, isIdle = false, customNames = {}) {
-    const toggleKey = `${assetId}_ValveState`;
-    const isRecent = recentToggles[toggleKey] && (Date.now() - recentToggles[toggleKey] < 5000);
-    const boolVal = isRecent ? recentToggles[`${toggleKey}_val`] : toBool(valveState);
-    const storedName = customNames['ValveState'] || localStorage.getItem(`switch_name_${assetId}_ValveState`) || 'Valve';
-    const safeAssetId = assetId.replace(/'/g, "\\'");
+function renderValveCard(assetName, assetId, attributes, valveKeys, isIdle = false, customNames = {}) {
+    const itemsHtml = valveKeys.map(k => {
+        const storedName = resolveCustomOrFriendlyLabel(k, customNames, assetId, true);
+        return renderToggleItemHtml(assetId, k, attributes[k], storedName, isIdle, 'toggleValve');
+    }).join('');
 
-    return `
-        <div class="switch-card-wrapper" data-asset-id="${assetId}">
-            <div class="switch-loading-layer"></div>
-            <div class="widget-card" style="width:100%;">
-                <div class="widget-card-header" style="font-size:1rem; border-bottom:1px solid #f0f0f0; margin-bottom:1rem; padding-bottom:0.5rem;">${assetName}</div>
-                <div class="switch-grid">
-                    <div class="switch-item ${boolVal ? 'switch-on' : 'switch-off'} ${isIdle ? 'idle' : ''}">
-                        <div class="switch-info-col">
-                            <div class="switch-label">${storedName}</div>
-                            <span class="switch-rename-btn" onclick="renameSwitch('${safeAssetId}', 'ValveState')">RENAME</span>
-                        </div>
-                        <div class="switch-toggle-col">
-                            <label class="toggle-switch">
-                                <input type="checkbox" ${boolVal ? 'checked' : ''} ${isIdle ? 'disabled' : ''} onchange="toggleValve('${safeAssetId}', this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    return renderToggleCardWrapper(assetName, assetId, itemsHtml);
 }
 
-async function toggleValve(assetId, newValue) {
-    console.log(`[Dashboard] Toggling valve: ${assetId} -> ${newValue}`);
+async function toggleValve(assetId, attrKey, newValue) {
+    const label = getFriendlyLabel(attrKey, true);
+    console.log(`[Dashboard] Toggling valve: ${assetId} / ${attrKey} -> ${newValue}`);
 
-    const wrapper = document.querySelector(`.switch-card-wrapper[data-asset-id="${assetId}"]`);
-    if (wrapper) {
-        if (wrapper.classList.contains('locked')) {
-            const cb = wrapper.querySelector('input[onchange*="toggleValve"]');
-            if (cb) cb.checked = !newValue;
-            return;
-        }
-        wrapper.classList.add('locked');
-        const layer = wrapper.querySelector('.switch-loading-layer');
-        if (layer) {
-            layer.style.animation = 'none';
-            void layer.offsetWidth;
-            layer.style.animation = '';
-        }
-        setTimeout(() => { wrapper.classList.remove('locked'); }, 1500);
-    }
+    if (!tryAcquireCardLock(assetId, attrKey, !newValue)) return;
 
     try {
-        const toggleKey = `${assetId}_ValveState`;
+        const toggleKey = `${assetId}_${attrKey}`;
         recentToggles[toggleKey] = Date.now();
         recentToggles[`${toggleKey}_val`] = newValue;
         setTimeout(() => { delete recentToggles[toggleKey]; delete recentToggles[`${toggleKey}_val`]; }, 5000);
 
-        console.log('[Dashboard] Sending ValveState:', newValue);
+        console.log(`[Dashboard] Sending ${attrKey}:`, newValue);
 
-        const updateRes = await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/ValveState`, {
+        const updateRes = await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/${encodeURIComponent(attrKey)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ value: newValue })
@@ -387,9 +339,9 @@ async function toggleValve(assetId, newValue) {
 
         if (!updateRes.ok) throw new Error(`Failed to update attribute: ${updateRes.status}`);
 
-        toast(`Valve turned ${newValue ? 'ON' : 'OFF'}`);
+        toast(`${label} turned ${newValue ? 'ON' : 'OFF'}`);
     } catch (e) {
-        toast('Failed to toggle valve');
+        toast(`Failed to toggle ${label.toLowerCase()}`);
         console.error('[Dashboard] Valve toggle error:', e);
     }
 }
@@ -416,6 +368,7 @@ async function loadWidgets(assets = []) {
         widgets = widgets.filter(w =>
             !w.attributeName.toLowerCase().includes('threshold') &&
             !w.attributeName.toLowerCase().includes('relaydata') &&
+            !w.attributeName.toLowerCase().includes('valvestate') &&
             !w.attributeName.toLowerCase().includes('systemdata') &&
             !(w.displayName && w.displayName.toLowerCase().includes('threshold'))
         );
@@ -476,11 +429,11 @@ async function loadWidgets(assets = []) {
                 if (!deviceGroups[w.assetId]) {
                     deviceGroups[w.assetId] = { name: assetName, htmls: [] };
                 }
-                deviceGroups[w.assetId].htmls.push(renderTimerCard(w, assetName, isOffline, false, isHighlighted, customNames));
+                deviceGroups[w.assetId].htmls.push(renderTimerCard(w, assetName, isOffline, false, isHighlighted, customNames, asset));
 
                 // If highlighted, render again for Highlights section (with device name in title)
                 if (isHighlighted) {
-                    highlightHtmls.push(renderTimerCard(w, assetName, isOffline, true, isHighlighted, customNames));
+                    highlightHtmls.push(renderTimerCard(w, assetName, isOffline, true, isHighlighted, customNames, asset));
                 }
             });
 
@@ -685,7 +638,7 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
                     const targetRaw = parts[2];
                     const targetAsset = allAssets.find(a => a.id === w.assetId);
                     const targetCustomNames = (customNames && Object.keys(customNames).length > 0) ? customNames : getAssetCustomNames(targetAsset);
-                    const targetName = targetCustomNames[targetRaw] || localStorage.getItem(`switch_name_${w.assetId}_${targetRaw}`) || getFriendlyLabel(targetRaw);
+                    const targetName = targetCustomNames[targetRaw] || localStorage.getItem(`switch_name_${w.assetId}_${targetRaw}`) || getFriendlyLabel(targetRaw, true);
 
                     parsed = {
                         op: opMap[parts[0]] || parts[0],
@@ -716,10 +669,11 @@ function renderRuleCard(w, assetAttributes = null, assetName = '', isOffline = f
 
                 let isActive = false;
                 let currentVal = null;
-                if (assetAttributes) {
+                const sensorSourceAttrs = (whenAsset && whenAsset.attributes) ? whenAsset.attributes : assetAttributes;
+                if (sensorSourceAttrs) {
                     const sensorBags = ['EnvData', 'MoistureData', 'NPKData'];
                     for (const bag of sensorBags) {
-                        const bagData = parseJsonValue(assetAttributes[bag]);
+                        const bagData = parseJsonValue(sensorSourceAttrs[bag]);
                         if (bagData && typeof bagData === 'object') {
                             if (bagData[sensorKey] !== undefined) {
                                 currentVal = parseFloat(bagData[sensorKey]);
@@ -914,10 +868,11 @@ function renderMoistureCard(w, isOffline = false, customNames = {}, asset = null
     return wrapWidgetCard(w, cardTitle, content, isOffline);
 }
 
-function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true, isHighlighted = false, customNames = {}) {
+function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true, isHighlighted = false, customNames = {}, asset = null) {
     w.value = parseJsonValue(w.value);
     if (!w.value || typeof w.value !== 'object') return renderGenericCard(w, isOffline);
 
+    const valveFlag = isValveAsset(asset);
     let status = isOffline ? 'OFFLINE' : (w.value['Status'] || 'Unknown');
     if (typeof status === 'string') status = status.toUpperCase();
     const isActive = status === 'ACTIVE' || status === 'ON';
@@ -958,21 +913,19 @@ function renderTimerCard(w, assetName, isOffline = false, showDeviceName = true,
     }
 
     if (w.value['Outputs']) {
-        const rawOutputs = String(w.value['Outputs']);
-        const tokens = rawOutputs.split(',').map(s => s.trim()).filter(Boolean);
-        const resolvedNames = tokens.map(tok => {
-            const num = tok.replace(/[^0-9]/g, '');
-            if (!num) return tok;
-            const n = parseInt(num, 10);
-            return customNames[`switch${n}`] || customNames[`r${n}`] || localStorage.getItem(`switch_name_${w.assetId}_switch${n}`) || localStorage.getItem(`switch_name_${w.assetId}_r${n}`) || `Switch ${n}`;
-        });
-        const outStr = resolvedNames.join(', ');
-        content += `
-            <div style="padding:0 1rem 1rem 1rem;">
-                <div style="font-size:0.7rem; color:#999; margin-bottom:2px;">SWITCHES</div>
-                <div style="font-size:0.85rem; color:#333; font-weight:600;">${outStr}</div>
-            </div>
-         `;
+        const rawOutputs = String(w.value['Outputs']).trim();
+        const outNums = parseTimerOutputNumbers(rawOutputs);
+        if (outNums.length > 0 || (rawOutputs && rawOutputs.toUpperCase() !== 'NONE')) {
+            const outStr = outNums.length > 0
+                ? outNums.map(n => escapeHtml(resolveOutputNumberLabel(n, w.assetId, customNames, valveFlag))).join(', ')
+                : escapeHtml(rawOutputs);
+            content += `
+                <div style="padding:0 1rem 1rem 1rem;">
+                    <div style="font-size:0.7rem; color:#999; margin-bottom:2px;">${valveFlag ? 'VALVES' : 'SWITCHES'}</div>
+                    <div style="font-size:0.85rem; color:#333; font-weight:600;">${outStr}</div>
+                </div>
+             `;
+        }
     }
 
     content += '</div>';
@@ -1104,18 +1057,16 @@ async function renameWidget(widgetId, currentName, assetId = null, key = null) {
                     const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
                     if (res.ok) {
                         const asset = await res.json();
-                        let customNames = asset.attributes?.CustomNames;
-                        if (typeof customNames === 'string') {
-                            try { customNames = JSON.parse(customNames); } catch(e) { customNames = {}; }
-                        }
-                        if (typeof customNames !== 'object' || customNames === null) customNames = {};
-                        customNames[key] = finalName;
+                        if (asset.attributes?.CustomNames !== undefined) {
+                            const customNames = parseCustomNames(asset);
+                            customNames[key] = finalName;
 
-                        await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/CustomNames`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ value: customNames })
-                        });
+                            await fetch(`${APP_PREFIX}/api/asset/${assetId}/attribute/CustomNames`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ value: customNames })
+                            });
+                        }
                     }
                 } catch(e) {
                     console.error('[Dashboard] Failed to save custom name to server:', e);

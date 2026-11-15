@@ -2,13 +2,17 @@ let pinnedAttributes = [];
 const openGroups = new Set();
 const recentToggles = {};
 
+function isSwitchOrValveKey(k) {
+    return !!k && (k.startsWith('r') || k.startsWith('switch') || /^valvestate/i.test(k));
+}
+
 function shouldShowPin(key, itemKey) {
     if (key === 'RelayData') return false;
-    if (key === 'ValveState') return false;
+    if (key && /^valvestate/i.test(key)) return false;
     if (key === 'SystemData') return false;
     if (key === 'CustomNames') return false;
     if (key && key.includes('RelayNode')) return false;
-    if (itemKey && (itemKey.startsWith('r') || itemKey.startsWith('switch')) && key === 'RelayData') return false;
+    if (itemKey && isSwitchOrValveKey(itemKey) && key === 'RelayData') return false;
     return true;
 }
 
@@ -16,11 +20,11 @@ function resolveItemLabel(attrName, itemKey) {
     if (window.currentAssetCustomNames && window.currentAssetCustomNames[itemKey]) {
         return window.currentAssetCustomNames[itemKey];
     }
-    const isSwitch = itemKey.startsWith('r') || itemKey.startsWith('switch');
-    const localKey = isSwitch ? `switch_name_${ASSET_ID}_${itemKey}` : `sensor_name_${ASSET_ID}_${itemKey}`;
+    const localKey = isSwitchOrValveKey(itemKey) ? `switch_name_${ASSET_ID}_${itemKey}` : `sensor_name_${ASSET_ID}_${itemKey}`;
     const local = localStorage.getItem(localKey);
     if (local) return local;
-    return typeof getFriendlyLabel === 'function' ? getFriendlyLabel(itemKey) : itemKey;
+    const isAttrKey = attrName === itemKey || /^valvestate/i.test(itemKey);
+    return typeof getFriendlyLabel === 'function' ? getFriendlyLabel(itemKey, isAttrKey) : itemKey;
 }
 
 async function loadDetail() {
@@ -41,15 +45,8 @@ async function loadDetail() {
             return;
         }
 
-        let customNames = {};
-        if (asset.attributes && asset.attributes.CustomNames) {
-            let cn = asset.attributes.CustomNames;
-            if (typeof cn === 'string') {
-                try { cn = JSON.parse(cn); } catch (e) { cn = {}; }
-            }
-            if (cn && typeof cn === 'object') customNames = cn;
-        }
-        window.currentAssetCustomNames = customNames;
+        window.currentAssetCustomNames = parseCustomNames(asset);
+        window.currentAssetIsValve = isValveAsset(asset);
 
         document.getElementById('assetName').textContent = asset.name;
 
@@ -66,7 +63,8 @@ async function loadDetail() {
         } else {
             // Define grouping rules in requested order
             const groupingRules = [
-                { name: "Switches", pattern: /^(relaydata|relay|valvestate)/i, priority: 1 },
+                { name: "Switches", pattern: /^(relaydata|relay)/i, priority: 1 },
+                { name: "Valves", pattern: /^valvestate/i, priority: 1 },
                 { name: "Sensors", pattern: /^(envdata|moisturedata)/i, priority: 2 },
                 { name: "Timers", pattern: /^timer/i, priority: 3 },
                 { name: "Nutritions", pattern: /^npk/i, priority: 4 },
@@ -166,17 +164,25 @@ async function loadDetail() {
                         }
                     } else if (isBooleanLike(val) && key.toLowerCase() !== 'systemdata') {
                         const boolVal = toBool(val);
-                        displayVal = `
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <label class="toggle-switch">
-                                    <input type="checkbox" ${boolVal ? 'checked' : ''} onchange="toggleAttribute('${key}', this.checked)">
-                                    <span class="slider"></span>
-                                </label>
-                                <span style="font-weight:600; color:${boolVal ? 'var(--primary)' : 'var(--text-muted)'}; min-width:30px;">
+                        if (groupName === 'Switches' || groupName === 'Valves') {
+                            displayVal = `
+                                <span style="font-weight:700; color:${boolVal ? '#27ae60' : '#e74c3c'}; font-size:0.95rem;">
                                     ${boolVal ? 'ON' : 'OFF'}
                                 </span>
-                            </div>
-                        `;
+                            `;
+                        } else {
+                            displayVal = `
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" ${boolVal ? 'checked' : ''} onchange="toggleAttribute('${key}', this.checked)">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span style="font-weight:600; color:${boolVal ? 'var(--primary)' : 'var(--text-muted)'}; min-width:30px;">
+                                        ${boolVal ? 'ON' : 'OFF'}
+                                    </span>
+                                </div>
+                            `;
+                        }
                     } else if (typeof val === 'object' && val !== null) {
                         if (key.toLowerCase().startsWith('timer')) {
                             const isActive = String(val['Status']).toUpperCase() === 'ON' || String(val['Status']).toUpperCase() === 'ACTIVE';
@@ -210,23 +216,20 @@ async function loadDetail() {
                                         </div>` : ''}
 
                                         <!-- Outputs -->
-                                        ${val['Outputs'] ? `
-                                        <div style="padding-top:0.75rem;">
-                                            <div style="font-size:0.7rem; color:#999; margin-bottom:2px;">SWITCHES</div>
-                                            <div style="font-size:0.85rem; color:#333; font-weight:600;">${
-                                                val['Outputs'].split(',').map(outStr => {
-                                                    const raw = outStr.trim();
-                                                    const match = raw.match(/(\d+)/);
-                                                    if (!match) return raw;
-                                                    const num = match[1];
-                                                    const switchKey = `switch${parseInt(num, 10)}`;
-                                                    const rKey = `r${parseInt(num, 10)}`;
-                                                    if (window.currentAssetCustomNames && window.currentAssetCustomNames[switchKey]) return window.currentAssetCustomNames[switchKey];
-                                                    if (window.currentAssetCustomNames && window.currentAssetCustomNames[rKey]) return window.currentAssetCustomNames[rKey];
-                                                    return raw.replace(/OUT\s0?/g, 'Switch ');
-                                                }).join(', ')
-                                            }</div>
-                                        </div>` : ''}
+                                        ${(() => {
+                                            const outNums = parseTimerOutputNumbers(val['Outputs']);
+                                            const rawOut = val['Outputs'] ? String(val['Outputs']).trim() : '';
+                                            if (outNums.length === 0 && (!rawOut || rawOut.toUpperCase() === 'NONE')) return '';
+                                            const outDisplay = outNums.length > 0
+                                                ? outNums.map(n => escapeHtml(resolveOutputNumberLabel(n, ASSET_ID, window.currentAssetCustomNames, window.currentAssetIsValve))).join(', ')
+                                                : escapeHtml(rawOut);
+                                            return `
+                                                <div style="padding-top:0.75rem;">
+                                                    <div style="font-size:0.7rem; color:#999; margin-bottom:2px;">${window.currentAssetIsValve ? 'VALVES' : 'SWITCHES'}</div>
+                                                    <div style="font-size:0.85rem; color:#333; font-weight:600;">${outDisplay}</div>
+                                                </div>
+                                            `;
+                                        })()}
 
                                          <div style="margin-top:0.75rem; text-align:center; font-size:0.8rem; color:var(--primary); cursor:pointer; font-weight:600;" onclick="location.href='${APP_PREFIX}/timers'">
                                             Edit in Timers Page →
@@ -412,17 +415,11 @@ async function loadDetail() {
 
                                 displayVal += `
                                     <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:0.6rem 0.8rem; display:flex; justify-content:space-between; align-items:center;">
-                                        <div style="display:flex; align-items:center; gap:4px; max-width:65%;">
-                                            <span style="font-weight:600; color:#333; font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${itemLabel}">${itemLabel}</span>
+                                        <div style="display:flex; align-items:center; gap:4px; max-width:75%;">
+                                            <span style="font-weight:600; color:#333; font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(itemLabel)}">${escapeHtml(itemLabel)}</span>
                                             ${editBtn}
                                         </div>
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <label class="toggle-switch" style="transform:scale(0.8);">
-                                                <input type="checkbox" ${boolVal ? 'checked' : ''} onchange="toggleNestedAttribute('${key}', '${relayKey}', this.checked)">
-                                                <span class="slider"></span>
-                                            </label>
-                                            <span style="font-weight:700; color:${boolVal ? 'var(--primary)' : 'var(--text-muted)'}; font-size:0.85rem; min-width:28px;">${boolVal ? 'ON' : 'OFF'}</span>
-                                        </div>
+                                        <span style="font-weight:700; color:${boolVal ? '#27ae60' : '#e74c3c'}; font-size:0.9rem;">${boolVal ? 'ON' : 'OFF'}</span>
                                     </div>
                                 `;
                             });
@@ -489,7 +486,10 @@ async function loadDetail() {
                                     const nestedToggleKey = `${ASSET_ID}_${key}_${item.k}`;
                                     const isRecent = recentToggles[nestedToggleKey] && (Date.now() - recentToggles[nestedToggleKey] < 5000);
                                     const boolVal = isRecent ? recentToggles[`${nestedToggleKey}_val`] : toBool(item.v);
-                                    valueHtml = `
+                                    if (groupName === 'Switches' || groupName === 'Valves') {
+                                        valueHtml = `<span style="font-weight:700; color:${boolVal ? '#27ae60' : '#e74c3c'};">${boolVal ? 'ON' : 'OFF'}</span>`;
+                                    } else {
+                                        valueHtml = `
                                     <div style="display:flex; align-items:center; gap:8px;">
                                         <label class="toggle-switch" style="transform:scale(0.8);">
                                             <input type="checkbox" ${boolVal ? 'checked' : ''} onchange="toggleNestedAttribute('${key}', '${item.k}', this.checked)">
@@ -498,6 +498,7 @@ async function loadDetail() {
                                         <span style="font-weight:600; color:${boolVal ? 'var(--primary)' : 'var(--text-muted)'};">${boolVal ? 'ON' : 'OFF'}</span>
                                     </div>
                                 `;
+                                    }
                                 } else if (['OnHour', 'OffHour', 'OnMinute', 'OffMinute'].includes(item.k)) {
                                     // Custom Wheel Picker Trigger
                                     const isHour = item.k.includes('Hour');
@@ -534,17 +535,20 @@ async function loadDetail() {
                                     valueHtml = daysHtml;
                                 } else if (item.k === 'Outputs') {
                                     // Multi-output bubble selector
-                                    const hasValve = asset.attributes?.ValveState !== undefined;
-                                    const outputOptions = hasValve ? ['valve'] : ['r1', 'r2', 'r3', 'r4'];
-                                    const currentOutputs = (item.v || '').toLowerCase();
+                                    const isValve = window.currentAssetIsValve;
+                                    const valveKeys = isValve ? getValveStateKeys(asset.attributes) : [];
+                                    const outputNums = isValve
+                                        ? (valveKeys.length > 0 ? valveKeys.map((vk, idx) => { const m = vk.match(/(\d+)$/); return m ? parseInt(m[1], 10) : idx + 1; }) : [1, 2])
+                                        : [1, 2, 3, 4];
+                                    const activeNums = parseTimerOutputNumbers(item.v);
 
                                     let outputsHtml = '<div style="display:flex; gap:3px; flex-wrap:nowrap;">';
-                                    outputOptions.forEach(r => {
-                                        const active = currentOutputs.includes(r);
-                                        const label = hasValve ? 'V' : r.replace('r', '');
-                                        const title = hasValve ? 'Valve' : `Switch ${label}`;
+                                    outputNums.forEach(num => {
+                                        const active = activeNums.includes(num);
+                                        const label = isValve ? `V${num}` : `${num}`;
+                                        const title = escapeHtml(resolveOutputNumberLabel(num, ASSET_ID, window.currentAssetCustomNames, isValve));
                                         outputsHtml += `
-                                        <div onclick="event.stopPropagation(); toggleTimerOutput(event, '${key}', '${item.k}', '${r}')"
+                                        <div onclick="event.stopPropagation(); toggleTimerOutput(event, '${key}', '${item.k}', 'r${num}')"
                                             title="${title}"
                                             style="width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                                             background:${active ? 'var(--primary)' : '#f0f0f0'}; 
@@ -584,7 +588,10 @@ async function loadDetail() {
                                         const nestedToggleKey = `${ASSET_ID}_${key}_${item.k}`;
                                         const isRecent = recentToggles[nestedToggleKey] && (Date.now() - recentToggles[nestedToggleKey] < 5000);
                                         const boolVal = isRecent ? recentToggles[`${nestedToggleKey}_val`] : toBool(item.v);
-                                        valueHtml = `
+                                        if (groupName === 'Switches' || groupName === 'Valves') {
+                                            valueHtml = `<span style="font-weight:700; color:${boolVal ? '#27ae60' : '#e74c3c'}; font-size:0.85rem;">${boolVal ? 'ON' : 'OFF'}</span>`;
+                                        } else {
+                                            valueHtml = `
                                             <div style="display:flex; align-items:center; gap:6px;">
                                                 <label class="toggle-switch" style="transform:scale(0.7);">
                                                     <input type="checkbox" ${boolVal ? 'checked' : ''} onchange="toggleNestedAttribute('${key}', '${item.k}', this.checked)">
@@ -593,6 +600,7 @@ async function loadDetail() {
                                                 <span style="font-weight:600; color:${boolVal ? 'var(--primary)' : 'var(--text-muted)'}; font-size:0.85rem;">${boolVal ? 'ON' : 'OFF'}</span>
                                             </div>
                                         `;
+                                        }
                                     } else {
                                         valueHtml = `<div style="font-weight:600; color:#222; font-size:0.95rem;">${formatSensorValue(item.v, item.k, key)}</div>`;
                                     }
@@ -622,6 +630,11 @@ async function loadDetail() {
                     const starColor = isPinned ? '#f1c40f' : '#ccc';
 
                     const isTimer = key.toLowerCase().startsWith('timer');
+                    const isValveAttr = /^valvestate0*\d+$/i.test(key);
+                    const attrDisplayLabel = isValveAttr ? resolveItemLabel(key, key) : getFriendlyLabel(key, true);
+                    const valveRenameBtn = isValveAttr
+                        ? `<button onclick="renameDetailItem('${key}', '${key}', '${attrDisplayLabel.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:0.75rem; padding:0 3px; margin-left:4px;" title="Rename">✎</button>`
+                        : '';
                     const editBtn = (isPinned && key !== 'RuleTargets' && !isTimer) ? `<button onclick="renamePin('${key}')" style="background:none; border:none; color:#777; cursor:pointer; font-size:0.7rem; font-weight:600; padding:0; margin-right:8px;" title="Rename">RENAME</button>` : '';
 
                     const pinButtonHtml = shouldShowPin(key, null) ? `
@@ -630,7 +643,7 @@ async function loadDetail() {
 
                     html += `
                         <div style="padding:0.75rem; background:#fafafa; border-radius:4px; font-weight:600; color:#555; display:flex; justify-content:space-between; align-items:center;">
-                            ${getFriendlyLabel(key, true)}
+                            <span style="display:flex; align-items:center;">${escapeHtml(attrDisplayLabel)}${valveRenameBtn}</span>
                             <div style="display:flex; align-items:center;">
                                 ${editBtn}
                                 ${pinButtonHtml}
@@ -890,41 +903,20 @@ async function toggleTimerOutput(event, attrName, nestedKey, relay) {
 
             if (typeof currentObj !== 'object' || currentObj === null) return;
 
-            let currentOutputsStr = (currentObj[nestedKey] || '').toUpperCase(); // "OUT 01,OUT 04" or "r1,r4"
-            // Normalize to internal r1, r2 format for processing
-            let activeOutputs = [];
+            const targetNum = typeof relay === 'number'
+                ? relay
+                : parseInt(String(relay).replace(/^r|^out\s*/i, ''), 10);
+            if (!Number.isFinite(targetNum) || targetNum <= 0) return;
 
-            // Map "OUT 01" -> "r1" ... ...
-            const mapOutToR = (str) => {
-                const parts = str.split(',').map(s => s.trim());
-                return parts.map(p => {
-                    if (p.startsWith('OUT')) {
-                        const num = parseInt(p.replace('OUT', '').trim());
-                        return `r${num}`;
-                    }
-                    return p.toLowerCase(); // fallback for existing r1 format
-                }).filter(p => p.startsWith('r'));
-            };
-
-            activeOutputs = mapOutToR(currentOutputsStr);
-
-            if (activeOutputs.includes(relay)) {
-                activeOutputs = activeOutputs.filter(r => r !== relay);
+            let activeNums = parseTimerOutputNumbers(currentObj[nestedKey]);
+            if (activeNums.includes(targetNum)) {
+                activeNums = activeNums.filter(n => n !== targetNum);
             } else {
-                activeOutputs.push(relay);
+                activeNums.push(targetNum);
             }
+            activeNums = Array.from(new Set(activeNums)).sort((a, b) => a - b);
 
-            // Sort numerically (r1, r2, r3, r4) and Convert back to "OUT 0X" format
-            const sorted = activeOutputs.sort();
-
-            const mapRToOut = (rFormatList) => {
-                return rFormatList.map(r => {
-                    const num = parseInt(r.replace('r', ''));
-                    return `OUT ${String(num).padStart(2, '0')}`;
-                });
-            };
-
-            let newValue = mapRToOut(sorted).join(',');
+            const newValue = activeNums.map(n => `OUT ${String(n).padStart(2, '0')}`).join(',');
             currentObj[nestedKey] = newValue;
 
             const updateRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/${attrName}`, {
@@ -1140,28 +1132,25 @@ async function renameDetailItem(attrName, itemKey, currentName) {
     const trimmed = newName.trim();
     if (!trimmed) return;
 
-    const isSwitch = itemKey.startsWith('r') || itemKey.startsWith('switch');
+    const isSwitch = isSwitchOrValveKey(itemKey);
     const localKey = isSwitch ? `switch_name_${ASSET_ID}_${itemKey}` : `sensor_name_${ASSET_ID}_${itemKey}`;
     localStorage.setItem(localKey, trimmed);
 
     try {
         const assetRes = await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}`);
         const asset = await assetRes.json();
-        let customNames = {};
-        if (asset && asset.attributes && asset.attributes.CustomNames) {
-            let cn = asset.attributes.CustomNames;
-            if (typeof cn === 'string') {
-                try { cn = JSON.parse(cn); } catch (e) { cn = {}; }
-            }
-            if (cn && typeof cn === 'object') customNames = cn;
+        if (asset && asset.attributes && asset.attributes.CustomNames !== undefined) {
+            const customNames = parseCustomNames(asset);
+            customNames[itemKey] = trimmed;
+            await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/CustomNames`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value: customNames })
+            });
+            toast(`Renamed to "${trimmed}"`);
+        } else {
+            toast(`Renamed locally to "${trimmed}"`);
         }
-        customNames[itemKey] = trimmed;
-        await fetch(`${APP_PREFIX}/api/asset/${ASSET_ID}/attribute/CustomNames`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value: customNames })
-        });
-        toast(`Renamed to "${trimmed}"`);
     } catch (e) {
         console.warn("Could not save CustomNames to server attribute:", e);
         toast(`Renamed locally to "${trimmed}"`);

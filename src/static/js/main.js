@@ -1,6 +1,6 @@
 let friendlyNames = { attributes: {}, keys: {} };
 
-const FRIENDLY_NAMES_CACHE_KEY = 'dibl_friendly_names';
+const FRIENDLY_NAMES_CACHE_KEY = 'dibl_friendly_names_v2';
 const FRIENDLY_NAMES_CACHE_TTL = 5 * 60 * 1000;
 
 async function fetchFriendlyNames() {
@@ -67,6 +67,10 @@ function getFriendlyLabel(key, isAttribute = false, customNames = null) {
     if (/^m(\d+)?$/i.test(key)) return key.replace(/m/i, 'Moisture ');
     if (/^r(\d+)?$/i.test(key)) return key.replace(/r/i, 'Switch ');
     if (/^switch(\d+)?$/i.test(key)) return key.replace(/switch/i, 'Switch ');
+    const valveStateMatch = key.match(/^valvestate0*(\d+)$/i);
+    if (valveStateMatch) return `Valve ${parseInt(valveStateMatch[1], 10)}`;
+    const valveMatch = key.match(/^valve0*(\d+)$/i);
+    if (valveMatch) return `Valve ${parseInt(valveMatch[1], 10)}`;
     if (/^temperature(\d+)?$/i.test(key)) return key.replace(/temperature/i, 'Temperature ');
     if (/^humidity(\d+)?$/i.test(key)) return key.replace(/humidity/i, 'Humidity ');
     if (/^moisture(\d+)?$/i.test(key)) return key.replace(/moisture/i, 'Moisture ');
@@ -89,6 +93,98 @@ function resolveCustomOrFriendlyLabel(key, customNames = null, assetId = null, i
         if (local) return local;
     }
     return getFriendlyLabel(key, isAttribute);
+}
+
+/**
+ * Safely parses CustomNames from either an asset object or an attributes map.
+ */
+function parseCustomNames(assetOrAttrs) {
+    if (!assetOrAttrs || typeof assetOrAttrs !== 'object') return {};
+    const attrs = assetOrAttrs.attributes || assetOrAttrs;
+    let c = attrs ? attrs.CustomNames : null;
+    if (typeof c === 'string') {
+        try { c = JSON.parse(c); } catch (e) { c = {}; }
+    }
+    return (c && typeof c === 'object' && c !== null) ? c : {};
+}
+
+/**
+ * Returns sorted numbered valve state attribute names (e.g. ['ValveState1', 'ValveState2']).
+ */
+function getValveStateKeys(attributes) {
+    if (!attributes || typeof attributes !== 'object') return [];
+    return Object.keys(attributes)
+        .filter(k => /^valvestate0*\d+$/i.test(k))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+/**
+ * Returns true if the asset represents a valve device.
+ */
+function isValveAsset(asset) {
+    if (!asset || typeof asset !== 'object') return false;
+    if (asset.type && String(asset.type).toLowerCase() === 'valve') return true;
+    return getValveStateKeys(asset.attributes).length > 0;
+}
+
+/**
+ * Parses a Timer Outputs string (e.g. "OUT 01,OUT 02" or "r1,r2") into sorted unique integers [1, 2].
+ */
+function parseTimerOutputNumbers(outputsStr) {
+    if (!outputsStr) return [];
+    const nums = new Set();
+    String(outputsStr).split(',').forEach(token => {
+        const cleaned = token.trim();
+        if (!cleaned || cleaned.toUpperCase() === 'NONE') return;
+        const m = cleaned.match(/^(?:out|switch|valvestate|valve|r)?\s*0*(\d+)$/i);
+        if (m) {
+            const n = parseInt(m[1], 10);
+            if (!isNaN(n) && n > 0) nums.add(n);
+        }
+    });
+    return Array.from(nums).sort((a, b) => a - b);
+}
+
+/**
+ * Formats an array of output channel numbers [1, 2] into OpenRemote Timer format "OUT 01,OUT 02".
+ */
+function formatTimerOutputs(nums) {
+    const unique = Array.from(new Set(nums.filter(n => !isNaN(n) && n > 0))).sort((a, b) => a - b);
+    return unique.map(n => `OUT ${String(n).padStart(2, '0')}`).join(',');
+}
+
+/**
+ * Resolves the display label for a timer/relay/valve output index (1-based).
+ */
+function resolveOutputNumberLabel(num, assetId = null, customNames = {}, isValve = false) {
+    const n = parseInt(num, 10);
+    const cn = (customNames && typeof customNames === 'object') ? customNames : {};
+    const candidates = isValve
+        ? [`ValveState${n}`, `ValveState0${n}`, `valve${n}`, `r${n}`, `switch${n}`]
+        : [`switch${n}`, `r${n}`];
+
+    for (const k of candidates) {
+        if (cn[k]) return cn[k];
+    }
+    if (assetId) {
+        for (const k of candidates) {
+            const local = localStorage.getItem(`switch_name_${assetId}_${k}`);
+            if (local) return local;
+        }
+    }
+    return isValve ? `Valve ${n}` : `Switch ${n}`;
+}
+
+/**
+ * Escapes HTML special characters for safe template interpolation.
+ */
+function escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 /**

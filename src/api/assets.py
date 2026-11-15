@@ -500,25 +500,45 @@ async def provision_device(username: str, request: Request, payload: dict):
             "slevel": "SoilLevel",
             "slite": "SoilLite",
             "smoist": "SoilMoisture",
-            "valve": "ValveController",
+            "valve": "valve",
             "switch": "Switch"
         }
         or_asset_type = asset_type_map.get(device_type, "Sensor")
 
-        # Build initial attributes for the new asset
-        attributes = {
-            "EnvData": {},
-            "RelayData": {},
-            "SystemData": {
-                "firmware": payload.get("firmware", "1.0.0"),
-                "bleId": device_id,
-                "provisionedVia": "ble",
-                "provisionedAt": int(time.time() * 1000)
-            }
+        system_data = {
+            "firmware": payload.get("firmware", "1.0.0"),
+            "bleId": device_id,
+            "provisionedVia": "ble",
+            "provisionedAt": int(time.time() * 1000)
         }
-
         if wifi_ssid:
-            attributes["SystemData"]["wifiSsid"] = wifi_ssid
+            system_data["wifiSsid"] = wifi_ssid
+
+        # Build initial attributes for the new asset
+        if device_type == "valve":
+            default_timer = {
+                "Status": "OFF",
+                "Days": "NONE",
+                "Outputs": "",
+                "OnHour": "00",
+                "OnMinute": "00",
+                "OffHour": "00",
+                "OffMinute": "00"
+            }
+            attributes = {
+                "ValveState1": False,
+                "ValveState2": False,
+                "CustomNames": {},
+                "RuleTargets": {},
+                "SystemData": system_data,
+                **{f"Timer{i:02d}": dict(default_timer) for i in range(1, 13)}
+            }
+        else:
+            attributes = {
+                "EnvData": {},
+                "RelayData": {},
+                "SystemData": system_data
+            }
 
         asset_data = {
             "name": device_name,

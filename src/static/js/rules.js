@@ -122,13 +122,25 @@ async function loadAsset(assetId) {
                         }
 
                         if (sensorPath) {
+                            const rawTarget = parts[2] || '';
+                            let relayPath = '';
+                            if (allAttributes[rawTarget] !== undefined && !rawTarget.includes('.')) {
+                                relayPath = rawTarget;
+                            } else if (/^valvestate0*\d+$/i.test(rawTarget)) {
+                                relayPath = rawTarget;
+                            } else if (rawTarget.startsWith('RelayData.')) {
+                                relayPath = rawTarget;
+                            } else {
+                                relayPath = `RelayData.${rawTarget}`;
+                            }
+
                             rules.push({
                                 id: ruleId,
                                 name: rName,
                                 sensor: sensorPath,
                                 operator: op,
                                 value: parseFloat(parts[1]),
-                                relay: `RelayData.${parts[2]}`,
+                                relay: relayPath,
                                 relayState: rVal,
                                 enabled: true,
                                 whenDeviceId: whenDeviceId,
@@ -168,6 +180,12 @@ async function loadAsset(assetId) {
 function addRule() {
     if (!currentAssetId) return;
 
+    let defaultWhenDeviceId = null;
+    if (getSensorOptions(currentAssetId).length === 0) {
+        const sensorAsset = allUserAssets.find(a => a.id !== currentAssetId && getSensorOptions(a.id).length > 0);
+        if (sensorAsset) defaultWhenDeviceId = sensorAsset.id;
+    }
+
     rules.push({
         id: `rule_${ruleIdCounter++}`,
         name: 'New Rule',
@@ -177,6 +195,7 @@ function addRule() {
         relay: '',
         relayState: true,
         enabled: true,
+        whenDeviceId: defaultWhenDeviceId,
         timeType: 'N',
         timeStart: '',
         timeEnd: ''
@@ -203,7 +222,7 @@ async function saveRule(ruleId) {
     const rule = rules.find(r => r.id === ruleId);
     if (!rule) return;
 
-    if (!rule.name || !rule.sensor || (rule.value === null || rule.value === undefined || rule.value === '')) {
+    if (!rule.name || !rule.sensor || !rule.relay || (rule.value === null || rule.value === undefined || rule.value === '')) {
         return toast('Please fill in all required fields');
     }
 
@@ -276,19 +295,15 @@ function getKeysFromAsset(assetId, attrName) {
 }
 
 function getAssetCustomNames(assetOrId) {
-    let customNames = {};
     let asset = null;
     if (typeof assetOrId === 'object' && assetOrId) {
         asset = assetOrId;
     } else if (typeof assetOrId === 'string') {
         asset = allUserAssets.find(a => a.id === assetOrId);
     }
-    let raw = (asset && asset.attributes && asset.attributes.CustomNames) || (assetOrId === currentAssetId && allAttributes.CustomNames);
-    if (typeof raw === 'string') {
-        try { raw = JSON.parse(raw); } catch (e) { raw = {}; }
-    }
-    if (raw && typeof raw === 'object') customNames = raw;
-    return customNames;
+    if (asset && asset.attributes) return parseCustomNames(asset);
+    if (assetOrId === currentAssetId) return parseCustomNames(allAttributes);
+    return {};
 }
 
 function resolveAssetItemLabel(assetId, key, isSwitch) {
@@ -297,7 +312,8 @@ function resolveAssetItemLabel(assetId, key, isSwitch) {
     const localKey = isSwitch ? `switch_name_${assetId}_${key}` : `sensor_name_${assetId}_${key}`;
     const localName = localStorage.getItem(localKey);
     if (localName) return localName;
-    return typeof getFriendlyLabel === 'function' ? getFriendlyLabel(key) : key;
+    const isTopLevelAttr = /^valvestate0*\d+$/i.test(key);
+    return typeof getFriendlyLabel === 'function' ? getFriendlyLabel(key, isTopLevelAttr) : key;
 }
 
 function getSensorOptions(assetId) {
@@ -338,11 +354,10 @@ function getRelayOptions() {
         relays.push({ value: `RelayData.${k}`, label: keyLabel });
     });
 
-    // Fallback for cdvalve assets: if no relays, check for ValveState
-    if (relays.length === 0 && allAttributes['ValveState'] !== undefined) {
-        const valveLabel = typeof getFriendlyLabel === 'function' ? getFriendlyLabel('valve') : 'Valve';
-        relays.push({ value: 'ValveState', label: valveLabel });
-    }
+    getValveStateKeys(allAttributes).forEach(k => {
+        const keyLabel = resolveAssetItemLabel(currentAssetId, k, true);
+        relays.push({ value: k, label: keyLabel });
+    });
 
     return relays;
 }
@@ -440,7 +455,7 @@ function renderRules() {
                     <div class="device-list" id="deviceList_${rule.id}" style="display:none;"></div>
                     <div class="start-controls">
                         <select class="form-control" style="flex: 2; min-width: 140px;" onchange="updateRule('${rule.id}', 'sensor', this.value)">
-                            <option value="">Select sensor...</option>
+                            <option value="">${sensors.length === 0 ? 'No sensors on selected device — click Change' : 'Select sensor...'}</option>
                             ${sensors.map(s => `<option value="${s.value}" ${rule.sensor === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
                         </select>
                         <select class="form-control" style="flex: 1; min-width: 100px;" onchange="updateRule('${rule.id}', 'operator', this.value)">

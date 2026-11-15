@@ -1,6 +1,7 @@
 {
     "attributes": {
-        "ValveState": "Valve Control",
+        "ValveState1": "Valve 1",
+        "ValveState2": "Valve 2",
         "EnvData": "Environment Data",
         "MoistureData": "Moisture Levels",
         "RelayData": "Switches & Relays",
@@ -51,6 +52,10 @@
     },
     "keys": {
         "valve": "Valve",
+        "ValveState1": "Valve 1",
+        "ValveState2": "Valve 2",
+        "valve1": "Valve 1",
+        "valve2": "Valve 2",
         "t0": "Board Temperature",
         "h0": "Board Humidity",
         "t1": "Temperature Port 1",

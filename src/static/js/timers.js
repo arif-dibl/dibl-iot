@@ -6,6 +6,7 @@ const pendingTimerData = {};
 const dirtyTimers = new Set(); // keys like "assetId__attrName"
 // Track output type per asset: 'valve' or 'relay'
 const assetOutputType = {};
+const assetValveChannels = {};
 const deviceCustomNames = {};
 
 // ── New: Filter & Selection State ──
@@ -55,20 +56,18 @@ async function loadTimers() {
                 const assetIdClean = asset.id.replace(/[^a-zA-Z0-9]/g, '');
                 const isOpen = openGroups.has(assetIdClean);
 
-                // Extract CustomNames for switch titles
-                let customNames = {};
-                if (asset.attributes && asset.attributes.CustomNames) {
-                    let cn = asset.attributes.CustomNames;
-                    if (typeof cn === 'string') {
-                        try { cn = JSON.parse(cn); } catch (e) { cn = {}; }
-                    }
-                    if (cn && typeof cn === 'object') customNames = cn;
-                }
-                deviceCustomNames[asset.id] = customNames;
+                // Extract CustomNames for switch/valve titles
+                deviceCustomNames[asset.id] = parseCustomNames(asset);
 
                 // Detect output type for this asset
-                if (asset.attributes?.ValveState !== undefined) {
+                if (isValveAsset(asset)) {
                     assetOutputType[asset.id] = 'valve';
+                    const valveKeys = getValveStateKeys(asset.attributes);
+                    const channels = valveKeys
+                        .map(k => parseInt(k.replace(/[^0-9]/g, ''), 10))
+                        .filter(n => !isNaN(n) && n > 0)
+                        .map(n => `r${n}`);
+                    assetValveChannels[asset.id] = channels.length > 0 ? channels : ['r1', 'r2'];
                 } else {
                     assetOutputType[asset.id] = 'relay';
                 }
@@ -590,10 +589,11 @@ function renderEditableTimer(assetId, key, val, pinnedItems = []) {
         </div>
         `;
 
+    const isValve = (assetOutputType[assetId] || 'relay') === 'valve';
     const outputsVal = items['Outputs'] || '';
     innerHtml += `
         <div style="margin-bottom:0.25rem;">
-            <div style="font-size:0.7rem; color:#999; margin-bottom:4px;">TARGET SWITCHES</div>
+            <div style="font-size:0.7rem; color:#999; margin-bottom:4px;">${isValve ? 'TARGET VALVES' : 'TARGET SWITCHES'}</div>
             ${renderOutputsSelector(assetId, key, 'Outputs', outputsVal)}
         </div>
     `;
@@ -664,38 +664,20 @@ function renderDaysSelector(assetId, attrName, nestedKey, val) {
 function renderOutputsSelector(assetId, attrName, nestedKey, val) {
     const outputType = assetOutputType[assetId] || 'relay';
     const isValve = outputType === 'valve';
-    const outputOptions = isValve ? ['valve'] : ['r1', 'r2', 'r3', 'r4'];
-    const currentOutputs = (val || '').toLowerCase();
-
-    const isActive = (rLabel) => {
-        if (isValve) {
-            return currentOutputs.includes('valve');
-        }
-        const num = rLabel.replace(/[^0-9]/g, '');
-        const target = `out 0${num}`;
-        if (currentOutputs.includes(target) || currentOutputs.includes(rLabel)) return true;
-        if (currentOutputs.includes(`out ${num}`) || currentOutputs.includes(`out 0${num}`)) return true;
-        if (currentOutputs.includes(`switch${num}`) || currentOutputs.includes(`switch 0${num}`)) return true;
-        return false;
-    };
+    const outputOptions = isValve ? (assetValveChannels[assetId] || ['r1', 'r2']) : ['r1', 'r2', 'r3', 'r4'];
+    const activeNums = parseTimerOutputNumbers(val);
+    const cn = deviceCustomNames[assetId] || {};
 
     let html = '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
     outputOptions.forEach(r => {
-        const active = isActive(r);
-        const num = r.replace(/[^0-9]/g, '');
-        const label = isValve ? 'V' : num;
-        let title = isValve ? 'Valve' : `Switch ${num}`;
-        const cn = deviceCustomNames[assetId] || {};
-        if (cn[r]) title = cn[r];
-        else if (cn[`switch${num}`]) title = cn[`switch${num}`];
-        else {
-            const localName = localStorage.getItem(`switch_name_${assetId}_${r}`) || localStorage.getItem(`switch_name_${assetId}_switch${num}`);
-            if (localName) title = localName;
-        }
+        const num = parseInt(r.replace(/[^0-9]/g, ''), 10);
+        const active = activeNums.includes(num);
+        const label = isValve ? `V${num}` : String(num);
+        const title = resolveOutputNumberLabel(num, assetId, cn, isValve);
 
         html += `
             <div onclick="bufferOutputToggle(event, '${assetId}', '${attrName}', '${nestedKey}', '${r}')"
-                title="${title}"
+                title="${escapeHtml(title)}"
                 style="width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; cursor:pointer; transition:all 0.2s;
                 background:${active ? 'var(--primary)' : '#e0e0e0'}; 
                 color:${active ? 'white' : '#777'};">
@@ -906,45 +888,15 @@ function bufferOutputToggle(event, assetId, attrName, nestedKey, relay) {
     if (!pendingTimerData[assetId]) pendingTimerData[assetId] = {};
     if (!pendingTimerData[assetId][attrName]) pendingTimerData[assetId][attrName] = {};
 
-    const outputType = assetOutputType[assetId] || 'relay';
-    const isValve = outputType === 'valve';
-
-    if (isValve) {
-        // For valve: toggle between 'valve' and empty
-        pendingTimerData[assetId][attrName][nestedKey] = isActive ? '' : 'valve';
-    } else {
-        // For relay: existing OUT format logic
-        let currentOutputsStr = (pendingTimerData[assetId][attrName][nestedKey] || '').toUpperCase();
-
-        const mapOutToR = (str) => {
-            const parts = str.split(',').map(s => s.trim());
-            return parts.map(p => {
-                if (p.startsWith('OUT')) {
-                    const num = parseInt(p.replace('OUT', '').trim());
-                    return `r${num}`;
-                }
-                if (p.startsWith('SWITCH')) {
-                    const num = parseInt(p.replace('SWITCH', '').trim());
-                    return `r${num}`;
-                }
-                return p.toLowerCase();
-            }).filter(p => p.startsWith('r'));
-        };
-
-        let activeOutputs = mapOutToR(currentOutputsStr);
-        if (activeOutputs.includes(relay)) activeOutputs = activeOutputs.filter(r => r !== relay);
-        else activeOutputs.push(relay);
-
-        const sorted = activeOutputs.sort();
-        const mapRToOut = (rFormatList) => {
-            return rFormatList.map(r => {
-                const num = parseInt(r.replace('r', ''));
-                return `OUT ${String(num).padStart(2, '0')}`;
-            });
-        };
-
-        pendingTimerData[assetId][attrName][nestedKey] = mapRToOut(sorted).join(',');
+    const targetNum = parseInt(String(relay).replace(/[^0-9]/g, ''), 10);
+    let activeNums = parseTimerOutputNumbers(pendingTimerData[assetId][attrName][nestedKey] || '');
+    if (activeNums.includes(targetNum)) {
+        activeNums = activeNums.filter(n => n !== targetNum);
+    } else if (!isNaN(targetNum)) {
+        activeNums.push(targetNum);
     }
+
+    pendingTimerData[assetId][attrName][nestedKey] = formatTimerOutputs(activeNums);
     markDirty(assetId, attrName);
 }
 

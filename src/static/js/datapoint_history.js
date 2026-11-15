@@ -2,7 +2,24 @@
 let currentAssetId = null;
 let currentAttribute = null;
 let currentSubAttribute = null;
+let currentAssetCustomNames = {};
 let realm = 'master';
+
+function resolveHistoryLabel(key, isAttribute = false) {
+    if (!key) return '';
+    if (currentAssetCustomNames && currentAssetCustomNames[key]) {
+        return currentAssetCustomNames[key];
+    }
+    if (currentAssetId) {
+        const isSwitchOrValve = /^(r\d+|switch|valvestate)/i.test(key);
+        const localKey = isSwitchOrValve
+            ? `switch_name_${currentAssetId}_${key}`
+            : `sensor_name_${currentAssetId}_${key}`;
+        const localName = localStorage.getItem(localKey);
+        if (localName) return localName;
+    }
+    return typeof getFriendlyLabel === 'function' ? getFriendlyLabel(key, isAttribute) : key;
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -118,17 +135,18 @@ async function loadAttributes(assetId) {
         const res = await fetch(`${APP_PREFIX}/api/asset/${assetId}`);
         const asset = await res.json();
         const attrs = asset.attributes || {};
+        currentAssetCustomNames = typeof parseCustomNames === 'function' ? parseCustomNames(asset) : {};
 
         select.innerHTML = '<option value="">Select group...</option>';
 
         // Only use actual attribute keys, do not expand JSON
-        // Exclude timers, RuleTargets, and SystemData (not useful for history queries)
+        // Exclude timers, RuleTargets, CustomNames, and SystemData (not useful for history queries)
         Object.keys(attrs).sort()
-            .filter(key => key !== 'RuleTargets' && !key.toLowerCase().startsWith('timer') && key.toLowerCase() !== 'systemdata')
+            .filter(key => key !== 'RuleTargets' && key !== 'CustomNames' && !key.toLowerCase().startsWith('timer') && key.toLowerCase() !== 'systemdata')
             .forEach(key => {
             const el = document.createElement('option');
             el.value = key;
-            el.textContent = key;
+            el.textContent = resolveHistoryLabel(key, true);
             select.appendChild(el);
         });
 
@@ -177,7 +195,7 @@ async function loadAttributes(assetId) {
                 keys.forEach(k => {
                     const opt = document.createElement('option');
                     opt.value = k;
-                    opt.textContent = k;
+                    opt.textContent = resolveHistoryLabel(k, false);
                     subSelect.appendChild(opt);
                 });
             } else {
@@ -265,22 +283,11 @@ function renderTable(data) {
         return;
     }
 
-    // Determine Display Name using Friendly Names
-    let displayText = currentAttribute;
-
-    // Check if friendlyNames is loaded and has attributes
-    if (typeof friendlyNames !== 'undefined' && friendlyNames.attributes) {
-        if (friendlyNames.attributes[currentAttribute]) {
-            displayText = friendlyNames.attributes[currentAttribute];
-        }
-    }
+    // Determine Display Name using Custom / Friendly Names
+    let displayText = resolveHistoryLabel(currentAttribute, true);
 
     if (currentSubAttribute) {
-        let subFriendly = currentSubAttribute;
-        if (typeof friendlyNames !== 'undefined' && friendlyNames.keys && friendlyNames.keys[currentSubAttribute]) {
-            subFriendly = friendlyNames.keys[currentSubAttribute];
-        }
-        displayText += ` (${subFriendly})`;
+        displayText += ` (${resolveHistoryLabel(currentSubAttribute, false)})`;
     } else if (currentAttribute === 'EnvData' || currentAttribute === 'MoistureData' || currentAttribute === 'RelayData') {
         displayText += ' (All)';
     }
@@ -310,11 +317,13 @@ function renderTable(data) {
                 Object.keys(val).sort().forEach(k => {
                     let v = val[k];
                     if (typeof v === 'object' && v !== null) v = JSON.stringify(v);
-                    displayVal += `<div><span class="val-key">${k}:</span> ${formatSensorValue(v, k, currentAttribute)}</div>`;
+                    const labelK = typeof escapeHtml === 'function' ? escapeHtml(resolveHistoryLabel(k, false)) : resolveHistoryLabel(k, false);
+                    displayVal += `<div><span class="val-key">${labelK}:</span> ${formatSensorValue(v, k, currentAttribute)}</div>`;
                 });
                 displayVal += '</div>';
-            } else if (typeof val === 'boolean') {
-                displayVal = val ? '<span style="color:#27ae60;">✓ Yes</span>' : '<span style="color:#e74c3c;">✗ No</span>';
+            } else if (typeof val === 'boolean' || val === 'true' || val === 'false') {
+                const boolVal = val === true || val === 'true';
+                displayVal = boolVal ? '<span style="color:#27ae60;">✓ Yes</span>' : '<span style="color:#e74c3c;">✗ No</span>';
             } else {
                 const unit = currentSubAttribute ? getSensorUnit(currentSubAttribute, currentAttribute) : '';
                 displayVal = unit && !isNaN(Number(val)) ? `${val} ${unit}` : String(val);
@@ -323,7 +332,8 @@ function renderTable(data) {
             displayVal = String(pt.y);
         }
 
-        html += `<tr><td><strong>${displayText}</strong></td><td>${dateStr}</td><td>${timeStr}</td><td>${displayVal}</td></tr>`;
+        const safeDisplayText = typeof escapeHtml === 'function' ? escapeHtml(displayText) : displayText;
+        html += `<tr><td><strong>${safeDisplayText}</strong></td><td>${dateStr}</td><td>${timeStr}</td><td>${displayVal}</td></tr>`;
     });
     html += '</tbody></table>';
 
@@ -365,7 +375,9 @@ function renderGraph(data) {
         data: {
             labels: labels,
             datasets: [{
-                label: (currentAttribute + (currentSubAttribute ? `.${currentSubAttribute}` : '')) || 'Value',
+                label: currentAttribute
+                    ? `${resolveHistoryLabel(currentAttribute, true)}${currentSubAttribute ? ` (${resolveHistoryLabel(currentSubAttribute, false)})` : ''}`
+                    : 'Value',
                 data: values,
                 borderColor: '#4CAF50',
                 backgroundColor: 'rgba(76, 175, 80, 0.2)',

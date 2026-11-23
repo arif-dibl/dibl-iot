@@ -356,7 +356,7 @@ services:
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       HAWKBIT_URL: http://hawkbit:8080/ota
       HAWKBIT_USER: admin
-      HAWKBIT_PASSWORD: "admin"
+      HAWKBIT_PASSWORD: ${HAWKBIT_PASSWORD:?Hawkbit password required}
       SMTP_HOST: smtp.gmail.com
       SMTP_PORT: 587
       SMTP_USER: dibliot843@gmail.com
@@ -423,6 +423,12 @@ services:
       SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 256MB
       SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 256MB
       HAWKBIT_SERVER_SECURITY_DOS_MAXARTIFACTSIZE: 268435456
+      HAWKBIT_SERVER_IM_USERS_0_USERNAME: admin
+      HAWKBIT_SERVER_IM_USERS_0_PASSWORD: "{noop}${HAWKBIT_PASSWORD:?Hawkbit password required}"
+      HAWKBIT_SERVER_IM_USERS_0_FIRSTNAME: Admin
+      HAWKBIT_SERVER_IM_USERS_0_LASTNAME: User
+      HAWKBIT_SERVER_IM_USERS_0_EMAIL: admin@hawkbit.local
+      HAWKBIT_SERVER_IM_USERS_0_PERMISSIONS: ALL
 
   # HawkBit Simple UI (web management dashboard)
   hawkbit-simple-ui:

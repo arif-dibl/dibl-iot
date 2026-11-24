@@ -17,7 +17,18 @@ from core.config import DEFAULT_REALM, FRIENDLY_NAMES_FILE, OR_HOSTNAME, OR_MANA
 router = APIRouter(prefix="/api/debug", tags=["debug"])
 
 # Bangladesh Standard Time (Dhaka, permanent UTC+6, no DST)
+DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000
 DHAKA_TZ = timezone(timedelta(hours=6))
+
+# Keep each CSV safely below Excel & LibreOffice Calc's hard 1,048,576-row ceiling
+MAX_CSV_ROWS_PER_FILE = 1_000_000
+
+INTERVAL_MS_MAP = {
+    "5m": 5 * 60 * 1000,
+    "15m": 15 * 60 * 1000,
+    "1h": 60 * 60 * 1000,
+    "1d": 24 * 60 * 60 * 1000,
+}
 
 PLACEHOLDER_STRINGS = {
     "",
@@ -280,9 +291,194 @@ def _extract_rows_from_export_bytes(raw_bytes: bytes):
     return all_rows
 
 
-def _build_clean_csv(raw_bytes: bytes, export_options: dict):
-    """Transform OpenRemote exported ZIP/CSV bytes into a clean UTF-8-BOM CSV in Dhaka time.
-    Returns (csv_bytes, row_count, filename)."""
+def _dhaka_bucket_start(ts_ms: int, bucket_ms: int) -> int:
+    """Align timestamp to Dhaka (UTC+6) interval boundary (critical for exact Dhaka midnight daily buckets)."""
+    return ((ts_ms + DHAKA_OFFSET_MS) // bucket_ms) * bucket_ms - DHAKA_OFFSET_MS
+
+
+def _try_float(val):
+    """Parse finite numeric float without converting booleans or ON/OFF/HIGH/LOW state strings."""
+    if isinstance(val, bool) or val is None:
+        return None
+    if _parse_state_bool(val) is not None:
+        return None
+    try:
+        num = float(val)
+        return None if (math.isnan(num) or math.isinf(num)) else num
+    except (ValueError, TypeError):
+        return None
+
+
+def _format_agg_number(val: float) -> str:
+    rounded = round(val, 2)
+    if rounded == 0:
+        return "0"
+    text = f"{rounded:.2f}".rstrip("0").rstrip(".")
+    return text if text != "-0" else "0"
+
+
+def _is_state_scalar_series(records) -> bool:
+    state_cnt = 0
+    num_cnt = 0
+    for _ts, val in records:
+        if _parse_state_bool(val) is not None:
+            state_cnt += 1
+        elif _try_float(val) is not None:
+            num_cnt += 1
+    return state_cnt > 0 and state_cnt >= num_cnt
+
+
+def _is_state_dict_series(records) -> bool:
+    state_cnt = 0
+    num_cnt = 0
+    for _ts, row in records:
+        for val in row.values():
+            if _parse_state_bool(val) is not None:
+                state_cnt += 1
+            elif _try_float(val) is not None:
+                num_cnt += 1
+    return state_cnt > 0 and state_cnt >= num_cnt
+
+
+def _compress_scalar_states(records):
+    """Keep first reading, every ON<->OFF state transition, and final reading."""
+    if len(records) <= 2:
+        return records
+    out = [records[0]]
+    prev_val = records[0][1]
+    for ts_ms, val in records[1:-1]:
+        if val != prev_val:
+            out.append((ts_ms, val))
+            prev_val = val
+    out.append(records[-1])
+    return out
+
+
+def _compress_dict_states(records):
+    """Keep first reading, every point where any switch/relay state changed, and final reading."""
+    if len(records) <= 2:
+        return records
+    out = [records[0]]
+    prev_row = records[0][1]
+    for ts_ms, row in records[1:-1]:
+        if row != prev_row:
+            out.append((ts_ms, row))
+            prev_row = row
+    out.append(records[-1])
+    return out
+
+
+def _aggregate_scalar_records(records, bucket_ms: int, include_minmax: bool = False):
+    """Aggregate chronological scalar [(ts_ms, val)] into Dhaka-aligned time buckets."""
+    buckets = {}
+    bucket_order = []
+
+    for ts_ms, val in records:
+        b = _dhaka_bucket_start(ts_ms, bucket_ms)
+        entry = buckets.get(b)
+        if entry is None:
+            entry = {"sum": 0.0, "count": 0, "min": None, "max": None, "last": val}
+            buckets[b] = entry
+            bucket_order.append(b)
+        num = _try_float(val)
+        if num is not None:
+            entry["sum"] += num
+            entry["count"] += 1
+            if entry["min"] is None or num < entry["min"]:
+                entry["min"] = num
+            if entry["max"] is None or num > entry["max"]:
+                entry["max"] = num
+        else:
+            entry["last"] = val
+
+    out = []
+    for b in bucket_order:
+        entry = buckets[b]
+        if entry["count"] > 0:
+            avg_s = _format_agg_number(entry["sum"] / entry["count"])
+            if include_minmax:
+                out.append((b, avg_s, _format_agg_number(entry["min"]), _format_agg_number(entry["max"])))
+            else:
+                out.append((b, avg_s))
+        else:
+            if include_minmax:
+                out.append((b, str(entry["last"]), "", ""))
+            else:
+                out.append((b, str(entry["last"])))
+    return out
+
+
+def _aggregate_dict_records(records, bucket_ms: int):
+    """Aggregate chronological grouped dict [(ts_ms, {k: v})] into Dhaka-aligned time buckets."""
+    buckets = {}
+    bucket_order = []
+
+    for ts_ms, row in records:
+        b = _dhaka_bucket_start(ts_ms, bucket_ms)
+        b_map = buckets.get(b)
+        if b_map is None:
+            b_map = {}
+            buckets[b] = b_map
+            bucket_order.append(b)
+        for k, v in row.items():
+            stat = b_map.get(k)
+            if stat is None:
+                stat = {"sum": 0.0, "count": 0, "last": v}
+                b_map[k] = stat
+            num = _try_float(v)
+            if num is not None:
+                stat["sum"] += num
+                stat["count"] += 1
+            else:
+                stat["last"] = v
+
+    out = []
+    for b in bucket_order:
+        b_map = buckets[b]
+        agg_row = {}
+        for k, stat in b_map.items():
+            if stat["count"] > 0:
+                agg_row[k] = _format_agg_number(stat["sum"] / stat["count"])
+            else:
+                agg_row[k] = stat["last"]
+        if agg_row:
+            out.append((b, agg_row))
+    return out
+
+
+def _package_csv_output(headers, data_rows, base_name: str, max_rows_per_file: int = MAX_CSV_ROWS_PER_FILE):
+    """Write UTF-8-BOM CSV; auto-split into multi-part ZIP if rows exceed spreadsheet limit (1,000,000)."""
+    total_rows = len(data_rows)
+    if total_rows == 0:
+        return None, "", f"{base_name}.csv", 0, 0
+
+    if total_rows <= max_rows_per_file:
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(headers)
+        writer.writerows(data_rows)
+        return buf.getvalue().encode("utf-8-sig"), "text/csv; charset=utf-8", f"{base_name}.csv", total_rows, 1
+
+    # Exceeds safe spreadsheet ceiling: split cleanly into multiple UTF-8-BOM CSVs inside a ZIP
+    num_parts = math.ceil(total_rows / max_rows_per_file)
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for part_idx in range(num_parts):
+            chunk_rows = data_rows[part_idx * max_rows_per_file : (part_idx + 1) * max_rows_per_file]
+            part_io = io.StringIO()
+            writer = csv.writer(part_io)
+            writer.writerow(headers)
+            writer.writerows(chunk_rows)
+            part_name = f"{base_name}_part{part_idx + 1}_of_{num_parts}.csv"
+            zf.writestr(part_name, part_io.getvalue().encode("utf-8-sig"))
+
+    return zip_buf.getvalue(), "application/zip", f"{base_name}_split.zip", total_rows, num_parts
+
+
+def _build_clean_csv(raw_bytes: bytes, export_options: dict, max_rows_per_file: int = MAX_CSV_ROWS_PER_FILE):
+    """Transform exported ZIP/CSV bytes into a clean UTF-8-BOM CSV (or split ZIP if > 1M rows) in Dhaka time.
+    Supports Raw, Dhaka-aligned interval aggregation (5m/15m/1h/1d), and ON<->OFF state-change compression.
+    Returns (content_bytes, media_type, row_count, part_count, filename)."""
     rows = _extract_rows_from_export_bytes(raw_bytes)
     rows.sort(key=lambda item: item[0])
 
@@ -290,20 +486,20 @@ def _build_clean_csv(raw_bytes: bytes, export_options: dict):
     sub_attr = str(export_options.get("subAttribute") or "").strip()
     device_name = str(export_options.get("deviceName") or "device").strip()
     range_label = str(export_options.get("rangeLabel") or "").strip()
+    interval = str(export_options.get("interval") or "raw").strip().lower()
+    bucket_ms = INTERVAL_MS_MAP.get(interval)
     labels_map = export_options.get("labels") or {}
     units_map = export_options.get("units") or {}
     key_order = export_options.get("keyOrder") or []
     friendly_names = _load_friendly_names()
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    written_rows = 0
+    headers = []
+    output_rows = []
+    effective_tag = interval if bucket_ms else ""
 
     if sub_attr:
         # Single element extracted from a grouped textMap attribute
-        col_header = _resolve_column_header(sub_attr, labels_map, units_map, friendly_names)
-        writer.writerow(["Date (Dhaka)", "Time (Dhaka)", col_header])
-
+        scalar_records = []
         for ts_ms, raw_val in rows:
             parsed_dict = _try_parse_json_dict(raw_val)
             if parsed_dict is None or sub_attr not in parsed_dict:
@@ -311,11 +507,41 @@ def _build_clean_csv(raw_bytes: bytes, export_options: dict):
             formatted = _format_export_value(parsed_dict.get(sub_attr))
             if formatted is None:
                 continue
-            date_str, time_str = _format_dhaka_date_time(ts_ms)
-            writer.writerow([date_str, time_str, formatted])
-            written_rows += 1
+            scalar_records.append((ts_ms, formatted))
+
+        col_header = _resolve_column_header(sub_attr, labels_map, units_map, friendly_names)
+
+        if bucket_ms and scalar_records:
+            if _is_state_scalar_series(scalar_records):
+                effective_tag = "events"
+                headers = ["Date (Dhaka)", "Time (Dhaka)", col_header]
+                for ts_ms, val in _compress_scalar_states(scalar_records):
+                    d_str, t_str = _format_dhaka_date_time(ts_ms)
+                    output_rows.append([d_str, t_str, val])
+            elif interval == "1d":
+                base_label = _resolve_column_header(sub_attr, labels_map, {}, friendly_names)
+                unit = str(units_map.get(sub_attr) or "").strip()
+                u_sfx = f" ({unit})" if unit else ""
+                headers = [
+                    "Date (Dhaka)",
+                    f"{base_label} Avg{u_sfx}",
+                    f"{base_label} Min{u_sfx}",
+                    f"{base_label} Max{u_sfx}",
+                ]
+                for b_ms, avg_s, min_s, max_s in _aggregate_scalar_records(scalar_records, bucket_ms, include_minmax=True):
+                    d_str, _t_str = _format_dhaka_date_time(b_ms)
+                    output_rows.append([d_str, avg_s, min_s, max_s])
+            else:
+                headers = ["Date (Dhaka)", "Time (Dhaka)", col_header]
+                for b_ms, avg_s in _aggregate_scalar_records(scalar_records, bucket_ms):
+                    d_str, t_str = _format_dhaka_date_time(b_ms)
+                    output_rows.append([d_str, t_str, avg_s])
+        else:
+            headers = ["Date (Dhaka)", "Time (Dhaka)", col_header]
+            for ts_ms, val in scalar_records:
+                d_str, t_str = _format_dhaka_date_time(ts_ms)
+                output_rows.append([d_str, t_str, val])
     else:
-        # Determine whether rows contain grouped JSON textMap objects or scalar/primitive values
         parsed_dicts = []
         has_json_objects = False
         for ts_ms, raw_val in rows:
@@ -325,7 +551,6 @@ def _build_clean_csv(raw_bytes: bytes, export_options: dict):
             parsed_dicts.append((ts_ms, raw_val, d))
 
         if has_json_objects:
-            # Ungroup textMap into separate columns, keeping ONLY active non-placeholder keys & rows
             cleaned_records = []
             discovered_keys = set()
 
@@ -341,59 +566,103 @@ def _build_clean_csv(raw_bytes: bytes, export_options: dict):
                 if cleaned_row:
                     cleaned_records.append((ts_ms, cleaned_row))
 
-            # Order columns using preferred key_order, then natural sort for any extra keys
             ordered_keys = [k for k in key_order if k in discovered_keys]
             remaining_keys = sorted(discovered_keys - set(ordered_keys), key=_natural_sort_key)
             active_keys = ordered_keys + remaining_keys
 
-            headers = ["Date (Dhaka)", "Time (Dhaka)"] + [
+            is_daily_numeric = False
+            if bucket_ms and cleaned_records:
+                if _is_state_dict_series(cleaned_records):
+                    effective_tag = "events"
+                    cleaned_records = _compress_dict_states(cleaned_records)
+                else:
+                    cleaned_records = _aggregate_dict_records(cleaned_records, bucket_ms)
+                    is_daily_numeric = interval == "1d"
+
+            col_headers = [
                 _resolve_column_header(k, labels_map, units_map, friendly_names)
                 for k in active_keys
             ]
-            writer.writerow(headers)
-
-            for ts_ms, cleaned_row in cleaned_records:
-                date_str, time_str = _format_dhaka_date_time(ts_ms)
-                writer.writerow([date_str, time_str] + [cleaned_row.get(k, "") for k in active_keys])
-                written_rows += 1
+            if is_daily_numeric:
+                headers = ["Date (Dhaka)"] + col_headers
+                for ts_ms, cleaned_row in cleaned_records:
+                    d_str, _t_str = _format_dhaka_date_time(ts_ms)
+                    output_rows.append([d_str] + [cleaned_row.get(k, "") for k in active_keys])
+            else:
+                headers = ["Date (Dhaka)", "Time (Dhaka)"] + col_headers
+                for ts_ms, cleaned_row in cleaned_records:
+                    d_str, t_str = _format_dhaka_date_time(ts_ms)
+                    output_rows.append([d_str, t_str] + [cleaned_row.get(k, "") for k in active_keys])
         else:
             # Primitive / standalone attribute (e.g., ValveState1, ValveState2)
-            col_header = _resolve_column_header(attr_name, labels_map, units_map, friendly_names)
-            writer.writerow(["Date (Dhaka)", "Time (Dhaka)", col_header])
-
+            scalar_records = []
             for ts_ms, raw_val, _d in parsed_dicts:
                 unwrapped = _strip_json_scalar_quotes(raw_val)
                 formatted = _format_export_value(unwrapped)
                 if formatted is None:
                     continue
-                date_str, time_str = _format_dhaka_date_time(ts_ms)
-                writer.writerow([date_str, time_str, formatted])
-                written_rows += 1
+                scalar_records.append((ts_ms, formatted))
 
-    # Build clean ASCII filename for Content-Disposition
+            col_header = _resolve_column_header(attr_name, labels_map, units_map, friendly_names)
+
+            if bucket_ms and scalar_records:
+                if _is_state_scalar_series(scalar_records):
+                    effective_tag = "events"
+                    headers = ["Date (Dhaka)", "Time (Dhaka)", col_header]
+                    for ts_ms, val in _compress_scalar_states(scalar_records):
+                        d_str, t_str = _format_dhaka_date_time(ts_ms)
+                        output_rows.append([d_str, t_str, val])
+                elif interval == "1d":
+                    base_label = _resolve_column_header(attr_name, labels_map, {}, friendly_names)
+                    unit = str(units_map.get(attr_name) or "").strip()
+                    u_sfx = f" ({unit})" if unit else ""
+                    headers = [
+                        "Date (Dhaka)",
+                        f"{base_label} Avg{u_sfx}",
+                        f"{base_label} Min{u_sfx}",
+                        f"{base_label} Max{u_sfx}",
+                    ]
+                    for b_ms, avg_s, min_s, max_s in _aggregate_scalar_records(scalar_records, bucket_ms, include_minmax=True):
+                        d_str, _t_str = _format_dhaka_date_time(b_ms)
+                        output_rows.append([d_str, avg_s, min_s, max_s])
+                else:
+                    headers = ["Date (Dhaka)", "Time (Dhaka)", col_header]
+                    for b_ms, avg_s in _aggregate_scalar_records(scalar_records, bucket_ms):
+                        d_str, t_str = _format_dhaka_date_time(b_ms)
+                        output_rows.append([d_str, t_str, avg_s])
+            else:
+                headers = ["Date (Dhaka)", "Time (Dhaka)", col_header]
+                for ts_ms, val in scalar_records:
+                    d_str, t_str = _format_dhaka_date_time(ts_ms)
+                    output_rows.append([d_str, t_str, val])
+
     parts = [_sanitize_filename_part(device_name, "device"), _sanitize_filename_part(attr_name, "history")]
     if sub_attr:
         parts.append(_sanitize_filename_part(sub_attr, "element"))
     if range_label:
         parts.append(_sanitize_filename_part(range_label, ""))
-    filename = "_".join(p for p in parts if p) + ".csv"
+    if effective_tag:
+        parts.append(_sanitize_filename_part(effective_tag, ""))
+    base_name = "_".join(p for p in parts if p)
 
-    if written_rows == 0:
-        return None, 0, filename
-
-    # UTF-8 with BOM (utf-8-sig) so Excel opens °C, µS/cm, and Bangla custom names cleanly
-    csv_bytes = output.getvalue().encode("utf-8-sig")
-    return csv_bytes, written_rows, filename
+    content_bytes, media_type, filename, row_count, part_count = _package_csv_output(
+        headers, output_rows, base_name, max_rows_per_file=max_rows_per_file
+    )
+    return content_bytes, media_type, row_count, part_count, filename
 
 
 def _clean_datapoint_list(raw_data, filter_options: dict):
-    """Filter '--' / placeholder entries server-side before returning JSON to the browser.
-    Dramatically shrinks payload size (e.g. 17 MB raw textMap -> ~1.7 MB active readings)."""
+    """Filter '--' / placeholder entries and optionally aggregate into Dhaka time buckets (or state-change events)
+    server-side before returning JSON to the browser."""
     if not isinstance(raw_data, list):
         return raw_data
 
     sub_attr = str(filter_options.get("subAttribute") or "").strip()
-    cleaned = []
+    interval = str(filter_options.get("interval") or "raw").strip().lower()
+    bucket_ms = INTERVAL_MS_MAP.get(interval)
+
+    cleaned_records = []
+    has_dict_values = False
 
     if sub_attr:
         for pt in raw_data:
@@ -405,7 +674,7 @@ def _clean_datapoint_list(raw_data, filter_options: dict):
             sub_val = parsed.get(sub_attr)
             if _is_placeholder(sub_val):
                 continue
-            cleaned.append({"x": pt["x"], "y": sub_val})
+            cleaned_records.append((int(pt["x"]), sub_val))
     else:
         for pt in raw_data:
             if not isinstance(pt, dict) or "x" not in pt:
@@ -415,11 +684,34 @@ def _clean_datapoint_list(raw_data, filter_options: dict):
             if parsed is not None:
                 filtered_obj = {k: v for k, v in parsed.items() if not _is_placeholder(v)}
                 if filtered_obj:
-                    cleaned.append({"x": pt["x"], "y": filtered_obj})
+                    has_dict_values = True
+                    cleaned_records.append((int(pt["x"]), filtered_obj))
             elif not _is_placeholder(raw_y):
-                cleaned.append({"x": pt["x"], "y": raw_y})
+                cleaned_records.append((int(pt["x"]), raw_y))
 
-    return cleaned
+    if not cleaned_records:
+        return []
+
+    if bucket_ms:
+        cleaned_records.sort(key=lambda item: item[0])
+        if has_dict_values:
+            dict_only = [(ts, val) for ts, val in cleaned_records if isinstance(val, dict)]
+            if _is_state_dict_series(dict_only):
+                norm_dicts = [
+                    (ts, {k: (_format_export_value(v) or v) for k, v in row.items()})
+                    for ts, row in dict_only
+                ]
+                cleaned_records = _compress_dict_states(norm_dicts)
+            else:
+                cleaned_records = _aggregate_dict_records(dict_only, bucket_ms)
+        else:
+            if _is_state_scalar_series(cleaned_records):
+                norm_scalars = [(ts, _format_export_value(v) or v) for ts, v in cleaned_records]
+                cleaned_records = _compress_scalar_states(norm_scalars)
+            else:
+                cleaned_records = _aggregate_scalar_records(cleaned_records, bucket_ms)
+
+    return [{"x": ts, "y": val} for ts, val in cleaned_records]
 
 
 def _extract_safe_error_detail(res) -> str:
@@ -499,8 +791,8 @@ async def debug_proxy(username: str, request: Request, payload: dict):
                     "data": "No recorded data found for the selected time range.",
                 }
 
-            csv_bytes, row_count, filename = _build_clean_csv(res.content, export_options)
-            if row_count == 0 or not csv_bytes:
+            content_bytes, media_type, row_count, part_count, filename = _build_clean_csv(res.content, export_options)
+            if row_count == 0 or not content_bytes:
                 return {
                     "status": 200,
                     "empty": True,
@@ -508,11 +800,12 @@ async def debug_proxy(username: str, request: Request, payload: dict):
                 }
 
             return Response(
-                content=csv_bytes,
-                media_type="text/csv; charset=utf-8",
+                content=content_bytes,
+                media_type=media_type,
                 headers={
                     "Content-Disposition": f'attachment; filename="{filename}"',
                     "X-Export-Row-Count": str(row_count),
+                    "X-Export-Part-Count": str(part_count),
                 },
             )
 

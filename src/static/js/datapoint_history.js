@@ -4,8 +4,24 @@ const MAX_HISTORY_DAYS = 180;
 const MAX_HISTORY_MS = MAX_HISTORY_DAYS * 24 * 60 * 60 * 1000;
 const TABLE_PAGE_SIZE = 100;
 const CHART_MAX_POINTS = 500;
-const FETCH_CHUNK_MS = 30 * 24 * 60 * 60 * 1000; // 30-day chunk size for reliable history queries
-const MIN_ADAPTIVE_CHUNK_MS = 3 * 24 * 60 * 60 * 1000; // Minimum split window on dense query-limit errors
+const FETCH_CHUNK_MS = 30 * 24 * 60 * 60 * 1000; // 30-day chunk size for standard ranges
+const LONG_RANGE_CHUNK_MS = 15 * 24 * 60 * 60 * 1000; // 15-day chunk size for >45-day ranges (prevents dense query timeouts)
+const MIN_ADAPTIVE_CHUNK_MS = 2 * 24 * 60 * 60 * 1000; // Minimum split window on dense query-limit errors
+
+const INTERVAL_MS_MAP = {
+    '5m': 5 * 60 * 1000,
+    '15m': 15 * 60 * 1000,
+    '1h': 60 * 60 * 1000,
+    '1d': 24 * 60 * 60 * 1000
+};
+
+const INTERVAL_LABELS = {
+    'raw': 'Raw',
+    '5m': '5 Min Avg',
+    '15m': '15 Min Avg',
+    '1h': '1 Hour Avg',
+    '1d': 'Daily Avg'
+};
 
 const PRESET_DURATIONS_MS = {
     '12h': 12 * 60 * 60 * 1000,
@@ -45,6 +61,8 @@ let currentAssetCustomNames = {};
 let realm = 'master';
 
 let activePreset = '24h';
+let selectedInterval = 'auto'; // 'auto' | 'raw' | '5m' | '15m' | '1h' | '1d'
+let lastFetchedInterval = 'raw';
 let customRange = null; // { startMs, endMs } when activePreset === 'custom'
 let currentViewMode = 'table'; // 'table' | 'graph'
 let currentData = null; // Array<{x: number, y: any}> | string | null
@@ -276,6 +294,26 @@ function getTimeRange() {
     };
 }
 
+function getEffectiveInterval(start, end) {
+    if (selectedInterval && selectedInterval !== 'auto') {
+        return selectedInterval;
+    }
+    const spanMs = Math.max(0, end - start);
+    if (spanMs <= 36 * 60 * 60 * 1000) return 'raw';
+    if (spanMs <= 10 * 24 * 60 * 60 * 1000) return '5m';
+    if (spanMs <= 45 * 24 * 60 * 60 * 1000) return '15m';
+    return '1h';
+}
+
+function onIntervalChange() {
+    const sel = document.getElementById('intervalSelect');
+    selectedInterval = sel ? sel.value : 'auto';
+    updateActiveRangeDisplay();
+    if (currentAssetId && currentAttribute && Array.isArray(currentData) && currentData.length > 0) {
+        fetchDatapoints();
+    }
+}
+
 function updateActiveRangeDisplay() {
     const { start, end } = getTimeRange();
     const labelEl = document.getElementById('activeRangeText');
@@ -283,7 +321,11 @@ function updateActiveRangeDisplay() {
     const tag = activePreset === 'custom'
         ? `Custom (${formatDurationHuman(end - start)})`
         : PRESET_LABELS[activePreset] || '24 Hours';
-    labelEl.textContent = `${formatDhakaDateTime(start)}  →  ${formatDhakaDateTime(end)}  •  ${tag}`;
+    const effInterval = getEffectiveInterval(start, end);
+    const intLabel = selectedInterval === 'auto'
+        ? `Auto: ${INTERVAL_LABELS[effInterval] || 'Raw'}`
+        : (INTERVAL_LABELS[effInterval] || 'Raw');
+    labelEl.textContent = `${formatDhakaDateTime(start)}  →  ${formatDhakaDateTime(end)}  •  ${tag} (${intLabel})`;
 }
 
 function selectTimePreset(presetKey, autoFetch = true) {
@@ -781,31 +823,40 @@ function renderStatsSummary(data) {
     ];
 
     const isScalar = !data.some(pt => pt.y && typeof pt.y === 'object');
+    let isStateDataset = false;
     if (isScalar) {
         let onCount = 0;
         let offCount = 0;
         let stateCount = 0;
-        const nums = [];
+        let numCount = 0;
+        let min = Infinity;
+        let max = -Infinity;
+        let sum = 0;
 
-        data.forEach(pt => {
-            const st = parseStateBool(pt.y);
+        for (let i = 0; i < data.length; i++) {
+            const val = data[i].y;
+            const st = parseStateBool(val);
             if (st !== null) {
                 stateCount++;
                 if (st) onCount++;
                 else offCount++;
             } else {
-                const n = Number(pt.y);
-                if (!isNaN(n) && String(pt.y).trim() !== '') nums.push(n);
+                const n = Number(val);
+                if (!isNaN(n) && String(val).trim() !== '') {
+                    numCount++;
+                    if (n < min) min = n;
+                    if (n > max) max = n;
+                    sum += n;
+                }
             }
-        });
+        }
 
-        if (stateCount > 0 && stateCount >= nums.length) {
+        if (stateCount > 0 && stateCount >= numCount) {
+            isStateDataset = true;
             chips.push(`<div class="stat-chip stat-on">ON: <strong>${onCount.toLocaleString()}</strong></div>`);
             chips.push(`<div class="stat-chip stat-off">OFF: <strong>${offCount.toLocaleString()}</strong></div>`);
-        } else if (nums.length > 0) {
-            const min = Math.min(...nums);
-            const max = Math.max(...nums);
-            const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+        } else if (numCount > 0) {
+            const avg = sum / numCount;
             const unitKey = currentSubAttribute || currentAttribute;
             const unit = typeof getSensorUnit === 'function' ? getSensorUnit(unitKey, currentAttribute) : '';
             const suffix = unit ? ` ${safeEscape(unit)}` : '';
@@ -815,12 +866,29 @@ function renderStatsSummary(data) {
         }
     } else {
         const activeKeys = new Set();
-        data.forEach(pt => {
-            if (pt.y && typeof pt.y === 'object') {
-                Object.keys(pt.y).forEach(k => activeKeys.add(k));
+        let stCnt = 0;
+        let numCnt = 0;
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i].y;
+            if (row && typeof row === 'object') {
+                const keys = Object.keys(row);
+                for (let j = 0; j < keys.length; j++) {
+                    const k = keys[j];
+                    activeKeys.add(k);
+                    if (i < 50) {
+                        if (isStateValue(row[k])) stCnt++;
+                        else if (!isNaN(Number(row[k]))) numCnt++;
+                    }
+                }
             }
-        });
+        }
+        isStateDataset = stCnt > 0 && stCnt >= numCnt;
         chips.push(`<div class="stat-chip">Active Elements: <strong>${activeKeys.size}</strong></div>`);
+    }
+
+    if (lastFetchedInterval && lastFetchedInterval !== 'raw') {
+        const modeText = isStateDataset ? 'State Changes' : (INTERVAL_LABELS[lastFetchedInterval] || lastFetchedInterval);
+        chips.push(`<div class="stat-chip">Interval: <strong>${safeEscape(modeText)}</strong></div>`);
     }
 
     statsBar.innerHTML = chips.join('');
@@ -1249,17 +1317,63 @@ function renderGraph(data) {
     });
 }
 
-// ── Fetch Datapoints (30-Day Chunked + Adaptive Split) ──
-function buildTimeChunks(start, end, chunkMs = FETCH_CHUNK_MS) {
+// ── Fetch Datapoints (Dhaka-Aligned Chunking + Adaptive Split + Server Aggregation) ──
+function dhakaBucketFloor(tsMs, bucketMs) {
+    return Math.floor((tsMs + DHAKA_OFFSET_MS) / bucketMs) * bucketMs - DHAKA_OFFSET_MS;
+}
+
+function buildTimeChunks(start, end, chunkMs = FETCH_CHUNK_MS, alignBucketMs = 0) {
     const chunks = [];
     let cursor = start;
     while (cursor <= end) {
-        const chunkEnd = Math.min(cursor + chunkMs, end);
+        let chunkEnd = Math.min(cursor + chunkMs, end);
+        // Align intermediate chunk boundaries to exact Dhaka bucket boundaries so averages never split a bucket
+        if (alignBucketMs > 0 && chunkEnd < end) {
+            const alignedBoundary = dhakaBucketFloor(chunkEnd, alignBucketMs) - 1;
+            if (alignedBoundary > cursor) {
+                chunkEnd = alignedBoundary;
+            }
+        }
         chunks.push({ start: cursor, end: chunkEnd });
         if (chunkEnd >= end) break;
         cursor = chunkEnd + 1;
     }
     return chunks;
+}
+
+function deduplicateStateTransitions(points) {
+    if (!Array.isArray(points) || points.length <= 2) return points;
+    const sorted = [...points].sort((a, b) => a.x - b.x);
+    const isObj = sorted[0].y && typeof sorted[0].y === 'object';
+
+    // Only deduplicate if this is a state series (ON/OFF/true/false/high/low)
+    let stateCnt = 0;
+    let totalChecked = 0;
+    for (let i = 0; i < Math.min(sorted.length, 30); i++) {
+        const y = sorted[i].y;
+        if (isObj && y && typeof y === 'object') {
+            Object.values(y).forEach(v => {
+                totalChecked++;
+                if (isStateValue(v)) stateCnt++;
+            });
+        } else {
+            totalChecked++;
+            if (isStateValue(y)) stateCnt++;
+        }
+    }
+    if (totalChecked === 0 || stateCnt < totalChecked / 2) return sorted;
+
+    const out = [sorted[0]];
+    let prevSig = JSON.stringify(sorted[0].y);
+    for (let i = 1; i < sorted.length - 1; i++) {
+        const sig = JSON.stringify(sorted[i].y);
+        if (sig !== prevSig) {
+            out.push(sorted[i]);
+            prevSig = sig;
+        }
+    }
+    out.push(sorted[sorted.length - 1]);
+    return out;
 }
 
 function cleanClientDatapoints(rawData, subAttr) {
@@ -1302,7 +1416,7 @@ function cleanClientDatapoints(rawData, subAttr) {
     return cleaned;
 }
 
-async function fetchSingleChunk(endpoint, chunkStart, chunkEnd, subAttr, queryType = 'all') {
+async function fetchSingleChunk(endpoint, chunkStart, chunkEnd, subAttr, queryType = 'all', interval = 'raw') {
     const res = await fetch(`${APP_PREFIX}/api/debug/proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1316,12 +1430,25 @@ async function fetchSingleChunk(endpoint, chunkStart, chunkEnd, subAttr, queryTy
             },
             filterOptions: {
                 mode: 'clean_datapoints',
-                subAttribute: subAttr || ''
+                subAttribute: subAttr || '',
+                interval: interval || 'raw'
             }
         })
     });
-    const data = await res.json();
-    return data;
+
+    const contentType = res.headers.get('Content-Type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
+        return {
+            status: res.ok ? 502 : res.status,
+            data: 'Upstream request failed.'
+        };
+    }
+
+    try {
+        return await res.json();
+    } catch (e) {
+        return { status: 502, data: 'Invalid server response.' };
+    }
 }
 
 async function fetchDatapoints() {
@@ -1345,9 +1472,12 @@ async function fetchDatapoints() {
     if (fetchBtn) fetchBtn.disabled = true;
 
     const { start, end } = getTimeRange();
+    const effInterval = getEffectiveInterval(start, end);
+    const alignBucketMs = INTERVAL_MS_MAP[effInterval] || 0;
+    const baseChunkMs = (end - start) > (45 * 24 * 60 * 60 * 1000) ? LONG_RANGE_CHUNK_MS : FETCH_CHUNK_MS;
     const endpoint = `/api/${realm}/asset/datapoint/${currentAssetId}/${currentAttribute}`;
     const subAttr = currentSubAttribute || '';
-    const queue = buildTimeChunks(start, end, FETCH_CHUNK_MS);
+    const queue = buildTimeChunks(start, end, baseChunkMs, alignBucketMs);
 
     let completedChunks = 0;
     let totalChunks = queue.length;
@@ -1364,13 +1494,13 @@ async function fetchDatapoints() {
                 initialMsg.textContent = `Fetching history data... (Part ${completedChunks + 1} of ${totalChunks})`;
             }
 
-            let data = await fetchSingleChunk(endpoint, chunk.start, chunk.end, subAttr, preferredQueryType);
+            let data = await fetchSingleChunk(endpoint, chunk.start, chunk.end, subAttr, preferredQueryType, effInterval);
 
             if (fetchSeq !== activeFetchSeq) return;
 
             // Compatibility fallback: if server rejects type='all', retry with type='json'
-            if (data.status === 400 && preferredQueryType === 'all' && (chunk.end - chunk.start) <= FETCH_CHUNK_MS) {
-                const retry = await fetchSingleChunk(endpoint, chunk.start, chunk.end, subAttr, 'json');
+            if (data.status === 400 && preferredQueryType === 'all' && (chunk.end - chunk.start) <= baseChunkMs) {
+                const retry = await fetchSingleChunk(endpoint, chunk.start, chunk.end, subAttr, 'json', effInterval);
                 if (fetchSeq !== activeFetchSeq) return;
                 if (!retry.status || retry.status < 400) {
                     preferredQueryType = 'json';
@@ -1378,11 +1508,17 @@ async function fetchDatapoints() {
                 }
             }
 
-            // Adaptive split: if a dense chunk exceeds the per-query point limit, split in half and retry
+            // Adaptive split: if a dense chunk exceeds query limit or times out (502/504), split in half and retry
             if (data.status >= 400) {
                 const span = chunk.end - chunk.start;
                 if (span > MIN_ADAPTIVE_CHUNK_MS && data.status !== 401 && data.status !== 403 && data.status !== 404) {
-                    const mid = Math.floor((chunk.start + chunk.end) / 2);
+                    let mid = Math.floor((chunk.start + chunk.end) / 2);
+                    if (alignBucketMs > 0) {
+                        const alignedMid = dhakaBucketFloor(mid, alignBucketMs) - 1;
+                        if (alignedMid > chunk.start && alignedMid < chunk.end) {
+                            mid = alignedMid;
+                        }
+                    }
                     queue.unshift({ start: mid + 1, end: chunk.end });
                     queue.unshift({ start: chunk.start, end: mid });
                     totalChunks += 1;
@@ -1402,30 +1538,45 @@ async function fetchDatapoints() {
 
             if (Array.isArray(rawData)) {
                 const cleanedChunk = cleanClientDatapoints(rawData, subAttr);
-                cleanedChunk.forEach(pt => {
+                for (let i = 0; i < cleanedChunk.length; i++) {
+                    const pt = cleanedChunk[i];
                     mergedByTs.set(pt.x, pt);
-                });
+                }
             }
         }
 
         if (fetchSeq !== activeFetchSeq) return;
 
+        lastFetchedInterval = effInterval;
+
         if (failedError && mergedByTs.size === 0) {
             currentData = failedError;
         } else {
-            const merged = Array.from(mergedByTs.values());
+            let merged = Array.from(mergedByTs.values());
+            if (effInterval !== 'raw' && merged.length > 2) {
+                merged = deduplicateStateTransitions(merged);
+            }
             tableDisplayLimit = TABLE_PAGE_SIZE;
             currentData = merged.length > 0
                 ? merged
                 : 'No valid sensor readings found for the selected time range.';
             if (failedError && merged.length > 0) {
                 showHistoryToast('Loaded partial history; some dense segments could not be fetched.');
+            } else if (effInterval === 'raw' && merged.length > 300000) {
+                showHistoryToast('Large raw dataset loaded; switch Interval to 15m/1h for faster viewing.');
             }
         }
     } catch (e) {
         if (fetchSeq !== activeFetchSeq) return;
         console.error(e);
-        currentData = 'Unable to connect to server. Please try again later.';
+        if (mergedByTs.size > 0) {
+            lastFetchedInterval = effInterval;
+            currentData = Array.from(mergedByTs.values());
+            tableDisplayLimit = TABLE_PAGE_SIZE;
+            showHistoryToast('Connection interrupted; showing partially loaded history.');
+        } else {
+            currentData = 'Unable to connect to server. Please try again later.';
+        }
     } finally {
         if (fetchSeq === activeFetchSeq && fetchBtn) {
             fetchBtn.disabled = false;
@@ -1444,6 +1595,7 @@ async function exportDatapoints() {
 
     updateActiveRangeDisplay();
     const { start, end } = getTimeRange();
+    const effInterval = getEffectiveInterval(start, end);
     const refs = JSON.stringify([{ id: currentAssetId, name: currentAttribute }]);
     const encodedRefs = encodeURIComponent(refs);
     const endpoint = `/api/${realm}/asset/datapoint/export?attributeRefs=${encodedRefs}&fromTimestamp=${start}&toTimestamp=${end}`;
@@ -1484,7 +1636,8 @@ async function exportDatapoints() {
                     keyOrder: currentAttrKeys,
                     labels,
                     units,
-                    rangeLabel: activePreset
+                    rangeLabel: activePreset,
+                    interval: effInterval
                 }
             })
         });
@@ -1503,7 +1656,8 @@ async function exportDatapoints() {
             } else {
                 const blob = await res.blob();
                 const cd = res.headers.get('Content-Disposition') || '';
-                let filename = `${currentAttribute}${currentSubAttribute ? '_' + currentSubAttribute : ''}_${activePreset}.csv`;
+                const isZip = contentType.includes('application/zip');
+                let filename = `${currentAttribute}${currentSubAttribute ? '_' + currentSubAttribute : ''}_${activePreset}${isZip ? '_split.zip' : '.csv'}`;
                 const match = cd.match(/filename="?([^"]+)"?/i);
                 if (match && match[1]) filename = match[1];
 
@@ -1517,7 +1671,14 @@ async function exportDatapoints() {
                 window.URL.revokeObjectURL(url);
 
                 const rowCount = res.headers.get('X-Export-Row-Count');
-                showHistoryToast(rowCount ? `Exported ${Number(rowCount).toLocaleString()} rows to CSV.` : 'CSV downloaded.');
+                const partCount = Number(res.headers.get('X-Export-Part-Count') || '1');
+                if (partCount > 1 && rowCount) {
+                    showHistoryToast(`Exported ${Number(rowCount).toLocaleString()} rows split into ${partCount} CSV files (ZIP) for Excel/LibreOffice.`);
+                } else if (rowCount) {
+                    showHistoryToast(`Exported ${Number(rowCount).toLocaleString()} rows to CSV.`);
+                } else {
+                    showHistoryToast('CSV downloaded.');
+                }
             }
         } else {
             showHistoryToast('Export request failed. Please try again.');

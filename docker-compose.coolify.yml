@@ -355,7 +355,6 @@ services:
       - ./config:/app/config
     environment:
       PYTHONUNBUFFERED: "1"
-      SESSION_SECRET: ${SESSION_SECRET:?Session secret required}
       OR_HOSTNAME: ${OR_HOSTNAME:?Hostname required}
       OR_ADMIN_PASSWORD: ${OR_ADMIN_PASSWORD:?Admin password required}
       HAWKBIT_URL: http://hawkbit:8080/ota

@@ -1,5 +1,4 @@
 import os
-import secrets
 
 # -------------------------
 # OPENREMOTE & KEYCLOAK CONFIG
@@ -8,15 +7,6 @@ OR_HOSTNAME = os.environ.get('OR_HOSTNAME', 'localhost')
 OR_ADMIN_PASSWORD = os.getenv("OR_ADMIN_PASSWORD", "secret")
 OR_MANAGER_URL = os.getenv("OR_MANAGER_URL", "http://manager:8080")
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://keycloak:8080/auth")
-
-# -------------------------
-# SESSION SECURITY
-# -------------------------
-SESSION_SECRET = os.getenv("SESSION_SECRET", "").strip()
-if not SESSION_SECRET:
-    # Ephemeral per-process fallback for local dev; production must set SESSION_SECRET env var.
-    SESSION_SECRET = secrets.token_urlsafe(32)
-    print("[SECURITY WARNING] SESSION_SECRET env var is not set; using ephemeral session key.")
 
 # -------------------------
 # APPLICATION PREFIX (for reverse proxy subpath routing)

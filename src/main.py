@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from routes import auth as auth_routes, dashboard as dashboard_routes
 from api import assets as assets_api, rules as rules_api, user as user_api, debug as debug_api
-from core.config import APP_PREFIX, SESSION_SECRET
+from core.config import APP_PREFIX
 from core.auth import verify_username_match, NotAuthenticatedException
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -19,7 +19,7 @@ app = FastAPI(title="DIBL IoT Custom UI", docs_url=docs_url, openapi_url=openapi
 # Session Middleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 
 # 1. PUBLIC ROUTES (No prefix, no gatekeeper)
 # Include authentication routes directly at the root (or APP_PREFIX)

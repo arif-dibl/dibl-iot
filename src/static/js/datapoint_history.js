@@ -4,7 +4,7 @@ const MAX_HISTORY_DAYS = 180;
 const MAX_HISTORY_MS = MAX_HISTORY_DAYS * 24 * 60 * 60 * 1000;
 const TABLE_PAGE_SIZE = 100;
 const CHART_MAX_POINTS = 500;
-const FETCH_CHUNK_MS = 30 * 24 * 60 * 60 * 1000; // 30-day chunk size for reliable OpenRemote queries
+const FETCH_CHUNK_MS = 30 * 24 * 60 * 60 * 1000; // 30-day chunk size for reliable history queries
 const MIN_ADAPTIVE_CHUNK_MS = 3 * 24 * 60 * 60 * 1000; // Minimum split window on dense query-limit errors
 
 const PRESET_DURATIONS_MS = {
@@ -1249,7 +1249,7 @@ function renderGraph(data) {
     });
 }
 
-// ── Fetch Datapoints from OpenRemote Manager (30-Day Chunked + Adaptive Split) ──
+// ── Fetch Datapoints (30-Day Chunked + Adaptive Split) ──
 function buildTimeChunks(start, end, chunkMs = FETCH_CHUNK_MS) {
     const chunks = [];
     let cursor = start;
@@ -1336,7 +1336,7 @@ async function fetchDatapoints() {
 
     const fetchBtn = document.getElementById('fetchBtn');
     const initialMsg = document.getElementById('initialMessage');
-    initialMsg.textContent = 'Fetching history from OpenRemote...';
+    initialMsg.textContent = 'Fetching history data...';
     initialMsg.style.display = 'block';
     document.getElementById('statsSummary').style.display = 'none';
     document.getElementById('tableWrapper').style.display = 'none';
@@ -1361,14 +1361,14 @@ async function fetchDatapoints() {
 
             const chunk = queue.shift();
             if (totalChunks > 1) {
-                initialMsg.textContent = `Fetching history from OpenRemote... (Part ${completedChunks + 1} of ${totalChunks})`;
+                initialMsg.textContent = `Fetching history data... (Part ${completedChunks + 1} of ${totalChunks})`;
             }
 
             let data = await fetchSingleChunk(endpoint, chunk.start, chunk.end, subAttr, preferredQueryType);
 
             if (fetchSeq !== activeFetchSeq) return;
 
-            // Compatibility fallback: if an older OpenRemote build rejects type='all', retry with type='json'
+            // Compatibility fallback: if server rejects type='all', retry with type='json'
             if (data.status === 400 && preferredQueryType === 'all' && (chunk.end - chunk.start) <= FETCH_CHUNK_MS) {
                 const retry = await fetchSingleChunk(endpoint, chunk.start, chunk.end, subAttr, 'json');
                 if (fetchSeq !== activeFetchSeq) return;
@@ -1378,7 +1378,7 @@ async function fetchDatapoints() {
                 }
             }
 
-            // Adaptive split: if a dense chunk exceeds OpenRemote's per-query point limit, split in half and retry
+            // Adaptive split: if a dense chunk exceeds the per-query point limit, split in half and retry
             if (data.status >= 400) {
                 const span = chunk.end - chunk.start;
                 if (span > MIN_ADAPTIVE_CHUNK_MS && data.status !== 401 && data.status !== 403 && data.status !== 404) {
@@ -1435,7 +1435,7 @@ async function fetchDatapoints() {
     updateView();
 }
 
-// ── Export Clean CSV via OpenRemote Manager /asset/datapoint/export ──
+// ── Export Clean CSV ──
 async function exportDatapoints() {
     if (!currentAssetId || !currentAttribute) {
         showHistoryToast('Please select a device and group / attribute first.');

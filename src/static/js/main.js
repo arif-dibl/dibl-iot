@@ -146,7 +146,7 @@ function parseTimerOutputNumbers(outputsStr) {
 }
 
 /**
- * Formats an array of output channel numbers [1, 2] into OpenRemote Timer format "OUT 01,OUT 02".
+ * Formats an array of output channel numbers [1, 2] into Timer format "OUT 01,OUT 02".
  */
 function formatTimerOutputs(nums) {
     const unique = Array.from(new Set(nums.filter(n => !isNaN(n) && n > 0))).sort((a, b) => a - b);

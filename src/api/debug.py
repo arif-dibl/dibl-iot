@@ -423,20 +423,25 @@ def _clean_datapoint_list(raw_data, filter_options: dict):
 
 
 def _extract_safe_error_detail(res) -> str:
-    """Extract a short sanitized diagnostic message from an upstream OpenRemote error."""
+    """Extract a short sanitized diagnostic message from an upstream error without leaking vendor names."""
+    detail = ""
     try:
         err_json = res.json()
         if isinstance(err_json, dict):
             for key in ("error", "message", "detail", "title"):
                 val = err_json.get(key)
                 if val and isinstance(val, str):
-                    return val.strip()[:160]
+                    detail = val.strip()[:160]
+                    break
     except Exception:
         pass
-    text = (res.text or "").strip()
-    if text and not text.lstrip().startswith("<"):
-        return re.sub(r"\s+", " ", text)[:160]
-    return ""
+    if not detail:
+        text = (res.text or "").strip()
+        if text and not text.lstrip().startswith("<"):
+            detail = re.sub(r"\s+", " ", text)[:160]
+    if detail and ("openremote" in detail.lower() or "org." in detail.lower()):
+        return ""
+    return detail
 
 
 @router.post("/proxy")

@@ -41,7 +41,7 @@ services:
   postgresql:
     restart: always
     image: openremote/postgresql:${POSTGRESQL_VERSION:-latest}
-    shm_size: 128mb
+    shm_size: 512mb
     volumes:
       - postgresql-data:/var/lib/postgresql/data
       - manager-data:/storage
@@ -86,7 +86,10 @@ services:
       OR_ADDITIONAL_HOSTNAMES:
       OR_SSL_PORT: ${OR_SSL_PORT:--1}
       OR_DEV_MODE: ${OR_DEV_MODE:-false}
+      OR_DATA_POINTS_MAX_AGE_WEEKS: 26
       OR_DATA_POINTS_MAX_AGE_DAYS: 180
+      OR_DATA_POINTS_QUERY_LIMIT: 500000
+      OR_DATA_POINTS_EXPORT_LIMIT: 10000000
 
       # The following variables will configure the demo
       OR_FORECAST_SOLAR_API_KEY:

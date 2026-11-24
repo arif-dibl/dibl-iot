@@ -386,6 +386,59 @@ def _build_clean_csv(raw_bytes: bytes, export_options: dict):
     return csv_bytes, written_rows, filename
 
 
+def _clean_datapoint_list(raw_data, filter_options: dict):
+    """Filter '--' / placeholder entries server-side before returning JSON to the browser.
+    Dramatically shrinks payload size (e.g. 17 MB raw textMap -> ~1.7 MB active readings)."""
+    if not isinstance(raw_data, list):
+        return raw_data
+
+    sub_attr = str(filter_options.get("subAttribute") or "").strip()
+    cleaned = []
+
+    if sub_attr:
+        for pt in raw_data:
+            if not isinstance(pt, dict) or "x" not in pt:
+                continue
+            parsed = _try_parse_json_dict(pt.get("y"))
+            if parsed is None or sub_attr not in parsed:
+                continue
+            sub_val = parsed.get(sub_attr)
+            if _is_placeholder(sub_val):
+                continue
+            cleaned.append({"x": pt["x"], "y": sub_val})
+    else:
+        for pt in raw_data:
+            if not isinstance(pt, dict) or "x" not in pt:
+                continue
+            raw_y = pt.get("y")
+            parsed = _try_parse_json_dict(raw_y)
+            if parsed is not None:
+                filtered_obj = {k: v for k, v in parsed.items() if not _is_placeholder(v)}
+                if filtered_obj:
+                    cleaned.append({"x": pt["x"], "y": filtered_obj})
+            elif not _is_placeholder(raw_y):
+                cleaned.append({"x": pt["x"], "y": raw_y})
+
+    return cleaned
+
+
+def _extract_safe_error_detail(res) -> str:
+    """Extract a short sanitized diagnostic message from an upstream OpenRemote error."""
+    try:
+        err_json = res.json()
+        if isinstance(err_json, dict):
+            for key in ("error", "message", "detail", "title"):
+                val = err_json.get(key)
+                if val and isinstance(val, str):
+                    return val.strip()[:160]
+    except Exception:
+        pass
+    text = (res.text or "").strip()
+    if text and not text.lstrip().startswith("<"):
+        return re.sub(r"\s+", " ", text)[:160]
+    return ""
+
+
 @router.post("/proxy")
 async def debug_proxy(username: str, request: Request, payload: dict):
     realm = request.session.get("realm", DEFAULT_REALM)
@@ -398,6 +451,7 @@ async def debug_proxy(username: str, request: Request, payload: dict):
     method = payload.get("method", "GET").upper()
     body = payload.get("body")
     export_options = payload.get("exportOptions")
+    filter_options = payload.get("filterOptions")
 
     if not endpoint.startswith("/"):
         endpoint = "/" + endpoint
@@ -424,8 +478,12 @@ async def debug_proxy(username: str, request: Request, payload: dict):
             return {"status": 400, "data": "Method not supported"}
 
         if res.status_code >= 400:
-            print(f"[DEBUG PROXY] Upstream error {res.status_code} on {endpoint}: {res.text[:200]}")
-            return {"status": res.status_code, "data": "Unable to complete request."}
+            detail = _extract_safe_error_detail(res)
+            print(f"[DEBUG PROXY] Upstream error {res.status_code} on {endpoint}: {res.text[:250]}")
+            resp_payload = {"status": res.status_code, "data": "Unable to complete request."}
+            if detail:
+                resp_payload["detail"] = detail
+            return resp_payload
 
         # Clean CSV transformation mode for History Logs export (in-memory 5B)
         if isinstance(export_options, dict) and export_options.get("mode") == "clean_csv":
@@ -478,6 +536,10 @@ async def debug_proxy(username: str, request: Request, payload: dict):
             data = res.json()
         except Exception:
             data = res.text
+
+        # Server-side placeholder filtering for History Logs Fetch Data
+        if isinstance(filter_options, dict) and filter_options.get("mode") == "clean_datapoints":
+            data = _clean_datapoint_list(data, filter_options)
 
         return {"status": res.status_code, "data": data}
     except Exception as e:

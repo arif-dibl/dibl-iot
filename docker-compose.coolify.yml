@@ -237,7 +237,7 @@ services:
   postgresql:
     image: openremote/postgresql:${POSTGRESQL_VERSION:-latest}
     restart: always
-    shm_size: 128mb
+    shm_size: 512mb
     volumes:
       - postgresql-data:/var/lib/postgresql/data
       - manager-data:/storage
@@ -297,7 +297,10 @@ services:
       OR_SSL_PORT: ${OR_SSL_PORT:--1}
       OR_DEV_MODE: ${OR_DEV_MODE:-false}
       OR_METRICS_ENABLED: ${OR_METRICS_ENABLED:-true}
+      OR_DATA_POINTS_MAX_AGE_WEEKS: 26
       OR_DATA_POINTS_MAX_AGE_DAYS: 180
+      OR_DATA_POINTS_QUERY_LIMIT: 500000
+      OR_DATA_POINTS_EXPORT_LIMIT: 10000000
       OR_KEYCLOAK_HOST: keycloak
       OR_KEYCLOAK_PORT: 8080
 

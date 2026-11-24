@@ -4,6 +4,8 @@ const MAX_HISTORY_DAYS = 180;
 const MAX_HISTORY_MS = MAX_HISTORY_DAYS * 24 * 60 * 60 * 1000;
 const TABLE_PAGE_SIZE = 100;
 const CHART_MAX_POINTS = 500;
+const FETCH_CHUNK_MS = 30 * 24 * 60 * 60 * 1000; // 30-day chunk size for reliable OpenRemote queries
+const MIN_ADAPTIVE_CHUNK_MS = 3 * 24 * 60 * 60 * 1000; // Minimum split window on dense query-limit errors
 
 const PRESET_DURATIONS_MS = {
     '12h': 12 * 60 * 60 * 1000,
@@ -49,6 +51,7 @@ let currentData = null; // Array<{x: number, y: any}> | string | null
 let tableDisplayLimit = TABLE_PAGE_SIZE;
 let chartInstance = null;
 let toastTimer = null;
+let activeFetchSeq = 0;
 
 // Custom Date-Time Picker Modal Draft State (all stored in Dhaka wall-clock components)
 let pickerDraft = {
@@ -1246,7 +1249,81 @@ function renderGraph(data) {
     });
 }
 
-// ── Fetch Datapoints from OpenRemote Manager ──
+// ── Fetch Datapoints from OpenRemote Manager (30-Day Chunked + Adaptive Split) ──
+function buildTimeChunks(start, end, chunkMs = FETCH_CHUNK_MS) {
+    const chunks = [];
+    let cursor = start;
+    while (cursor <= end) {
+        const chunkEnd = Math.min(cursor + chunkMs, end);
+        chunks.push({ start: cursor, end: chunkEnd });
+        if (chunkEnd >= end) break;
+        cursor = chunkEnd + 1;
+    }
+    return chunks;
+}
+
+function cleanClientDatapoints(rawData, subAttr) {
+    const cleaned = [];
+    if (!Array.isArray(rawData)) return cleaned;
+
+    if (subAttr) {
+        rawData.forEach(pt => {
+            if (!pt || pt.x === undefined) return;
+            const obj = tryParseJsonObject(pt.y);
+            if (obj) {
+                if (!(subAttr in obj)) return;
+                const subVal = obj[subAttr];
+                if (isHistoryPlaceholder(subVal)) return;
+                cleaned.push({ x: pt.x, y: subVal });
+            } else if (!isHistoryPlaceholder(pt.y)) {
+                // Already extracted server-side via filterOptions
+                cleaned.push({ x: pt.x, y: pt.y });
+            }
+        });
+    } else {
+        rawData.forEach(pt => {
+            if (!pt || pt.x === undefined) return;
+            const obj = tryParseJsonObject(pt.y);
+            if (obj) {
+                const filteredObj = {};
+                Object.keys(obj).forEach(k => {
+                    if (!isHistoryPlaceholder(obj[k])) {
+                        filteredObj[k] = obj[k];
+                    }
+                });
+                if (Object.keys(filteredObj).length > 0) {
+                    cleaned.push({ x: pt.x, y: filteredObj });
+                }
+            } else if (!isHistoryPlaceholder(pt.y)) {
+                cleaned.push({ x: pt.x, y: pt.y });
+            }
+        });
+    }
+    return cleaned;
+}
+
+async function fetchSingleChunk(endpoint, chunkStart, chunkEnd, subAttr, queryType = 'all') {
+    const res = await fetch(`${APP_PREFIX}/api/debug/proxy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            method: 'POST',
+            endpoint,
+            body: {
+                fromTimestamp: chunkStart,
+                toTimestamp: chunkEnd,
+                type: queryType
+            },
+            filterOptions: {
+                mode: 'clean_datapoints',
+                subAttribute: subAttr || ''
+            }
+        })
+    });
+    const data = await res.json();
+    return data;
+}
+
 async function fetchDatapoints() {
     if (!currentAssetId || !currentAttribute) {
         currentData = 'Please select a device and group / attribute first.';
@@ -1254,6 +1331,7 @@ async function fetchDatapoints() {
         return;
     }
 
+    const fetchSeq = ++activeFetchSeq;
     updateActiveRangeDisplay();
 
     const fetchBtn = document.getElementById('fetchBtn');
@@ -1268,76 +1346,90 @@ async function fetchDatapoints() {
 
     const { start, end } = getTimeRange();
     const endpoint = `/api/${realm}/asset/datapoint/${currentAssetId}/${currentAttribute}`;
-    const body = {
-        fromTimestamp: start,
-        toTimestamp: end,
-        type: 'json'
-    };
+    const subAttr = currentSubAttribute || '';
+    const queue = buildTimeChunks(start, end, FETCH_CHUNK_MS);
+
+    let completedChunks = 0;
+    let totalChunks = queue.length;
+    let preferredQueryType = 'all';
+    const mergedByTs = new Map();
+    let failedError = null;
 
     try {
-        const res = await fetch(`${APP_PREFIX}/api/debug/proxy`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                method: 'POST',
-                endpoint,
-                body
-            })
-        });
-        const data = await res.json();
+        while (queue.length > 0) {
+            if (fetchSeq !== activeFetchSeq) return; // Superseded by a newer fetch
 
-        if (data.status >= 400) {
-            currentData = 'Unable to fetch history data. Please try again later.';
-        } else {
+            const chunk = queue.shift();
+            if (totalChunks > 1) {
+                initialMsg.textContent = `Fetching history from OpenRemote... (Part ${completedChunks + 1} of ${totalChunks})`;
+            }
+
+            let data = await fetchSingleChunk(endpoint, chunk.start, chunk.end, subAttr, preferredQueryType);
+
+            if (fetchSeq !== activeFetchSeq) return;
+
+            // Compatibility fallback: if an older OpenRemote build rejects type='all', retry with type='json'
+            if (data.status === 400 && preferredQueryType === 'all' && (chunk.end - chunk.start) <= FETCH_CHUNK_MS) {
+                const retry = await fetchSingleChunk(endpoint, chunk.start, chunk.end, subAttr, 'json');
+                if (fetchSeq !== activeFetchSeq) return;
+                if (!retry.status || retry.status < 400) {
+                    preferredQueryType = 'json';
+                    data = retry;
+                }
+            }
+
+            // Adaptive split: if a dense chunk exceeds OpenRemote's per-query point limit, split in half and retry
+            if (data.status >= 400) {
+                const span = chunk.end - chunk.start;
+                if (span > MIN_ADAPTIVE_CHUNK_MS && data.status !== 401 && data.status !== 403 && data.status !== 404) {
+                    const mid = Math.floor((chunk.start + chunk.end) / 2);
+                    queue.unshift({ start: mid + 1, end: chunk.end });
+                    queue.unshift({ start: chunk.start, end: mid });
+                    totalChunks += 1;
+                    continue;
+                }
+                failedError = data.detail
+                    ? `Unable to fetch history data (${data.status}: ${data.detail}).`
+                    : 'Unable to fetch history data. Please try again later.';
+                break;
+            }
+
+            completedChunks += 1;
             let rawData = data.data !== undefined ? data.data : data;
             if (data.status === 200 && Array.isArray(data.data)) {
                 rawData = data.data;
             }
 
-            if (!Array.isArray(rawData)) {
-                currentData = 'No recorded data found for the selected time range.';
-            } else {
-                // Option 3A: Filter out "--" / placeholder values across Single Element, Grouped All Elements, and Primitives
-                const cleaned = [];
+            if (Array.isArray(rawData)) {
+                const cleanedChunk = cleanClientDatapoints(rawData, subAttr);
+                cleanedChunk.forEach(pt => {
+                    mergedByTs.set(pt.x, pt);
+                });
+            }
+        }
 
-                if (currentSubAttribute) {
-                    rawData.forEach(pt => {
-                        const obj = tryParseJsonObject(pt.y);
-                        if (!obj || !(currentSubAttribute in obj)) return;
-                        const subVal = obj[currentSubAttribute];
-                        if (isHistoryPlaceholder(subVal)) return;
-                        cleaned.push({ x: pt.x, y: subVal });
-                    });
-                } else {
-                    rawData.forEach(pt => {
-                        const obj = tryParseJsonObject(pt.y);
-                        if (obj) {
-                            const filteredObj = {};
-                            Object.keys(obj).forEach(k => {
-                                if (!isHistoryPlaceholder(obj[k])) {
-                                    filteredObj[k] = obj[k];
-                                }
-                            });
-                            if (Object.keys(filteredObj).length > 0) {
-                                cleaned.push({ x: pt.x, y: filteredObj });
-                            }
-                        } else if (!isHistoryPlaceholder(pt.y)) {
-                            cleaned.push({ x: pt.x, y: pt.y });
-                        }
-                    });
-                }
+        if (fetchSeq !== activeFetchSeq) return;
 
-                tableDisplayLimit = TABLE_PAGE_SIZE;
-                currentData = cleaned.length > 0
-                    ? cleaned
-                    : 'No valid sensor readings found for the selected time range.';
+        if (failedError && mergedByTs.size === 0) {
+            currentData = failedError;
+        } else {
+            const merged = Array.from(mergedByTs.values());
+            tableDisplayLimit = TABLE_PAGE_SIZE;
+            currentData = merged.length > 0
+                ? merged
+                : 'No valid sensor readings found for the selected time range.';
+            if (failedError && merged.length > 0) {
+                showHistoryToast('Loaded partial history; some dense segments could not be fetched.');
             }
         }
     } catch (e) {
+        if (fetchSeq !== activeFetchSeq) return;
         console.error(e);
         currentData = 'Unable to connect to server. Please try again later.';
     } finally {
-        if (fetchBtn) fetchBtn.disabled = false;
+        if (fetchSeq === activeFetchSeq && fetchBtn) {
+            fetchBtn.disabled = false;
+        }
     }
 
     updateView();

@@ -736,6 +736,24 @@ def _extract_safe_error_detail(res) -> str:
     return detail
 
 
+def _is_allowed_history_endpoint(endpoint: str, method: str, realm: str) -> bool:
+    """Restrict proxy strictly to History Logs datapoint query & export endpoints within the user's realm."""
+    if not endpoint or ".." in endpoint or "\\" in endpoint:
+        return False
+    path = endpoint.split("?", 1)[0]
+    prefix = f"/api/{realm}/asset/datapoint/"
+    if not path.startswith(prefix):
+        return False
+    if method == "GET":
+        return path == f"{prefix}export"
+    if method == "POST":
+        # /api/{realm}/asset/datapoint/{assetId}/{attributeName}
+        tail = path[len(prefix):]
+        parts = [p for p in tail.split("/") if p]
+        return len(parts) == 2
+    return False
+
+
 @router.post("/proxy")
 async def debug_proxy(username: str, request: Request, payload: dict):
     realm = request.session.get("realm", DEFAULT_REALM)
@@ -744,14 +762,18 @@ async def debug_proxy(username: str, request: Request, payload: dict):
     if not access_token:
         return {"status": 401, "data": "No access token found in session"}
 
-    endpoint = payload.get("endpoint", "")
-    method = payload.get("method", "GET").upper()
+    endpoint = str(payload.get("endpoint", "") or "")
+    method = str(payload.get("method", "GET") or "GET").upper()
     body = payload.get("body")
     export_options = payload.get("exportOptions")
     filter_options = payload.get("filterOptions")
 
     if not endpoint.startswith("/"):
         endpoint = "/" + endpoint
+
+    if not _is_allowed_history_endpoint(endpoint, method, realm):
+        return {"status": 403, "data": "Endpoint or method not allowed."}
+
     url = f"{OR_MANAGER_URL}{endpoint}"
 
     headers = {
@@ -767,12 +789,8 @@ async def debug_proxy(username: str, request: Request, payload: dict):
             res = requests.get(url, headers=headers)
         elif method == "POST":
             res = requests.post(url, json=body, headers=headers)
-        elif method == "PUT":
-            res = requests.put(url, json=body, headers=headers)
-        elif method == "DELETE":
-            res = requests.delete(url, headers=headers)
         else:
-            return {"status": 400, "data": "Method not supported"}
+            return {"status": 403, "data": "Method not allowed."}
 
         if res.status_code >= 400:
             detail = _extract_safe_error_detail(res)

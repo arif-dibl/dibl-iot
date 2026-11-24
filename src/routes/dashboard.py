@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from core.config import DEFAULT_REALM, OR_HOSTNAME, APP_PREFIX
-from core.auth import get_valid_token, auth_test_api
+from core.config import DEFAULT_REALM, APP_PREFIX
+from core.auth import get_valid_token
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="templates")
@@ -87,11 +87,6 @@ async def user_page(request: Request, username: str):
 async def link_asset_page(request: Request, username: str):
     realm = request.session.get("realm", DEFAULT_REALM)
     return templates.TemplateResponse("link_asset.html", {"request": request, "realm": realm, "page": "assets", "prefix": APP_PREFIX, "username": username})
-
-@router.get("/test", response_class=HTMLResponse)
-async def test_page(request: Request, username: str, _=Depends(auth_test_api)):
-    realm = request.session.get("realm", DEFAULT_REALM)
-    return templates.TemplateResponse("test_api.html", {"request": request, "realm": realm, "host": OR_HOSTNAME, "page": "test", "prefix": APP_PREFIX, "username": username})
 
 @router.get("/history-logs", response_class=HTMLResponse)
 async def history_logs_page(request: Request, username: str):

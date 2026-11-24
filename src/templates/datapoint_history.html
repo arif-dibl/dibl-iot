@@ -4,125 +4,230 @@
 {% block header %}History Logs{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <!-- Asset/Attribute Selection Bar -->
-    <div class="card" style="margin-bottom: 1.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <div style="display: flex; align-items: center; gap: 1rem; flex: 1; flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <label style="font-weight: 600; white-space: nowrap; color: var(--text-muted);">Device:</label>
-                    <select id="assetSelect" onchange="loadAttributes(this.value)"
-                        style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; min-width: 200px; font-size: 0.95rem;">
-                        <option value="">Choose a device...</option>
-                    </select>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <label style="font-weight: 600; white-space: nowrap; color: var(--text-muted);">Group:</label>
-                    <select id="attributeSelect" disabled
-                        style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; min-width: 180px; font-size: 0.95rem;">
-                        <option value="">Select a device first...</option>
-                    </select>
-                </div>
-                <div id="subAttributeGroup" style="display: none; align-items: center; gap: 0.75rem;">
-                    <label style="font-weight: 600; white-space: nowrap; color: var(--text-muted);">Elements:</label>
-                    <select id="subAttributeSelect"
-                        style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; min-width: 150px; font-size: 0.95rem;">
-                        <option value="">(All)</option>
-                    </select>
-                </div>
+<div class="history-page">
+    <!-- Asset / Attribute Selection Bar -->
+    <div class="card history-card">
+        <div class="history-selectors">
+            <div class="selector-field">
+                <label for="assetSelect">Device</label>
+                <select id="assetSelect" onchange="loadAttributes(this.value)">
+                    <option value="">Choose a device...</option>
+                </select>
+            </div>
+            <div class="selector-field">
+                <label for="attributeSelect">Group / Attribute</label>
+                <select id="attributeSelect" disabled>
+                    <option value="">Select a device first...</option>
+                </select>
+            </div>
+            <div id="subAttributeGroup" class="selector-field" style="display: none;">
+                <label for="subAttributeSelect">Elements</label>
+                <select id="subAttributeSelect">
+                    <option value="">(All Elements)</option>
+                </select>
             </div>
         </div>
     </div>
 
-    <!-- Time Range Card -->
-    <div class="card" style="margin-bottom: 1.5rem;">
-        <div
-            style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1.5rem;">
-            <div style="display: flex; gap: 2rem; flex-wrap: wrap; flex: 1;">
-                <!-- Start -->
-                <div>
-                    <label
-                        style="display: block; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.85rem;">START
-                        DATE / TIME</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="date" id="startDate"
-                            style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
-                        <input type="time" id="startTime"
-                            style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; width: 110px;">
-                    </div>
-                </div>
-                <!-- End -->
-                <div>
-                    <label
-                        style="display: block; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.85rem;">END
-                        DATE / TIME</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="date" id="endDate"
-                            style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
-                        <input type="time" id="endTime"
-                            style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; width: 110px;">
-                    </div>
-                </div>
-            </div>
-            <!-- Buttons -->
-            <div style="display: flex; gap: 0.75rem;">
-                <button class="btn-sm" onclick="fetchDatapoints()">Fetch Data</button>
-                <button class="btn-sm btn-secondary" onclick="exportDatapoints()">Export CSV</button>
+    <!-- Time Range Presets & Actions Card -->
+    <div class="card history-card">
+        <div class="time-range-header">
+            <span class="time-section-label">TIME RANGE</span>
+            <span class="tz-badge">Dhaka (UTC+6)</span>
+        </div>
+
+        <div class="preset-bar" role="group" aria-label="Time range presets">
+            <button type="button" class="preset-btn" data-preset="12h" onclick="selectTimePreset('12h')">12 Hours</button>
+            <button type="button" class="preset-btn active" data-preset="24h" onclick="selectTimePreset('24h')">24 Hours</button>
+            <button type="button" class="preset-btn" data-preset="7d" onclick="selectTimePreset('7d')">7 Days</button>
+            <button type="button" class="preset-btn" data-preset="30d" onclick="selectTimePreset('30d')">30 Days</button>
+            <button type="button" class="preset-btn" data-preset="3m" onclick="selectTimePreset('3m')">3 Months</button>
+            <button type="button" class="preset-btn" data-preset="6m" onclick="selectTimePreset('6m')">6 Months</button>
+            <button type="button" class="preset-btn preset-btn-custom" data-preset="custom" onclick="openCustomRangeModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Custom
+            </button>
+        </div>
+
+        <div class="range-action-row">
+            <button type="button" id="activeRangeChip" class="range-summary-chip" onclick="openCustomRangeModal()" title="Click to customize date and time">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span id="activeRangeText">Loading range...</span>
+            </button>
+
+            <div class="history-actions">
+                <button type="button" id="fetchBtn" class="btn-sm history-action-btn" onclick="fetchDatapoints()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    Fetch Data
+                </button>
+                <button type="button" id="exportBtn" class="btn-sm btn-secondary history-action-btn" onclick="exportDatapoints()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Export CSV
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Results Section with View Mode -->
-    <div class="card">
-        <!-- Header with View Options -->
-        <div
-            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
-            <h4 style="margin: 0; color: var(--text-dark);">Data Results</h4>
-            <div style="display: flex; align-items: center; gap: 1.5rem;">
-                <span style="font-weight: 500; color: var(--text-muted); font-size: 0.85rem;">Show as:</span>
-                <label
-                    style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; color: var(--text-dark); font-weight: 500; font-size: 0.9rem;">
-                    <input type="radio" name="viewMode" value="table" checked onchange="updateView()"> Table
-                </label>
-                <label
-                    style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; color: var(--text-dark); font-weight: 500; font-size: 0.9rem;">
-                    <input type="radio" name="viewMode" value="graph" onchange="updateView()"> Chart
-                </label>
-                <label
-                    style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; color: var(--text-muted); font-weight: 500; font-size: 0.9rem;">
-                    <input type="radio" name="viewMode" value="json" onchange="updateView()"> Raw Data
-                </label>
+    <!-- Results Section (Table & Chart only) -->
+    <div class="card history-card">
+        <div class="results-header">
+            <h4 class="results-title">Data Results</h4>
+            <div class="view-segmented" role="tablist" aria-label="Result view mode">
+                <button type="button" class="view-tab active" data-view="table" role="tab" aria-selected="true"
+                    onclick="setViewMode('table')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <line x1="3" y1="15" x2="21" y2="15"></line>
+                        <line x1="9" y1="9" x2="9" y2="21"></line>
+                    </svg>
+                    Table
+                </button>
+                <button type="button" class="view-tab" data-view="graph" role="tab" aria-selected="false"
+                    onclick="setViewMode('graph')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Chart
+                </button>
             </div>
         </div>
 
-        <!-- Initial/Feedback Message -->
-        <div id="initialMessage" class="output-box"
-            style="text-align: center; color: var(--text-muted); font-family: inherit; font-size: 1rem;">
+        <!-- Summary Stats Bar -->
+        <div id="statsSummary" class="stats-bar" style="display: none;"></div>
+
+        <!-- Initial / Feedback Message -->
+        <div id="initialMessage" class="history-empty-state">
             Choose a device and group above, then click <strong>Fetch Data</strong> to see the history.
         </div>
 
-        <!-- Raw JSON Data Output -->
-        <div id="jsonWrapper" style="display: none; position: relative;">
-            <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                Copy
-            </button>
-            <pre id="responseOutput" class="output-box"></pre>
+        <!-- Table Output -->
+        <div id="tableWrapper" style="display: none;">
+            <div id="tableOutput" class="table-scroll"></div>
+            <div id="tableLoadMoreBar" class="load-more-bar" style="display: none;"></div>
         </div>
 
-        <!-- Table Output -->
-        <div id="tableOutput" style="display: none; overflow-x: auto;"></div>
-
-        <!-- Graph Output -->
-        <div id="graphOutput" class="graph-container" style="display: none;">
-            <canvas id="datapointChart"></canvas>
+        <!-- Chart Output -->
+        <div id="graphOutput" class="graph-wrapper" style="display: none;">
+            <div id="chartHintBar" class="chart-hint-bar" style="display: none;"></div>
+            <div class="graph-container">
+                <canvas id="datapointChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Custom Date & Time Range Picker Modal / Mobile Bottom-Sheet -->
+<div id="customRangeBackdrop" class="picker-backdrop" style="display: none;" onclick="closeCustomRangeModal()"></div>
+<div id="customRangeModal" class="picker-modal" role="dialog" aria-modal="true" aria-labelledby="pickerModalTitle"
+    style="display: none;">
+    <div class="picker-modal-header">
+        <div>
+            <h3 id="pickerModalTitle">Select Custom Date &amp; Time</h3>
+            <p class="picker-subtitle">Up to 180 days history &bull; Dhaka Time (UTC+6)</p>
+        </div>
+        <button type="button" class="picker-close-btn" onclick="closeCustomRangeModal()" aria-label="Close">&times;</button>
+    </div>
+
+    <!-- Live Selection Pills -->
+    <div class="picker-endpoints">
+        <div id="pickerStartPill" class="picker-endpoint-pill active" onclick="setPickerPickingPhase('start')">
+            <span class="endpoint-label">START</span>
+            <span id="pickerStartPreview" class="endpoint-val">--</span>
+        </div>
+        <div class="endpoint-arrow">&rarr;</div>
+        <div id="pickerEndPill" class="picker-endpoint-pill" onclick="setPickerPickingPhase('end')">
+            <span class="endpoint-label">END</span>
+            <span id="pickerEndPreview" class="endpoint-val">--</span>
+        </div>
+    </div>
+
+    <!-- Interactive Calendar -->
+    <div class="picker-calendar-box">
+        <div class="cal-nav">
+            <button type="button" id="calPrevBtn" class="cal-nav-btn" onclick="shiftCalendarMonth(-1)" aria-label="Previous month">&lsaquo;</button>
+            <div id="calMonthLabel" class="cal-month-label">Month Year</div>
+            <button type="button" id="calNextBtn" class="cal-nav-btn" onclick="shiftCalendarMonth(1)" aria-label="Next month">&rsaquo;</button>
+        </div>
+        <div class="cal-weekdays">
+            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div id="calDaysGrid" class="cal-days-grid"></div>
+    </div>
+
+    <!-- Clean 12-Hour Time Selectors -->
+    <div class="picker-time-grid">
+        <div class="time-card">
+            <div class="time-card-top">
+                <span class="time-card-label">Start Time</span>
+                <div class="time-quick-links">
+                    <button type="button" class="time-mini-btn" onclick="setQuickTime('start', 0, 0)">12:00 AM</button>
+                    <button type="button" class="time-mini-btn" onclick="setQuickTime('start', 6, 0)">6:00 AM</button>
+                </div>
+            </div>
+            <div class="time-controls">
+                <select id="startHourSelect" aria-label="Start hour" onchange="onCustomTimeChange()"></select>
+                <span class="time-colon">:</span>
+                <select id="startMinSelect" aria-label="Start minute" onchange="onCustomTimeChange()"></select>
+                <div class="ampm-toggle" role="group" aria-label="Start AM or PM">
+                    <button type="button" id="startAmBtn" class="ampm-btn active" onclick="setAmPm('start', 'AM')">AM</button>
+                    <button type="button" id="startPmBtn" class="ampm-btn" onclick="setAmPm('start', 'PM')">PM</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="time-card">
+            <div class="time-card-top">
+                <span class="time-card-label">End Time</span>
+                <div class="time-quick-links">
+                    <button type="button" class="time-mini-btn" onclick="setQuickTime('end', 23, 59)">11:59 PM</button>
+                    <button type="button" class="time-mini-btn" onclick="setQuickEndNow()">Now</button>
+                </div>
+            </div>
+            <div class="time-controls">
+                <select id="endHourSelect" aria-label="End hour" onchange="onCustomTimeChange()"></select>
+                <span class="time-colon">:</span>
+                <select id="endMinSelect" aria-label="End minute" onchange="onCustomTimeChange()"></select>
+                <div class="ampm-toggle" role="group" aria-label="End AM or PM">
+                    <button type="button" id="endAmBtn" class="ampm-btn active" onclick="setAmPm('end', 'AM')">AM</button>
+                    <button type="button" id="endPmBtn" class="ampm-btn" onclick="setAmPm('end', 'PM')">PM</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="picker-modal-footer">
+        <div id="pickerDurationText" class="picker-duration">Duration: --</div>
+        <div class="picker-footer-btns">
+            <button type="button" class="picker-cancel-btn" onclick="closeCustomRangeModal()">Cancel</button>
+            <button type="button" class="btn-sm picker-apply-btn" onclick="applyCustomRange()">Apply Range</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="historyToast" class="history-toast" role="status" aria-live="polite"></div>
 
 <link rel="stylesheet" href="{{ prefix }}/static/css/history_logs.css">
 {% endblock %}
